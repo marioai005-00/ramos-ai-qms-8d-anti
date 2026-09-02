@@ -1119,6 +1119,11 @@
 .effectiveness-check-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
 .effectiveness-check-grid label { display:grid; gap:5px; border:1px solid rgba(148,163,184,.14); background:#0b1627; padding:9px; }
 .effectiveness-check-grid span { color:#cbd5e1; font-size:.76rem; font-weight:700; }
+.inline-action-group { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:7px; }
+.ai-draft-flag { display:inline-flex; margin-top:5px; border-left:2px solid #f59e0b; padding-left:5px; color:#fbbf24; font-size:.68rem; font-weight:700; white-space:nowrap; }
+.row-manage-stack { display:flex; align-items:center; justify-content:center; gap:7px; min-width:105px; }
+.row-verify-control { display:flex; align-items:center; gap:4px; color:#cbd5e1; font-size:.68rem; white-space:nowrap; cursor:pointer; }
+.row-verify-control input { accent-color:#10b981; }
 
 .fresh-start-empty {
   display: grid;
@@ -1386,6 +1391,8 @@
   .quality-tool-head.inline-head { flex-direction:column; }
   .quality-stage-actions { flex-direction:column-reverse; }
   .quality-stage-actions .btn { width:100%; justify-content:center; }
+  .inline-action-group { width:100%; justify-content:stretch; }
+  .inline-action-group .btn { flex:1; justify-content:center; }
   .intake-workflow-strip {
     grid-template-columns: 1fr;
   }

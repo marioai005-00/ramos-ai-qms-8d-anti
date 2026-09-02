@@ -575,14 +575,14 @@
           </div>
 
           <div class="card quality-stage-card">
-            <div class="quality-tool-head inline-head"><div><span class="quality-tool-kicker">QUALITY TOOL · IS / IS NOT</span><h3>문제의 경계 비교</h3><p>발생 대상과 유사하지만 발생하지 않은 대상을 비교합니다.</p></div><button type="button" class="btn btn-secondary btn-sm" onclick="addD2IsIsNotRow()"><i data-lucide="plus" style="width:13px;height:13px;"></i> 비교행 추가</button></div>
+            <div class="quality-tool-head inline-head"><div><span class="quality-tool-kicker">QUALITY TOOL · IS / IS NOT</span><h3>문제의 경계 비교</h3><p>발생 대상과 유사하지만 발생하지 않은 대상을 비교합니다. AI 초안의 비발생 정보는 실제 LOT·라인 데이터로 검증해야 합니다.</p></div><div class="inline-action-group"><button type="button" class="btn btn-primary btn-sm" onclick="generateD2IsIsNotDraft()"><i data-lucide="sparkles" style="width:13px;height:13px;"></i> AI 비교 초안 생성</button><button type="button" class="btn btn-secondary btn-sm" onclick="addD2IsIsNotRow()"><i data-lucide="plus" style="width:13px;height:13px;"></i> 비교행 추가</button></div></div>
             <div class="quality-table-wrap"><table class="custom-table quality-edit-table"><thead><tr><th>구분</th><th class="is-col">IS · 발생함</th><th class="isnot-col">IS NOT · 발생하지 않음</th><th>차이/특이점</th><th>관리</th></tr></thead><tbody>
               ${d2.isIsNot.length ? d2.isIsNot.map((row, idx) => `<tr>
-                <td><input class="form-control" name="d2Factor${idx}" value="${escapeWorkspaceValue(row.factor)}" placeholder="제품/LOT/공정"></td>
+                <td><input class="form-control" name="d2Factor${idx}" value="${escapeWorkspaceValue(row.factor)}" placeholder="제품/LOT/공정">${row.aiDraft ? `<span class="ai-draft-flag">AI 초안 · 사실확인 필요</span>` : ''}</td>
                 <td><input class="form-control" name="d2Is${idx}" value="${escapeWorkspaceValue(row.is)}" placeholder="발생 대상"></td>
                 <td><input class="form-control" name="d2IsNot${idx}" value="${escapeWorkspaceValue(row.isNot)}" placeholder="비발생 비교대상"></td>
                 <td><input class="form-control" name="d2Difference${idx}" value="${escapeWorkspaceValue(row.difference)}" placeholder="확인된 차이"></td>
-                <td><button type="button" class="icon-danger-btn" onclick="removeD2IsIsNotRow(${idx})"><i data-lucide="trash-2"></i></button></td>
+                <td><div class="row-manage-stack"><label class="row-verify-control"><input type="checkbox" name="d2Verified${idx}" ${isD2ComparisonRowVerified(row) ? 'checked' : ''}><span>사실 확인</span></label><button type="button" class="icon-danger-btn" onclick="removeD2IsIsNotRow(${idx})"><i data-lucide="trash-2"></i></button></div></td>
               </tr>`).join('') : `<tr><td colspan="5" class="quality-empty-row">IS / IS NOT 비교행을 한 개 이상 추가하세요.</td></tr>`}
             </tbody></table></div>
           </div>
@@ -608,15 +608,42 @@
         factor: form.elements[`d2Factor${idx}`]?.value?.trim() || '',
         is: form.elements[`d2Is${idx}`]?.value?.trim() || '',
         isNot: form.elements[`d2IsNot${idx}`]?.value?.trim() || '',
-        difference: form.elements[`d2Difference${idx}`]?.value?.trim() || ''
+        difference: form.elements[`d2Difference${idx}`]?.value?.trim() || '',
+        aiDraft: Boolean(row.aiDraft),
+        verificationStatus: form.elements[`d2Verified${idx}`]?.checked ? 'Verified' : 'Required'
       }));
       return d2;
+    }
+
+    function isD2ComparisonRowVerified(row) {
+      if (row.verificationStatus) return row.verificationStatus === 'Verified';
+      return !row.aiDraft && Boolean(row.factor && row.is && row.isNot && row.difference);
+    }
+
+    function generateD2IsIsNotDraft() {
+      const c = getActiveCase();
+      const d2 = captureD2Form(c);
+      if (d2.isIsNot.some(row => row.factor || row.is || row.isNot || row.difference)) {
+        if (!confirm('현재 IS / IS NOT 비교행을 AI 초안으로 교체하시겠습니까?')) return;
+      }
+      const whenAndHow = [d2.problemWhen, d2.problemHow].filter(Boolean).join(' · ') || c.receiptDate || '접수 시점/조건';
+      const issue = d2.problemWhat || c.claimTitle || '접수 불량 현상';
+      const affectedProduct = [c.product, c.partNumber, c.lotNumber].filter(Boolean).join(' / ');
+      d2.isIsNot = [
+        { factor:'제품 / LOT', is:affectedProduct || '접수 대상 제품/LOT', isNot:'[확인 필요] 동일 제품의 인접 LOT 또는 정상 LOT', difference:'[확인 필요] MES·검사이력에서 원자재/설비/시간대 차이 대조', aiDraft:true, verificationStatus:'Required' },
+        { factor:'발생 위치', is:d2.problemWhere || c.incidentSite || '고객 발생 라인', isNot:'[확인 필요] 동일 고객의 타 라인 또는 정상 생산라인', difference:'[확인 필요] 라인·설비·공정조건 차이 대조', aiDraft:true, verificationStatus:'Required' },
+        { factor:'시점 / 발생 조건', is:whenAndHow, isNot:'[확인 필요] 동일 제품의 비발생 시간대 또는 비발생 조건', difference:'[확인 필요] 작업시간·Recipe·Reflow 전후 조건 대조', aiDraft:true, verificationStatus:'Required' },
+        { factor:'불량 현상', is:issue, isNot:'[확인 필요] 정상 동작품 또는 유사하지만 다른 불량 증상', difference:'[확인 필요] 측정값·Error Code·재현 여부 대조', aiDraft:true, verificationStatus:'Required' }
+      ];
+      d2.isIsNotDraft = { generatedAt:new Date().toISOString().replace('T',' ').slice(0,16), source:'Intake + 5W2H + Case metadata', status:'Human Verification Required' };
+      d2.approval = { ...(d2.approval || {}), status:'Draft', humanConfirmed:false };
+      saveAppData(); renderCurrentView();
     }
 
     function addD2IsIsNotRow() {
       const c = getActiveCase();
       const d2 = captureD2Form(c);
-      d2.isIsNot.push({ factor:'', is:'', isNot:'', difference:'' });
+      d2.isIsNot.push({ factor:'', is:'', isNot:'', difference:'', aiDraft:false, verificationStatus:'Required' });
       saveAppData(); renderCurrentView();
     }
 
@@ -648,6 +675,7 @@
       const requiredFields = ['problemWhat','problemWhere','problemWhen','problemWho','problemWhich','problemHow','problemHowMany','problemStatement'];
       if (requiredFields.some(name => !d2[name])) { alert('5W2H와 표준 문제 정의문의 필수 항목을 모두 입력해 주세요.'); return; }
       if (!d2.isIsNot.length || d2.isIsNot.some(row => !row.factor || !row.is || !row.isNot || !row.difference)) { alert('IS / IS NOT 비교행을 한 개 이상 완성해 주세요.'); return; }
+      if (d2.isIsNot.some(row => row.verificationStatus !== 'Verified')) { alert('각 IS / IS NOT 행의 비발생 비교대상과 차이를 실제 데이터로 확인한 뒤 [사실 확인]에 체크해 주세요.'); return; }
       if (!(c.evidenceList || []).length) { alert('문제 정의를 뒷받침할 고객 원본 또는 측정 Evidence가 필요합니다.'); return; }
       if (!form?.elements.humanConfirmed?.checked) { alert('[사실 검토 완료]에 체크해 주세요.'); return; }
       d2.approval = { status:'Approved', humanConfirmed:true, approvedAt:new Date().toISOString().replace('T',' ').slice(0,16), approvedBy:{name:CURRENT_USER.name,dept:CURRENT_USER.dept,email:CURRENT_USER.email} };
