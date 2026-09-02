@@ -689,7 +689,200 @@
       c.d3.actions = Array.isArray(c.d3.actions) ? c.d3.actions : [];
       c.d3.lotScope = c.d3.lotScope || {};
       c.d3.effectiveness = c.d3.effectiveness || {};
+      c.d3.inventorySources = c.d3.inventorySources || {
+        erp: {
+          RAK4: { warehouse:'RAK4', lot:c.lotNumber || '', currentQty:0, holdQty:0, evidence:'', verified:false },
+          RAK5: { warehouse:'RAK5', lot:c.lotNumber || '', currentQty:0, holdQty:0, evidence:'', verified:false }
+        },
+        mes: { processStocks:[], evidence:'', verified:false }
+      };
+      c.d3.inventorySources.erp = c.d3.inventorySources.erp || {};
+      ['RAK4','RAK5'].forEach(code => {
+        c.d3.inventorySources.erp[code] = c.d3.inventorySources.erp[code] || { warehouse:code, lot:c.lotNumber || '', currentQty:0, holdQty:0, evidence:'', verified:false };
+      });
+      c.d3.inventorySources.mes = c.d3.inventorySources.mes || { processStocks:[], evidence:'', verified:false };
+      c.d3.inventorySources.mes.processStocks = Array.isArray(c.d3.inventorySources.mes.processStocks) ? c.d3.inventorySources.mes.processStocks : [];
       return c.d3;
+    }
+
+    function renderD3InventorySourcePanel(c) {
+      const sources = ensureD3Structure(c).inventorySources;
+      const rak4 = sources.erp.RAK4;
+      const rak5 = sources.erp.RAK5;
+      const mes = sources.mes;
+      const erpTotal = Number(rak4.currentQty || 0) + Number(rak5.currentQty || 0);
+      const mesTotal = mes.processStocks.reduce((sum,row) => sum + Number(row.currentQty || 0), 0);
+      return `
+        <section class="inventory-source-panel">
+          <div class="quality-tool-head inventory-source-head">
+            <div><span class="quality-tool-kicker">SOURCE DATA · ERP / MES</span><h3>현재 재고 확인</h3><p>Excel은 외부 서버로 전송하지 않고 이 브라우저에서만 분석합니다. 자동 매핑 결과를 반드시 사람에게 확인받습니다.</p></div>
+            <div class="inventory-total-strip"><span>ERP 완제품 <b id="erpFinishedTotal">${erpTotal.toLocaleString()}</b></span><span>MES 공정재고 <b id="mesWipTotal">${mesTotal.toLocaleString()}</b></span></div>
+          </div>
+          <div class="erp-warehouse-grid">
+            ${['RAK4','RAK5'].map(code => {
+              const row = sources.erp[code];
+              return `<article class="warehouse-inventory-block">
+                <div class="warehouse-code"><span>ERP FINISHED GOODS</span><strong>${code}</strong><em>${row.importedAt ? `Excel ${row.importedAt}` : '수동 입력 또는 Excel'}</em></div>
+                <div class="warehouse-field-grid">
+                  <label><span>관리 LOT</span><input class="form-control" name="erp${code}Lot" value="${escapeWorkspaceValue(row.lot || c.lotNumber)}"></label>
+                  <label><span>현재 재고</span><input class="form-control num-mono" type="number" min="0" name="erp${code}Qty" value="${Number(row.currentQty || 0)}" oninput="updateD3InventoryPreview()"></label>
+                  <label><span>Hold 수량</span><input class="form-control num-mono" type="number" min="0" name="erp${code}Hold" value="${Number(row.holdQty || 0)}"></label>
+                  <label><span>근거 / 파일명</span><input class="form-control" name="erp${code}Evidence" value="${escapeWorkspaceValue(row.evidence)}" placeholder="ERP 재고조회 파일"></label>
+                </div>
+                <div class="warehouse-actions"><input type="file" id="inventoryFile${code}" accept=".xlsx,.xls,.csv" hidden onchange="handleInventoryExcelImport(event,'erp','${code}')"><button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('inventoryFile${code}').click()"><i data-lucide="file-spreadsheet" style="width:13px;height:13px;"></i> ${code} Excel 가져오기</button><label><input type="checkbox" name="erp${code}Verified" ${row.verified ? 'checked' : ''}> ${code} 재고 확인</label></div>
+              </article>`;
+            }).join('')}
+          </div>
+          <div class="mes-inventory-block">
+            <div class="mes-inventory-head"><div><span>MES WORK IN PROCESS</span><strong>공정별 현재 재공품</strong><small>${mes.importedAt ? `Excel 반영 ${mes.importedAt}` : '공정명과 현재 수량을 입력하거나 MES Excel을 가져오세요.'}</small></div><div class="inline-action-group"><input type="file" id="inventoryFileMES" accept=".xlsx,.xls,.csv" hidden onchange="handleInventoryExcelImport(event,'mes','MES')"><button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('inventoryFileMES').click()"><i data-lucide="file-spreadsheet" style="width:13px;height:13px;"></i> MES Excel 가져오기</button><button type="button" class="btn btn-secondary btn-sm" onclick="addMESProcessStockRow()"><i data-lucide="plus" style="width:13px;height:13px;"></i> 공정 추가</button></div></div>
+            <div class="quality-table-wrap"><table class="custom-table quality-edit-table"><thead><tr><th>공정명</th><th>LOT</th><th>현재 WIP</th><th>Hold</th><th>상태</th><th>Evidence</th><th>관리</th></tr></thead><tbody>
+              ${mes.processStocks.length ? mes.processStocks.map((row,idx) => `<tr><td><input class="form-control" name="mesProcess${idx}" value="${escapeWorkspaceValue(row.process)}" placeholder="예: SMT / TEST"></td><td><input class="form-control" name="mesLot${idx}" value="${escapeWorkspaceValue(row.lot || c.lotNumber)}"></td><td><input class="form-control num-mono" type="number" min="0" name="mesQty${idx}" value="${Number(row.currentQty || 0)}" oninput="updateD3InventoryPreview()"></td><td><input class="form-control num-mono" type="number" min="0" name="mesHold${idx}" value="${Number(row.holdQty || 0)}"></td><td><select class="form-control" name="mesStatus${idx}">${['미확인','In Process','Hold','Screening','Released'].map(status => `<option ${row.status===status?'selected':''}>${status}</option>`).join('')}</select></td><td><input class="form-control" name="mesEvidence${idx}" value="${escapeWorkspaceValue(row.evidence || mes.evidence)}" placeholder="MES 조회/파일명"></td><td><button type="button" class="icon-danger-btn" onclick="removeMESProcessStockRow(${idx})"><i data-lucide="trash-2"></i></button></td></tr>`).join('') : `<tr><td colspan="7" class="quality-empty-row">MES 공정재고가 없습니다. Excel을 가져오거나 공정행을 추가하세요.</td></tr>`}
+            </tbody></table></div>
+            <div class="mes-verification-row"><label><input type="checkbox" name="mesVerified" ${mes.verified ? 'checked' : ''}> MES 공정별 WIP 확인 완료</label><button type="button" class="btn btn-secondary btn-sm" onclick="applyInventorySourcesToMaterialFlow()"><i data-lucide="arrow-down-to-line" style="width:13px;height:13px;"></i> D3 Material Flow에 반영</button></div>
+          </div>
+        </section>
+      `;
+    }
+
+    function captureD3InventoryForm(c, form) {
+      const sources = ensureD3Structure(c).inventorySources;
+      if (!form) return sources;
+      ['RAK4','RAK5'].forEach(code => {
+        const current = sources.erp[code];
+        sources.erp[code] = {
+          ...current,
+          warehouse:code,
+          lot:form.elements[`erp${code}Lot`]?.value?.trim() || c.lotNumber || '',
+          currentQty:Number(form.elements[`erp${code}Qty`]?.value || 0),
+          holdQty:Number(form.elements[`erp${code}Hold`]?.value || 0),
+          evidence:form.elements[`erp${code}Evidence`]?.value?.trim() || '',
+          verified:Boolean(form.elements[`erp${code}Verified`]?.checked)
+        };
+      });
+      sources.mes.processStocks = sources.mes.processStocks.map((row,idx) => ({
+        ...row,
+        process:form.elements[`mesProcess${idx}`]?.value?.trim() || '',
+        lot:form.elements[`mesLot${idx}`]?.value?.trim() || c.lotNumber || '',
+        currentQty:Number(form.elements[`mesQty${idx}`]?.value || 0),
+        holdQty:Number(form.elements[`mesHold${idx}`]?.value || 0),
+        status:form.elements[`mesStatus${idx}`]?.value || '미확인',
+        evidence:form.elements[`mesEvidence${idx}`]?.value?.trim() || ''
+      }));
+      sources.mes.verified = Boolean(form.elements.mesVerified?.checked);
+      return sources;
+    }
+
+    function updateD3InventoryPreview() {
+      const form = document.getElementById('d3QualityForm');
+      if (!form) return;
+      const erpTotal = ['RAK4','RAK5'].reduce((sum,code) => sum + Number(form.elements[`erp${code}Qty`]?.value || 0), 0);
+      const c = getActiveCase();
+      const mesCount = ensureD3Structure(c).inventorySources.mes.processStocks.length;
+      const mesTotal = Array.from({length:mesCount},(_,idx) => Number(form.elements[`mesQty${idx}`]?.value || 0)).reduce((a,b)=>a+b,0);
+      const erpEl=document.getElementById('erpFinishedTotal'); const mesEl=document.getElementById('mesWipTotal');
+      if (erpEl) erpEl.textContent=erpTotal.toLocaleString();
+      if (mesEl) mesEl.textContent=mesTotal.toLocaleString();
+    }
+
+    function addMESProcessStockRow() {
+      const c=getActiveCase(); const form=document.getElementById('d3QualityForm'); const sources=captureD3InventoryForm(c,form);
+      sources.mes.processStocks.push({process:'',lot:c.lotNumber || '',currentQty:0,holdQty:0,status:'미확인',evidence:''});
+      sources.mes.verified=false; saveAppData(); renderCurrentView();
+    }
+
+    function removeMESProcessStockRow(idx) {
+      const c=getActiveCase(); const form=document.getElementById('d3QualityForm'); const sources=captureD3InventoryForm(c,form);
+      sources.mes.processStocks.splice(idx,1); sources.mes.verified=false; saveAppData(); renderCurrentView();
+    }
+
+    function createD3MaterialFlowRows(c) {
+      const areas=['1. 원자재/협력사','2. 입고검사/원자재 창고','3. 공정 재공품(WIP)','4. 완제품 창고','5. 출하 대기/운송 중','6. 고객 창고','7. 고객 생산라인'];
+      return areas.map(area=>({area,lot:c.lotNumber,totalQty:0,holdQty:0,screenQty:0,ngQty:0,status:'미확인',evidence:''}));
+    }
+
+    function syncInventorySourcesToMaterialFlow(c) {
+      const d3=ensureD3Structure(c); const sources=d3.inventorySources;
+      if (d3.materialFlow.length!==7) d3.materialFlow=createD3MaterialFlowRows(c);
+      const rakRows=['RAK4','RAK5'].map(code=>sources.erp[code]);
+      const finished=d3.materialFlow.find(row=>row.area.includes('완제품 창고'));
+      const wip=d3.materialFlow.find(row=>row.area.includes('공정 재공품'));
+      const erpQty=rakRows.reduce((sum,row)=>sum+Number(row.currentQty||0),0); const erpHold=rakRows.reduce((sum,row)=>sum+Number(row.holdQty||0),0);
+      const mesQty=sources.mes.processStocks.reduce((sum,row)=>sum+Number(row.currentQty||0),0); const mesHold=sources.mes.processStocks.reduce((sum,row)=>sum+Number(row.holdQty||0),0);
+      if (finished) Object.assign(finished,{lot:rakRows.map(row=>row.lot).filter(Boolean).join(', ')||c.lotNumber,totalQty:erpQty,holdQty:erpHold,status:erpQty===0?'Not Applicable':erpHold>=erpQty?'Hold':'Screening',evidence:rakRows.map(row=>`${row.warehouse}:${row.evidence}`).join(' / ')});
+      if (wip) Object.assign(wip,{lot:[...new Set(sources.mes.processStocks.map(row=>row.lot).filter(Boolean))].join(', ')||c.lotNumber,totalQty:mesQty,holdQty:mesHold,status:mesQty===0?'Not Applicable':mesHold>=mesQty?'Hold':'Screening',evidence:sources.mes.processStocks.map(row=>`${row.process}:${row.evidence}`).join(' / ')});
+      d3.inventoryReconciliation={erpFinishedQty:erpQty,mesWipQty:mesQty,syncedAt:new Date().toISOString().replace('T',' ').slice(0,16),source:'ERP RAK4+RAK5 / MES process WIP'};
+    }
+
+    function applyInventorySourcesToMaterialFlow() {
+      const c=getActiveCase(); const form=document.getElementById('d3QualityForm'); const sources=captureD3InventoryForm(c,form);
+      const warehouses=['RAK4','RAK5'].map(code=>sources.erp[code]);
+      if (warehouses.some(row=>!row.verified||!row.evidence||row.holdQty>row.currentQty)) { alert('RAK4와 RAK5의 현재 재고·Hold·근거를 각각 확인하고 재고 확인에 체크해 주세요.'); return; }
+      if (!sources.mes.verified||!sources.mes.processStocks.length||sources.mes.processStocks.some(row=>!row.process||!row.lot||row.status==='미확인'||!row.evidence||row.holdQty>row.currentQty)) { alert('MES 공정별 WIP·Hold·상태·Evidence를 확인하고 MES 확인 완료에 체크해 주세요.'); return; }
+      syncInventorySourcesToMaterialFlow(c); saveAppData(); alert('RAK4·RAK5 완제품 재고와 MES 공정재고가 D3 Material Flow에 반영되었습니다.'); renderCurrentView();
+    }
+
+    function normalizeInventoryHeader(value) {
+      return String(value||'').toLowerCase().replace(/[\s_\-\/().]/g,'');
+    }
+
+    function findInventoryColumn(rows,aliases) {
+      const keys=[...new Set(rows.slice(0,30).flatMap(row=>Object.keys(row)))];
+      const normalizedAliases=aliases.map(normalizeInventoryHeader);
+      return keys.find(key=>normalizedAliases.includes(normalizeInventoryHeader(key))) || keys.find(key=>normalizedAliases.some(alias=>normalizeInventoryHeader(key).includes(alias)));
+    }
+
+    function parseInventoryNumber(value) {
+      const num=Number(String(value??0).replace(/,/g,'').replace(/[^0-9.-]/g,''));
+      return Number.isFinite(num)?num:0;
+    }
+
+    function detectInventoryColumns(rows) {
+      return {
+        warehouse:findInventoryColumn(rows,['창고','창고코드','저장위치','storage location','warehouse','location']),
+        lot:findInventoryColumn(rows,['lot','lot no','lot number','제조lot','로트','배치']),
+        part:findInventoryColumn(rows,['품번','자재코드','part number','part no','material code','item code']),
+        quantity:findInventoryColumn(rows,['현재고','현재재고','재고수량','가용재고','current stock','on hand','stock qty','inventory qty','wip qty','수량','qty']),
+        hold:findInventoryColumn(rows,['hold 수량','hold qty','격리수량','보류수량','홀드수량']),
+        process:findInventoryColumn(rows,['공정명','공정','operation name','operation','process name','process','작업장','work center'])
+      };
+    }
+
+    function filterInventoryRowsForCase(rows,columns,c) {
+      const lotNeedle=normalizeInventoryHeader(c.lotNumber); const partNeedle=normalizeInventoryHeader(c.partNumber);
+      const hasCaseKey=Boolean(columns.lot||columns.part);
+      if (!hasCaseKey) return rows;
+      return rows.filter(row=>{
+        const lot=normalizeInventoryHeader(columns.lot?row[columns.lot]:''); const part=normalizeInventoryHeader(columns.part?row[columns.part]:'');
+        const checks=[];
+        if (columns.lot&&lotNeedle) checks.push(lot.includes(lotNeedle));
+        if (columns.part&&partNeedle) checks.push(part.includes(partNeedle));
+        return checks.length ? checks.every(Boolean) : true;
+      });
+    }
+
+    async function handleInventoryExcelImport(event,sourceType,sourceCode) {
+      const file=event.target.files?.[0]; if (!file) return;
+      if (typeof XLSX==='undefined') { alert('Excel 파서를 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.'); return; }
+      try {
+        const workbook=XLSX.read(await file.arrayBuffer(),{type:'array'});
+        const rows=workbook.SheetNames.flatMap(sheetName=>XLSX.utils.sheet_to_json(workbook.Sheets[sheetName],{defval:'',raw:false}).map(row=>({...row,__sheet:sheetName})));
+        if (!rows.length) throw new Error('Excel에 읽을 수 있는 데이터 행이 없습니다.');
+        const columns=detectInventoryColumns(rows); if (!columns.quantity) throw new Error('현재고/재고수량/QTY 열을 찾지 못했습니다.');
+        const c=getActiveCase(); const d3=ensureD3Structure(c); let filtered=filterInventoryRowsForCase(rows,columns,c);
+        if (sourceType==='erp'&&columns.warehouse) filtered=filtered.filter(row=>normalizeInventoryHeader(row[columns.warehouse]).includes(normalizeInventoryHeader(sourceCode)));
+        if (!filtered.length) throw new Error(`${c.lotNumber || c.partNumber} 및 ${sourceCode} 조건에 맞는 행을 찾지 못했습니다.`);
+        const importedAt=new Date().toISOString().replace('T',' ').slice(0,16);
+        if (sourceType==='erp') {
+          const lots=[...new Set(filtered.map(row=>columns.lot?String(row[columns.lot]).trim():'').filter(Boolean))];
+          d3.inventorySources.erp[sourceCode]={...d3.inventorySources.erp[sourceCode],warehouse:sourceCode,lot:lots.join(', ')||c.lotNumber,currentQty:filtered.reduce((sum,row)=>sum+parseInventoryNumber(row[columns.quantity]),0),holdQty:columns.hold?filtered.reduce((sum,row)=>sum+parseInventoryNumber(row[columns.hold]),0):0,evidence:file.name,verified:false,importedAt,columnMapping:columns,rowCount:filtered.length};
+        } else {
+          if (!columns.process) throw new Error('MES Excel에서 공정명/Process 열을 찾지 못했습니다.');
+          const grouped=new Map(); filtered.forEach(row=>{const process=String(row[columns.process]||'미지정 공정').trim();const current=grouped.get(process)||{process,lot:columns.lot?String(row[columns.lot]).trim():c.lotNumber,currentQty:0,holdQty:0,status:'In Process',evidence:file.name};current.currentQty+=parseInventoryNumber(row[columns.quantity]);if(columns.hold)current.holdQty+=parseInventoryNumber(row[columns.hold]);grouped.set(process,current);});
+          d3.inventorySources.mes={processStocks:[...grouped.values()],evidence:file.name,verified:false,importedAt,columnMapping:columns,rowCount:filtered.length};
+        }
+        saveAppData(); renderCurrentView(); alert(`${file.name}에서 ${filtered.length}개 행을 읽었습니다. 자동 합산값과 열 매핑을 확인한 뒤 재고 확인에 체크해 주세요.`);
+      } catch(error) { alert(`Excel 가져오기 실패: ${error.message}`); }
+      finally { event.target.value=''; }
     }
 
     function renderD3QualityWorkspace(c) {
@@ -700,6 +893,7 @@
           <div class="card quality-stage-card">
             <div class="card-header"><div class="card-title"><i data-lucide="radar" style="color:#f59e0b;width:16px;height:16px;"></i> D3. 영향 LOT 및 봉쇄 범위</div><span class="quality-gate-state ${approved ? 'is-complete' : ''}">${approved ? '봉쇄 승인 완료' : '범위 확인 필요'}</span></div>
             <div class="quality-boundary-note danger"><strong>D3는 원인 제거가 아니라 추가 유출 차단 단계입니다.</strong><span>원인 확정 전에도 의심 범위를 보수적으로 Hold하고, 안전성이 입증된 제품만 Release합니다.</span></div>
+            ${renderD3InventorySourcePanel(c)}
             <div class="quality-tool-head inline-head"><div><span class="quality-tool-kicker">QUALITY TOOL · LOT TRACEABILITY</span><h3>영향 범위 추적</h3></div></div>
             <div class="quality-field-grid">
               ${[
@@ -741,6 +935,7 @@
       const form = document.getElementById('d3QualityForm');
       const d3 = ensureD3Structure(c);
       if (!form) return d3;
+      captureD3InventoryForm(c,form);
       d3.lotScope = {
         affectedLot:form.elements.affectedLot?.value?.trim() || '', adjacentLots:form.elements.adjacentLots?.value?.trim() || '', rawMaterialBatch:form.elements.rawMaterialBatch?.value?.trim() || '', equipment:form.elements.equipment?.value?.trim() || '', shippedQty:Number(form.elements.shippedQty?.value || 0), inTransitQty:Number(form.elements.inTransitQty?.value || 0), customerStockQty:Number(form.elements.customerStockQty?.value || 0), rationale:form.elements.scopeRationale?.value?.trim() || ''
       };
@@ -753,8 +948,7 @@
 
     function initializeD3MaterialFlow() {
       const c = getActiveCase(); const d3 = captureD3Form(c);
-      const areas = ['1. 원자재/협력사','2. 입고검사/원자재 창고','3. 공정 재공품(WIP)','4. 완제품 창고','5. 출하 대기/운송 중','6. 고객 창고','7. 고객 생산라인'];
-      d3.materialFlow = areas.map(area => ({area,lot:c.lotNumber,totalQty:0,holdQty:0,screenQty:0,ngQty:0,status:'미확인',evidence:''}));
+      d3.materialFlow = createD3MaterialFlowRows(c);
       saveAppData(); renderCurrentView();
     }
 
@@ -774,6 +968,8 @@
       const c = getActiveCase(); const form = document.getElementById('d3QualityForm'); const d3 = captureD3Form(c);
       if (!approve) { d3.approval={...(d3.approval||{}),status:'Draft',humanConfirmed:false,savedAt:new Date().toISOString().replace('T',' ').slice(0,16)}; saveAppData(); alert('D3 작성 내용이 임시 저장되었습니다.'); renderCurrentView(); return; }
       if (!isD2StageComplete(c)) { alert('D2 문제 정의를 먼저 승인해 주세요.'); return; }
+      const sources=d3.inventorySources; const warehouses=['RAK4','RAK5'].map(code=>sources.erp[code]);
+      if (warehouses.some(row=>!row.verified||!row.evidence||row.holdQty>row.currentQty) || !sources.mes.verified || !sources.mes.processStocks.length || sources.mes.processStocks.some(row=>!row.process||!row.evidence||row.status==='미확인'||row.holdQty>row.currentQty)) { alert('D3 승인 전에 ERP RAK4·RAK5와 MES 공정별 재고를 각각 확인하고 Material Flow에 반영해 주세요.'); return; }
       const scope=d3.lotScope; if (!scope.affectedLot || !scope.adjacentLots || !scope.rawMaterialBatch || !scope.equipment || !scope.rationale) { alert('LOT 영향 범위와 선정 근거를 모두 입력해 주세요.'); return; }
       if (d3.materialFlow.length !== 7 || d3.materialFlow.some(row => !row.area || !row.lot || row.status === '미확인' || !row.evidence || row.holdQty > row.totalQty || row.screenQty > row.totalQty)) { alert('7개 Material Flow 영역의 수량·상태·Evidence를 확인해 주세요. Hold/선별 수량은 총수량을 초과할 수 없습니다.'); return; }
       if (!d3.actions.length || d3.actions.some(row => !row.target || !row.action || !row.owner || !row.due || row.status !== 'Completed' || !row.result)) { alert('봉쇄조치를 한 개 이상 등록하고 담당자·기한·완료상태·결과 Evidence를 완성해 주세요.'); return; }

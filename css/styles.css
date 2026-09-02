@@ -1124,6 +1124,32 @@
 .row-manage-stack { display:flex; align-items:center; justify-content:center; gap:7px; min-width:105px; }
 .row-verify-control { display:flex; align-items:center; gap:4px; color:#cbd5e1; font-size:.68rem; white-space:nowrap; cursor:pointer; }
 .row-verify-control input { accent-color:#10b981; }
+.inventory-source-panel { margin:0 0 18px; border:1px solid rgba(34,211,238,.28); background:#081321; }
+.inventory-source-head { align-items:center; }
+.inventory-total-strip { display:flex; gap:1px; background:rgba(148,163,184,.14); }
+.inventory-total-strip span { display:grid; gap:2px; min-width:120px; background:#0b1627; padding:8px 11px; color:#94a3b8; font-size:.7rem; }
+.inventory-total-strip b { color:#67e8f9; font:800 .95rem 'JetBrains Mono','Consolas',monospace; }
+.erp-warehouse-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border-bottom:1px solid rgba(148,163,184,.14); }
+.warehouse-inventory-block { padding:13px 14px; border-right:1px solid rgba(148,163,184,.14); }
+.warehouse-inventory-block:last-child { border-right:0; }
+.warehouse-code { display:flex; align-items:baseline; gap:8px; margin-bottom:10px; }
+.warehouse-code span,.mes-inventory-head span { color:#60a5fa; font:800 .66rem 'JetBrains Mono','Consolas',monospace; }
+.warehouse-code strong { color:#f8fafc; font:900 1rem 'JetBrains Mono','Consolas',monospace; }
+.warehouse-code em { margin-left:auto; color:#64748b; font-size:.68rem; font-style:normal; }
+.warehouse-field-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.warehouse-field-grid label { display:grid; gap:4px; }
+.warehouse-field-grid span { color:#cbd5e1; font-size:.72rem; font-weight:700; }
+.warehouse-actions { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:10px; }
+.warehouse-actions label,.mes-verify-control,.mes-inventory-block label { color:#cbd5e1; font-size:.72rem; }
+.warehouse-actions input,.mes-inventory-block input[type=checkbox] { accent-color:#10b981; }
+.mes-inventory-block { padding:13px 14px; }
+.mes-inventory-head { display:flex; justify-content:space-between; align-items:end; gap:12px; margin-bottom:10px; }
+.mes-inventory-head > div:first-child { display:grid; gap:3px; }
+.mes-inventory-head strong { color:#f8fafc; font-size:.9rem; }
+.mes-inventory-head small { color:#94a3b8; font-size:.72rem; }
+.mes-inventory-block .quality-edit-table { min-width:860px; }
+.mes-verification-row { display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:10px; }
+.mes-verification-row label { margin-right:auto; display:flex; align-items:center; gap:5px; }
 
 .fresh-start-empty {
   display: grid;
@@ -1393,6 +1419,11 @@
   .quality-stage-actions .btn { width:100%; justify-content:center; }
   .inline-action-group { width:100%; justify-content:stretch; }
   .inline-action-group .btn { flex:1; justify-content:center; }
+  .inventory-source-head,.mes-inventory-head,.warehouse-actions,.mes-verification-row { flex-direction:column; align-items:stretch; }
+  .inventory-total-strip,.erp-warehouse-grid,.warehouse-field-grid { grid-template-columns:1fr; }
+  .inventory-total-strip { display:grid; }
+  .warehouse-inventory-block { border-right:0; border-bottom:1px solid rgba(148,163,184,.14); }
+  .mes-verification-row label { margin-right:0; }
   .intake-workflow-strip {
     grid-template-columns: 1fr;
   }
