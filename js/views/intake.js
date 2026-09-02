@@ -416,24 +416,23 @@
               </label>
             </div>
 
-            <!-- CFT Leadership Assignment Card (실장 / 센터장 / 임원급 전용) -->
+            <!-- CFT Leadership Assignment Card -->
             <div class="card" style="border: 1px solid #3b82f6; background: rgba(13, 21, 39, 0.7);">
               <div class="card-header" style="border-bottom: 1px solid rgba(59, 130, 246, 0.2);">
                 <div class="card-title" style="color: #60a5fa;">
-                  <i data-lucide="shield-check" style="color:#38bdf8; width:16px; height:16px;"></i> 초동 CFT 핵심 리더십 지정 (연구소·센터장·임원급)
+                  <i data-lucide="shield-check" style="color:#38bdf8; width:16px; height:16px;"></i> 초동 CFT 핵심 리더십 지정
                 </div>
-                <span class="badge-pill badge-purple" style="font-size:0.68rem;">연구소 / 센터장 / 임원급</span>
+                <span class="badge-pill badge-purple" style="font-size:0.68rem;">조직도 기반 지정</span>
               </div>
 
               <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:14px;">
-                부적합 문제 해결을 주관할 <b>연구소 개발실장/팀장</b> 및 전사 의사결정 권한을 가진 <b>센터장/임원급</b>을 지정합니다. (품질 실무: <b>김성중 S.Pro</b> 기본 배속)
+                부적합 문제 해결과 의사결정을 담당할 CFT 핵심 책임자를 지정합니다. (품질 실무: <b>김성중 S.Pro</b> 기본 배속)
               </p>
 
               <div class="grid-2">
                 <div class="form-group">
                   <label class="form-label">
                     <span>👑 8D 챔피언 (Champion / 총괄 승인권자) <span class="required">*</span></span>
-                    <span style="font-size:0.68rem; color:#60a5fa;">상무/전무/부사장급</span>
                   </label>
                   <select id="formChampion" name="cftChampion" class="form-control" required>
                     <option value="황승안 팀장_상무|품질혁신팀|sahwang@ramostek.com" selected>황승안 팀장_상무 (품질혁신팀) — sahwang@ramostek.com</option>
@@ -448,7 +447,6 @@
                 <div class="form-group">
                   <label class="form-label">
                     <span>🎖️ 8D 리더 (8D Leader / 연구소·개발 주관) <span class="required">*</span></span>
-                    <span style="font-size:0.68rem; color:#34d399;">연구소 실장/팀장/본부장급</span>
                   </label>
                   <select id="formLeader" name="cftLeader" class="form-control" required>
                     <option value="김현수 실장_상무|Flash 개발실|hskim@ramostek.com" selected>김현수 실장_상무 (Flash 개발실) — hskim@ramostek.com</option>
@@ -467,7 +465,6 @@
                 <div class="form-group">
                   <label class="form-label">
                     <span>🔬 불량 분석 리더 (FA / Technical Lead) <span class="required">*</span></span>
-                    <span style="font-size:0.68rem; color:#a78bfa;">개발/분석 팀장급</span>
                   </label>
                   <select id="formFaLead" name="cftFaLead" class="form-control" required>
                     <option value="박재환 팀장_S.Pro|Flash 개발2팀|jhpark@ramostek.com" selected>박재환 팀장_S.Pro (Flash 개발2팀) — jhpark@ramostek.com</option>
@@ -484,7 +481,6 @@
                 <div class="form-group">
                   <label class="form-label">
                     <span>📦 물류/자재 격리 관리자 (Material Containment Lead) <span class="required">*</span></span>
-                    <span style="font-size:0.68rem; color:#fbbf24;">센터장 / 부문장급</span>
                   </label>
                   <select id="formContainmentLead" name="cftContainmentLead" class="form-control" required>
                     <option value="이은산 센터장_상무|제조기획센터|eunsan.lee@ramostek.com" selected>이은산 센터장_상무 (제조기획센터) — eunsan.lee@ramostek.com</option>
