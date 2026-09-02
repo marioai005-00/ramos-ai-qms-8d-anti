@@ -30,8 +30,10 @@ function initApp() {
     console.error('Initialization error caught and recovered:', err);
     hideLoginScreen();
     appData = {
-      cases: INITIAL_CASES,
-      activeCaseId: INITIAL_CASES[0].id,
+      cases: [],
+      intakeQueue: [],
+      activeIntakeId: null,
+      activeCaseId: null,
       currentView: 'dashboard',
       activeStage: 'overview',
       sidebarTab: 'menu'
@@ -171,23 +173,30 @@ function renderCaseSelector() {
   const select = document.getElementById('activeCaseSelect');
   if (!select) return;
 
-  const validCases = (appData && Array.isArray(appData.cases) && appData.cases.length > 0) ? appData.cases : INITIAL_CASES;
-  select.innerHTML = validCases.map(c => `
+  const validCases = (appData && Array.isArray(appData.cases)) ? appData.cases : [];
+  select.disabled = validCases.length === 0;
+  select.innerHTML = validCases.length === 0 ? '<option value="">정식 Case 없음 · 접수부터 시작</option>' : validCases.map(c => `
     <option value="${c.id}" ${c.id === appData.activeCaseId ? 'selected' : ''}>
       ${c.id} | ${c.customer} (${c.product})
     </option>
   `).join('');
+  const openCount = document.getElementById('nav-open-count');
+  if (openCount) openCount.innerText = validCases.filter(c => c.status !== 'Closed').length;
 
   const c = getActiveCase();
   const badge = document.getElementById('headerStageBadge');
   if (badge && c) {
     badge.className = `badge-pill ${c.severityLevel === 'Critical' ? 'badge-fail' : 'badge-warn'}`;
     badge.innerHTML = `<i data-lucide="activity" style="width:12px;height:12px;"></i> ${c.currentStage} ${c.status || 'In-Progress'} (${c.severityLevel})`;
+  } else if (badge) {
+    badge.className = 'badge-pill';
+    badge.innerHTML = '<i data-lucide="circle-dashed" style="width:12px;height:12px;"></i> 새 Workflow 준비 완료';
   }
   if (window.lucide) lucide.createIcons();
 }
 
 function onCaseChange(caseId) {
+  if (!caseId) return;
   appData.activeCaseId = caseId;
   saveAppData();
   renderCaseSelector();
@@ -348,16 +357,16 @@ function renderCurrentView() {
       viewHtml = renderCasesListView();
       break;
     case 'stage':
-      viewHtml = renderStageWorkspaceView(c, appData.activeStage);
+      viewHtml = c ? renderStageWorkspaceView(c, appData.activeStage) : renderNoActiveCaseView('8D Workspace');
       break;
     case 'evidence-hub':
-      viewHtml = renderEvidenceHubView(c);
+      viewHtml = c ? renderEvidenceHubView(c) : renderNoActiveCaseView('Evidence 관리');
       break;
     case 'actions-hub':
-      viewHtml = renderActionsHubView(c);
+      viewHtml = c ? renderActionsHubView(c) : renderNoActiveCaseView('Action 관리');
       break;
     case 'reports-hub':
-      viewHtml = renderReportsHubView(c);
+      viewHtml = c ? renderReportsHubView(c) : renderNoActiveCaseView('8D Report');
       break;
     default:
       viewHtml = renderDashboardView();
@@ -381,6 +390,21 @@ function renderCurrentView() {
   if (window.lucide) {
     lucide.createIcons();
   }
+}
+
+function renderNoActiveCaseView(requestedArea = '8D Workspace') {
+  return `
+    <section class="fresh-start-empty">
+      <div class="fresh-start-code">NO ACTIVE CASE</div>
+      <i data-lucide="workflow"></i>
+      <h1>${requestedArea}를 시작할 정식 Case가 없습니다.</h1>
+      <p>고객 부적합을 접수하고 품질 Triage 승인을 완료하면 정식 Case ID와 D1 Workspace가 생성됩니다.</p>
+      <div class="fresh-start-flow">
+        <span class="is-current">STEP 01 접수</span><b>→</b><span>STEP 02 품질 검토</span><b>→</b><span>Case 승인</span><b>→</b><span>D1 CFT</span>
+      </div>
+      <button class="btn btn-primary" onclick="switchNav('new-case')"><i data-lucide="inbox" style="width:15px;height:15px;"></i> 첫 부적합 접수 시작</button>
+    </section>
+  `;
 }
 
 // App Initialization - Safe DOMContentLoaded

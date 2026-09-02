@@ -1,7 +1,9 @@
 /* ========================================================================= */
     /* MASTER DATA STORE & BENCHMARK CASES (PHILOSOPHY ALIGNED)                   */
     /* ========================================================================= */
-    const STORAGE_KEY = 'AI_QMS_8D_DATA_V2';
+    // V3 starts the redesigned Intake -> Triage -> Approved Case workflow from a clean state.
+    // Legacy V2 browser data is intentionally left untouched for recoverability.
+    const STORAGE_KEY = 'AI_QMS_8D_DATA_V3';
 
     const INITIAL_CASES = [
       {
@@ -974,10 +976,10 @@
     // Bulletproof Data State Management (Prevents any corrupt localStorage or blank screen)
     function loadStoredAppData() {
       const defaultState = {
-        cases: INITIAL_CASES,
+        cases: [],
         intakeQueue: [],
         activeIntakeId: null,
-        activeCaseId: INITIAL_CASES[0]?.id || 'RAMOS-8D-20260901-01',
+        activeCaseId: null,
         currentView: 'dashboard',
         activeStage: 'overview',
         sidebarTab: 'menu'
@@ -992,13 +994,13 @@
         if (Array.isArray(parsed)) {
           return {
             ...defaultState,
-            cases: parsed.length > 0 ? parsed : INITIAL_CASES
+            cases: parsed
           };
         }
 
         // Case B: Parsed is appData object
         if (parsed && typeof parsed === 'object') {
-          let validCases = (Array.isArray(parsed.cases) && parsed.cases.length > 0) ? parsed.cases : INITIAL_CASES;
+          const validCases = Array.isArray(parsed.cases) ? parsed.cases : [];
           
           // Strictly sanitize all gates across all cases to remove customer sign-off
           validCases.forEach(c => {
@@ -1011,7 +1013,7 @@
             }
           });
 
-          const validActiveId = validCases.some(c => c.id === parsed.activeCaseId) ? parsed.activeCaseId : validCases[0].id;
+          const validActiveId = validCases.some(c => c.id === parsed.activeCaseId) ? parsed.activeCaseId : (validCases[0]?.id || null);
           return {
             cases: validCases,
             intakeQueue: Array.isArray(parsed.intakeQueue) ? parsed.intakeQueue : [],
@@ -1039,15 +1041,10 @@
     }
 
     function getActiveCase() {
-      if (!appData || !Array.isArray(appData.cases) || appData.cases.length === 0) {
-        appData.cases = INITIAL_CASES;
-      }
-      let found = appData.cases.find(c => c.id === appData.activeCaseId);
-      if (!found) {
-        found = appData.cases[0];
-        appData.activeCaseId = found.id;
-      }
-      return found;
+      if (!appData || !Array.isArray(appData.cases) || appData.cases.length === 0) return null;
+      const found = appData.cases.find(c => c.id === appData.activeCaseId) || appData.cases[0];
+      if (found && appData.activeCaseId !== found.id) appData.activeCaseId = found.id;
+      return found || null;
     }
 
     // =========================================================================

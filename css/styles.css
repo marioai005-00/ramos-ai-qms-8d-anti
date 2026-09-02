@@ -1033,6 +1033,66 @@
 .triage-empty-state { display:grid; place-items:center; gap:8px; min-height:260px; border:1px dashed #334155; color:#64748b; }
 .triage-empty-state svg { width:28px; }
 
+.fresh-start-empty {
+  display: grid;
+  justify-items: center;
+  gap: 11px;
+  min-height: 360px;
+  border: 1px dashed #334155;
+  background: #0b1424;
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.fresh-start-empty > svg {
+  width: 34px;
+  height: 34px;
+  color: #22d3ee;
+}
+
+.fresh-start-empty h1,
+.fresh-start-empty h2 {
+  color: #f8fafc;
+  font-size: 1rem;
+}
+
+.fresh-start-empty p {
+  max-width: 620px;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.fresh-start-code {
+  color: #67e8f9;
+  font: 800 0.66rem 'JetBrains Mono', 'Consolas', monospace;
+  letter-spacing: 0.1em;
+}
+
+.fresh-start-flow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  margin: 6px 0 8px;
+}
+
+.fresh-start-flow span {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 5px 8px;
+  color: #94a3b8;
+  font-size: 0.68rem;
+}
+
+.fresh-start-flow span.is-current {
+  border-color: rgba(34, 211, 238, 0.45);
+  color: #67e8f9;
+}
+
+.fresh-start-flow b { color: #475569; }
+.fresh-start-dashboard { min-height: 300px; }
+
 .intake-routing-header {
   border-bottom: 1px solid rgba(34, 211, 238, 0.18);
 }
