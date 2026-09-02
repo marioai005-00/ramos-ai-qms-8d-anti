@@ -1052,7 +1052,7 @@
     // CURRENT LOGGED-IN USER & PERSONALIZED TASK ENGINE
     // =========================================================================
     const PRESET_USERS = [
-      { username: 'sjkim', name: '김성중', position: 'Senior Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', roleDesc: '8D 품질 실무 간사 / Facilitator' },
+      { username: 'sjkim', name: '김성중', position: 'Senior Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', roleDesc: '8D 품질 실무 간사 / Facilitator', isMaster: true },
       { name: '김현수', position: '실장_상무', dept: 'Flash 개발실', email: 'hskim@ramostek.com', roleDesc: '8D Leader (Flash 개발 총괄)' },
       { name: '박재환', position: '팀장_S.Pro', dept: 'Flash 개발2팀', email: 'jhpark@ramostek.com', roleDesc: '불량 분석 리더 (FA / Technical Lead)' },
       { name: '이은산', position: '센터장_상무', dept: '제조기획센터', email: 'eunsan.lee@ramostek.com', roleDesc: '물류/자재 격리 책임자 (Containment Lead)' },
@@ -1103,7 +1103,8 @@
             dept: member.dept || deptName,
             email: member.email,
             isMe: Boolean(member.isMe),
-            roleDesc: preset?.roleDesc || 'CFT 유관부서 담당자'
+            roleDesc: preset?.roleDesc || 'CFT 유관부서 담당자',
+            isMaster: Boolean(preset?.isMaster)
           });
         });
         (node.children || []).forEach(child => traverse(child, deptName));
@@ -1128,6 +1129,10 @@
         account.email.toLowerCase() === cleanUser ||
         account.name.toLowerCase() === cleanUser
       ) || null;
+    }
+
+    function hasMasterAuthority(user = CURRENT_USER) {
+      return Boolean(user?.isMaster || user?.email === 'sjkim@ramostek.com');
     }
 
     function getUserPendingTasks(user = CURRENT_USER) {

@@ -92,7 +92,7 @@
     }
 
     function hasIntakeRegistrationAuthority(registrar = getIntakeRegistrar()) {
-      return INTAKE_AUTHORIZED_DEPARTMENTS.includes(registrar.dept);
+      return hasMasterAuthority(registrar) || INTAKE_AUTHORIZED_DEPARTMENTS.includes(registrar.dept);
     }
 
     function detectIntakePresetKey(text = '') {
@@ -139,6 +139,7 @@
       const intakeRegistrar = getIntakeRegistrar();
       const initialOwner = getRecommendedIntakeOwner('LGE (LG전자)');
       const hasRegistrationAuthority = hasIntakeRegistrationAuthority(intakeRegistrar);
+      const isMasterRegistrar = hasMasterAuthority(intakeRegistrar);
       const pendingIntakeCount = (appData.intakeQueue || []).filter(item => item.status === 'Quality Review Pending').length;
       return `
         <div style="max-width: 960px; margin: 0 auto;">
@@ -358,7 +359,9 @@
               <div class="intake-permission-strip ${hasRegistrationAuthority ? 'is-authorized' : 'is-restricted'}">
                 <i data-lucide="${hasRegistrationAuthority ? 'badge-check' : 'shield-alert'}"></i>
                 <span>${hasRegistrationAuthority
-                  ? `${intakeRegistrar.dept} 소속 접수 권한이 확인되었습니다. AI 추천 후 사람 확인을 거쳐 등록합니다.`
+                  ? (isMasterRegistrar
+                    ? `Master QA 권한이 확인되었습니다. 접수·검토 전 과정을 테스트할 수 있습니다.`
+                    : `${intakeRegistrar.dept} 소속 접수 권한이 확인되었습니다. AI 추천 후 사람 확인을 거쳐 등록합니다.`)
                   : `현재 로그인 계정은 ${intakeRegistrar.dept} 소속입니다. Case 접수 등록은 전략소싱팀(CS 포함)과 영업팀만 가능합니다.`}
                 </span>
               </div>
@@ -834,6 +837,7 @@
         intakeRouting: {
           sourceType: getIntakeSourceType(),
           intakeChannel: intakeRegistrar.dept,
+          registrationAuthority: hasMasterAuthority(intakeRegistrar) ? 'Master QA' : intakeRegistrar.dept,
           registeredBy: intakeRegistrar,
           primaryOwner: intakeOwner,
           qualityReviewer: { ...QUALITY_INTAKE_COORDINATOR },
