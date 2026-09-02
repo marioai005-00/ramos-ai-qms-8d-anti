@@ -14,6 +14,9 @@
             </p>
           </div>
           <div style="display:flex; gap:10px;">
+            <button class="btn btn-secondary" onclick="loadInteractiveExampleCase()">
+              <i data-lucide="flask-conical" style="width:15px;height:15px;"></i> D1~D8 시연 Case 불러오기
+            </button>
             <button class="btn btn-primary" onclick="switchNav('new-case')">
               <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i> 신규 부적합 접수
             </button>
@@ -30,7 +33,7 @@
               <i data-lucide="clipboard-plus"></i>
               <h2>새 업무 흐름을 시작할 준비가 되었습니다.</h2>
               <p>기존 시연 Case는 현재 Active 목록에서 분리했습니다. 첫 고객 부적합을 접수하면 STEP 02 품질 검토 대기함으로 전달됩니다.</p>
-              <button class="btn btn-primary" onclick="switchNav('new-case')">첫 부적합 접수 시작</button>
+              <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;"><button class="btn btn-secondary" onclick="loadInteractiveExampleCase()">D1~D8 예시 먼저 보기</button><button class="btn btn-primary" onclick="switchNav('new-case')">첫 부적합 접수 시작</button></div>
             </section>
           `}
         </div>

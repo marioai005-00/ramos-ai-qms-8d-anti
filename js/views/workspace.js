@@ -42,6 +42,12 @@
           </div>
         </div>
 
+        <div class="stage-preview-toolbar no-print">
+          <div>${c.isExampleCase ? `<span class="stage-sample-flag">SAMPLE CASE</span><strong>입력 예시를 단계별로 확인 중입니다.</strong>` : `<span class="stage-live-flag">LIVE CASE</span><strong>현재 저장값 기준 보고서 초안</strong>`}<small>${stage === 'overview' ? '공식 3D·5D·8D Report Hub에서 전체 문서를 확인할 수 있습니다.' : `${stage} 작성 내용이 고객 문서에 어떻게 배치되는지 확인하세요.`}</small></div>
+          <button type="button" class="btn btn-secondary" onclick="${stage === 'overview' ? `switchNav('reports-hub')` : `openStageReportPreview('${stage}')`}"><i data-lucide="file-search"></i>${stage === 'overview' ? '전체 Report Hub 보기' : `현재 ${stage} Report 미리보기`}</button>
+        </div>
+        ${c.isExampleCase && stage !== 'overview' ? renderStageImplementationGuide(stage) : ''}
+
         <!-- 3-Pane Grid: Left/Center Workspace (Pane 1 & 3) vs Right AI Side-Panel (Pane 2) -->
         <div class="stage-workspace-grid">
           
