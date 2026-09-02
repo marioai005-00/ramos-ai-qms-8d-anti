@@ -181,6 +181,157 @@
       }
     }
 
+    const CFT_ROLE_RULES = [
+      { key: 'champion', role: '8D Champion', matches: role => role.includes('Champion') },
+      { key: 'leader', role: '8D Leader (연구소/개발 주관)', matches: role => role.includes('Leader') && !role.includes('Quality Facilitator') },
+      { key: 'fa', role: 'Technical / FA Lead', matches: role => role.includes('Technical') || role.includes('FA') },
+      { key: 'process', role: 'Process Engineer (공정기술)', matches: role => role.includes('Process Engineer') || role.includes('공정기술') },
+      { key: 'containment', role: 'Material Containment Lead', matches: role => role.includes('Containment') || role.includes('Logistics') || role.includes('물류') },
+      { key: 'facilitator', role: '8D Quality Facilitator / 실무', matches: role => role.includes('Quality Facilitator') || role.includes('품질 실무') }
+    ];
+
+    function findOrgMemberByEmail(email) {
+      let found = null;
+      function visit(nodes) {
+        (nodes || []).forEach(node => {
+          (node.members || []).forEach(member => {
+            if (member.email === email) found = { ...member, dept: member.dept || node.name };
+          });
+          if (!found) visit(node.children || []);
+        });
+      }
+      visit(RAMOS_TREE);
+      return found;
+    }
+
+    function getAICFTRecommendations(c = getActiveCase()) {
+      if (!c) return [];
+      const context = `${c.product || ''} ${c.partNumber || ''} ${c.leadDepartment || c.triageApproval?.leadDepartment || ''}`.toLowerCase();
+      const isDram = context.includes('dram');
+      const isFlash = !isDram && (context.includes('flash') || context.includes('emmc') || context.includes('ssd') || context.includes('nand'));
+      const isUrgent = c.severityLevel === 'Critical' || c.lineStop || c.safetyRisk;
+      const family = isDram ? 'DRAM' : isFlash ? 'Flash/eMMC/SSD' : '공통 품질';
+      const pick = (email, role, reason, key) => {
+        const member = findOrgMemberByEmail(email);
+        return member ? { key, role, member, reason } : null;
+      };
+
+      return [
+        pick('sahwang@ramostek.com', '8D Champion', `${c.severityLevel || '품질'} Case의 전사 품질 의사결정 및 고객 송부 최종 승인`, 'champion'),
+        pick(isDram ? 'chpark@ramostek.com' : isFlash ? 'hskim@ramostek.com' : 'gh8229@ramostek.com', '8D Leader (연구소/개발 주관)', `${family} 제품군과 Triage 주관부서 기준 개발 책임자`, 'leader'),
+        pick(isDram ? 'satiou@ramostek.com' : 'jhpark@ramostek.com', 'Technical / FA Lead', `${family} 불량 분석·물리/전기적 원인 규명 역량 기준`, 'fa'),
+        pick(isDram ? 'hope@ramostek.com' : 'fog1007@ramostek.com', 'Process Engineer (공정기술)', `${family} 설계·공정 상관성 및 재현 조건 분석 기준`, 'process'),
+        pick(isUrgent ? 'eunsan.lee@ramostek.com' : 'nrjcm@ramostek.com', 'Material Containment Lead', isUrgent ? 'Line Stop/Critical 위험으로 센터 단위 긴급 봉쇄 필요' : '자재·재고·출하 흐름 통제 필요', 'containment'),
+        pick('sjkim@ramostek.com', '8D Quality Facilitator / 실무', '품질 Triage 승인자 및 8D 절차·Evidence 완결성 관리', 'facilitator')
+      ].filter(Boolean);
+    }
+
+    function getCurrentCFTMemberForRule(c, ruleKey) {
+      const rule = CFT_ROLE_RULES.find(item => item.key === ruleKey);
+      return rule ? (c.team || []).find(member => rule.matches(member.role || '')) : null;
+    }
+
+    function isProtectedCFTMember(member) {
+      const role = member?.role || '';
+      return role.includes('Customer Response Owner') || role.includes('Quality Facilitator');
+    }
+
+    function isCFTAssignmentComplete(c) {
+      return CFT_ROLE_RULES.every(rule => (c.team || []).some(member => rule.matches(member.role || '')));
+    }
+
+    function renderAICFTRecommendationPanel(c) {
+      const recommendations = getAICFTRecommendations(c);
+      const confirmed = c.cftRecommendation?.humanConfirmed === true;
+      return `
+        <section class="cft-ai-panel">
+          <div class="cft-ai-head">
+            <div>
+              <span class="cft-ai-kicker">AI CFT ROUTING · HUMAN CONFIRMATION REQUIRED</span>
+              <h3>조직도 기반 역할별 추천</h3>
+              <p>제품군·Triage 주관부서·Severity·Line Stop 정보를 조직도와 대조한 추천입니다.</p>
+            </div>
+            <span class="cft-confirm-state ${confirmed ? 'is-confirmed' : ''}">${confirmed ? '사람 확정 완료' : '사람 확인 대기'}</span>
+          </div>
+          <div class="cft-recommendation-list">
+            ${recommendations.map(rec => {
+              const current = getCurrentCFTMemberForRule(c, rec.key);
+              const isMatch = current?.contact === rec.member.email;
+              return `
+                <div class="cft-recommendation-row">
+                  <div><span>${rec.role}</span><strong>${rec.member.name} ${rec.member.position}</strong><small>${rec.member.dept} · ${rec.member.email}</small></div>
+                  <p>${rec.reason}</p>
+                  <em class="${isMatch ? 'is-match' : ''}">${isMatch ? '추천 반영됨' : current ? `현재: ${current.name}` : '담당자 미지정'}</em>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          <div class="cft-ai-actions">
+            <span>AI가 자동 확정하지 않습니다. 추천 적용 후 담당자를 검토·교체하고 최종 확정하세요.</span>
+            <button class="btn btn-secondary" onclick="applyAICFTRecommendations()"><i data-lucide="sparkles" style="width:14px;height:14px;"></i> AI 추천 적용</button>
+            <button class="btn btn-primary" onclick="confirmCFTAssignments()"><i data-lucide="user-check" style="width:14px;height:14px;"></i> 현재 구성 확정</button>
+          </div>
+        </section>
+      `;
+    }
+
+    function applyAICFTRecommendations() {
+      const c = getActiveCase();
+      if (!c) return;
+      if (!confirm('AI 추천 역할로 현재 Champion·Leader·FA·공정·물류 담당자를 교체하시겠습니까?\n\n고객 대응 담당과 품질 실무 간사는 유지됩니다.')) return;
+      const recommendations = getAICFTRecommendations(c);
+      const recommendationKeys = new Set(recommendations.map(rec => rec.key));
+      c.team = (c.team || []).filter(member => {
+        if (isProtectedCFTMember(member)) return true;
+        const matchedRule = CFT_ROLE_RULES.find(rule => rule.matches(member.role || ''));
+        return !matchedRule || !recommendationKeys.has(matchedRule.key);
+      });
+      recommendations.forEach(rec => {
+        const existing = c.team.find(member => member.contact === rec.member.email);
+        if (existing) {
+          existing.role = rec.role;
+          existing.assignment = 'AI Recommended / Human Review Required';
+          existing.recommendationReason = rec.reason;
+          return;
+        }
+        c.team.push({
+          role: rec.role,
+          name: `${rec.member.name} ${rec.member.position}`,
+          dept: rec.member.dept,
+          contact: rec.member.email,
+          status: 'Active',
+          assignment: 'AI Recommended / Human Review Required',
+          recommendationReason: rec.reason
+        });
+      });
+      c.cftRecommendation = {
+        status: 'AI Suggested - Human Review Required',
+        appliedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+        humanConfirmed: false
+      };
+      saveAppData();
+      renderCurrentView();
+    }
+
+    function confirmCFTAssignments() {
+      const c = getActiveCase();
+      if (!c) return;
+      if (!isCFTAssignmentComplete(c)) {
+        alert('CFT 필수 역할이 모두 지정되지 않았습니다.\n\nChampion, Leader, FA, 공정기술, 물류/봉쇄, 품질 실무 담당자를 확인해 주세요.');
+        return;
+      }
+      if (!confirm('현재 CFT 구성을 사람이 최종 확인하고 확정하시겠습니까?')) return;
+      c.cftRecommendation = {
+        ...(c.cftRecommendation || {}),
+        status: 'Human Confirmed',
+        humanConfirmed: true,
+        confirmedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
+        confirmedBy: { name: CURRENT_USER.name, dept: CURRENT_USER.dept, email: CURRENT_USER.email }
+      };
+      saveAppData();
+      renderCurrentView();
+    }
+
     
 
 /* CFT ORG TREE MODAL & TEAM MANAGEMENT (62-PERSON TREE ENGINE)              */
@@ -218,6 +369,10 @@
                 <span>배속할 CFT Role (역할 지정)</span>
               </label>
               <select id="modalCftRoleSelect" class="form-control">
+                <option value="8D Champion">8D Champion (총괄 승인)</option>
+                <option value="8D Leader (연구소/개발 주관)">8D Leader (연구소/개발 주관)</option>
+                <option value="Technical / FA Lead">Technical / FA Lead (불량 분석)</option>
+                <option value="Material Containment Lead">Material Containment Lead (물류/봉쇄)</option>
                 <option value="Process Engineer (공정기술)" selected>Process Engineer (공정/제조기술)</option>
                 <option value="Development Engineer (개발/설계)">Development Engineer (개발/설계엔지니어)</option>
                 <option value="Quality Engineer (고객품질/CQE)">Quality Engineer (고객품질/CQE)</option>
@@ -398,8 +553,15 @@
 
     function removeCFTMember(idx) {
       const c = getActiveCase();
-      if (confirm(`[${c.team[idx].name}] 님을 D1 CFT에서 제외하시겠습니까?`)) {
+      const member = c?.team?.[idx];
+      if (!member) return;
+      if (isProtectedCFTMember(member)) {
+        alert('고객 대응 담당과 품질 실무 간사는 접수·Triage 승인 정보와 연결된 필수 담당자입니다. 담당자 변경은 해당 원본 라우팅에서 수행해 주세요.');
+        return;
+      }
+      if (confirm(`[${member.name}] 님을 D1 CFT의 [${member.role}] 역할에서 제외하시겠습니까?`)) {
         c.team.splice(idx, 1);
+        c.cftRecommendation = { ...(c.cftRecommendation || {}), humanConfirmed: false, status: 'Human Review Required' };
         saveAppData();
         renderCurrentView();
       }

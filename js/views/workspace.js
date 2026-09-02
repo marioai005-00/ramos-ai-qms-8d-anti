@@ -9,7 +9,7 @@
             <div class="stage-step-sub">종합 현황</div>
           </div>
           <div class="stage-step ${stage === 'D1' ? 'active' : ''}" onclick="switchStage('D1')">
-            <div class="stage-step-title">D1. Team ${c.team.length >= 4 ? '●' : '◐'}</div>
+            <div class="stage-step-title">D1. Team ${isCFTAssignmentComplete(c) && c.cftRecommendation?.humanConfirmed ? '●' : '◐'}</div>
             <div class="stage-step-sub">CFT 팀구성</div>
           </div>
           <div class="stage-step ${stage === 'D2' ? 'active' : ''}" onclick="switchStage('D2')">
@@ -133,6 +133,7 @@
               <p style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:14px;">
                 문제 해결을 주도할 Champion, Leader, FA, 공정엔지니어, 품질 실무자를 전사 조직도에서 명확한 역할과 함께 배속합니다.
               </p>
+              ${renderAICFTRecommendationPanel(c)}
               <table class="custom-table">
                 <thead>
                   <tr>
@@ -153,11 +154,11 @@
                       <td class="num-mono" style="color:var(--text-secondary);">${m.contact}</td>
                       <td><span class="badge-pill badge-ok">${m.status}</span></td>
                       <td style="text-align:center;">
-                        ${idx >= 5 ? `
+                        ${!isProtectedCFTMember(m) ? `
                           <button class="btn btn-secondary btn-sm" style="padding:2px 6px; color:#f87171;" onclick="removeCFTMember(${idx})" title="팀원 제외">
                             <i data-lucide="trash-2" style="width:12px;height:12px;"></i>
                           </button>
-                        ` : `<span style="font-size:0.68rem; color:var(--text-muted);">고정</span>`}
+                        ` : `<span class="cft-system-lock" title="접수·품질 승인 정보에서 연결된 필수 담당자"><i data-lucide="lock" style="width:11px;height:11px;"></i> 연결</span>`}
                       </td>
                     </tr>
                   `).join('')}
