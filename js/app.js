@@ -212,6 +212,14 @@ function switchNav(viewName, el) {
 }
 
 function switchStage(stageName) {
+  const activeCase = getActiveCase();
+  if (typeof canEnterQualityStage === 'function' && activeCase) {
+    const gate = canEnterQualityStage(activeCase, stageName);
+    if (!gate.allowed) {
+      alert(gate.message);
+      return;
+    }
+  }
   appData.currentView = 'stage';
   appData.activeStage = stageName;
   saveAppData();

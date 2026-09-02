@@ -174,6 +174,7 @@
         contact: email,
         status: 'Active'
       });
+      c.cftRecommendation = { ...(c.cftRecommendation || {}), humanConfirmed: false, status: 'Human Review Required' };
       saveAppData();
       alert(`[${name} ${position}] 님이 현재 Case [${c.id}]의 D1 CFT (${suggestedRole}) 팀원으로 배정되었습니다!`);
       if (appData.activeStage === 'D1' && appData.currentView === 'stage') {
@@ -320,6 +321,12 @@
         alert('CFT 필수 역할이 모두 지정되지 않았습니다.\n\nChampion, Leader, FA, 공정기술, 물류/봉쇄, 품질 실무 담당자를 확인해 주세요.');
         return;
       }
+      const raciAcknowledged = document.getElementById('cftRaciAcknowledged');
+      if (!raciAcknowledged?.checked) {
+        alert('RACI 역할과 책임을 검토한 뒤 [RACI 책임 확인]에 체크해 주세요.');
+        raciAcknowledged?.focus();
+        return;
+      }
       if (!confirm('현재 CFT 구성을 사람이 최종 확인하고 확정하시겠습니까?')) return;
       c.cftRecommendation = {
         ...(c.cftRecommendation || {}),
@@ -327,6 +334,11 @@
         humanConfirmed: true,
         confirmedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
         confirmedBy: { name: CURRENT_USER.name, dept: CURRENT_USER.dept, email: CURRENT_USER.email }
+      };
+      c.cftRaci = {
+        acknowledged: true,
+        confirmedAt: c.cftRecommendation.confirmedAt,
+        confirmedBy: c.cftRecommendation.confirmedBy
       };
       saveAppData();
       renderCurrentView();
@@ -544,6 +556,7 @@
         contact: email,
         status: 'Active'
       });
+      c.cftRecommendation = { ...(c.cftRecommendation || {}), humanConfirmed: false, status: 'Human Review Required' };
 
       saveAppData();
       document.getElementById('globalModal').style.display = 'none';
