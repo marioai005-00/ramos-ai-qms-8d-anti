@@ -21,8 +21,8 @@
             <div class="stage-step-sub">긴급 봉쇄 조치</div>
           </div>
           <div class="stage-step ${stage === 'D4' ? 'active' : ''}" onclick="switchStage('D4')">
-            <div class="stage-step-title">D4. RootCause ●</div>
-            <div class="stage-step-sub">5-Why & FA</div>
+            <div class="stage-step-title">D4. RootCause ${isD4StageComplete(c) ? '●' : '◐'}</div>
+            <div class="stage-step-sub">Toolbox & Proof</div>
           </div>
           <div class="stage-step ${stage === 'D5' ? 'active' : ''}" onclick="switchStage('D5')">
             <div class="stage-step-title">D5. PCA ●</div>
@@ -175,95 +175,7 @@
           return renderD3QualityWorkspace(c);
 
         case 'D4':
-          return `
-            <!-- FA Analysis Matrix -->
-            <div class="card">
-              <div class="card-header">
-                <div class="card-title"><i data-lucide="microscope" style="color:#a855f7; width:16px; height:16px;"></i> D4. FA 분석 액션 매트릭스 (Failure Analysis)</div>
-                <span class="badge-pill badge-ok">5개 시험 완료</span>
-              </div>
-              <table class="custom-table">
-                <thead>
-                  <tr>
-                    <th>분석 항목</th>
-                    <th>Sample</th>
-                    <th>분석 기관</th>
-                    <th>측정 결과 / 물리적 소견</th>
-                    <th>Status</th>
-                    <th>연결 증거</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${c.d4.faMatrix.map(fa => `
-                    <tr>
-                      <td style="font-weight:700; color:#60a5fa;">${fa.test}</td>
-                      <td class="num-mono">${fa.sample}</td>
-                      <td>${fa.lab}</td>
-                      <td style="font-weight:600; color:#f8fafc;">${fa.result}</td>
-                      <td><span class="badge-pill badge-ok">${fa.status}</span></td>
-                      <td><span class="badge-pill badge-purple" style="font-size:0.7rem;">${fa.evidenceId}</span></td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-
-            <!-- 5-Why Interactive Trees (Occurrence & Escape) -->
-            <div class="grid-2" style="gap:20px;">
-              <div class="card" style="margin-bottom:0;">
-                <div class="card-header">
-                  <div class="card-title" style="color:#38bdf8;"><i data-lucide="git-branch" style="width:16px;height:16px;"></i> Occurrence Root Cause 5-Why</div>
-                  <span class="badge-pill badge-ok">발생 원인 규명</span>
-                </div>
-                <div class="why-tree">
-                  ${c.d4.occurrence5Why.map((w, idx) => `
-                    <div class="why-node ${w.isRoot ? 'root-found' : ''}">
-                      <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">${idx === 0 ? 'START PROBLEM' : `WHY #${idx}`}</div>
-                      <div style="font-size:0.83rem; font-weight:600; color:#f8fafc; margin-top:2px;">${w.why}</div>
-                      <div style="font-size:0.72rem; color:#60a5fa; margin-top:4px;">📎 Evidence: ${w.evidence}</div>
-                    </div>
-                    ${idx < c.d4.occurrence5Why.length - 1 ? `<div class="why-arrow">↓ Why?</div>` : ''}
-                  `).join('')}
-                </div>
-              </div>
-
-              <div class="card" style="margin-bottom:0;">
-                <div class="card-header">
-                  <div class="card-title" style="color:#c084fc;"><i data-lucide="git-branch" style="width:16px;height:16px;"></i> Escape Root Cause 5-Why</div>
-                  <span class="badge-pill badge-purple">유출 원인 규명</span>
-                </div>
-                <div class="why-tree">
-                  ${c.d4.escape5Why.map((w, idx) => `
-                    <div class="why-node escape ${w.isRoot ? 'root-found' : ''}">
-                      <div style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">${idx === 0 ? 'START PROBLEM' : `WHY #${idx}`}</div>
-                      <div style="font-size:0.83rem; font-weight:600; color:#f8fafc; margin-top:2px;">${w.why}</div>
-                      <div style="font-size:0.72rem; color:#c084fc; margin-top:4px;">📎 Evidence: ${w.evidence}</div>
-                    </div>
-                    ${idx < c.d4.escape5Why.length - 1 ? `<div class="why-arrow">↓ Why?</div>` : ''}
-                  `).join('')}
-                </div>
-              </div>
-            </div>
-
-            <!-- Confirmed Root Cause Gate -->
-            <div class="card" style="margin-top:20px; border-left:4px solid #10b981;">
-              <div class="card-header">
-                <div class="card-title"><i data-lucide="check-check" style="color:#10b981; width:16px; height:16px;"></i> 확정된 Root Cause (Confirmed Root Causes)</div>
-                <span class="badge-pill badge-ok">증거 충족 기준 100% 통과</span>
-              </div>
-              ${c.d4.candidateCauses.map(rc => `
-                <div style="background:#0e1628; border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; margin-bottom:10px;">
-                  <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-weight:700; color:#34d399; font-size:0.88rem;">[${rc.type} Root Cause] ${rc.title}</span>
-                    <span class="badge-pill badge-ok">${rc.status}</span>
-                  </div>
-                  <div style="font-size:0.75rem; color:#94a3b8; margin-top:6px;">
-                    <b>입증 증거:</b> ${rc.supportingEvidence.join(', ')} | <b>배제된 가설:</b> ${rc.contradictingEvidence}
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          `;
+          return renderD4QualityWorkspace(c);
 
         case 'D5':
           return `
@@ -515,6 +427,7 @@
       if (stage === 'D2' && !isD1StageComplete(c)) return { allowed: false, message: 'D1 CFT 역할과 RACI를 사람이 확정해야 D2를 시작할 수 있습니다.' };
       if (stage === 'D3' && !isD2StageComplete(c)) return { allowed: false, message: 'D2 5W2H·IS/IS NOT 문제 정의를 승인해야 D3를 시작할 수 있습니다.' };
       if (['D4','D5','D6','D7','D8'].includes(stage) && !isD3StageComplete(c)) return { allowed: false, message: 'D3 봉쇄 범위와 효과성을 승인해야 원인분석 단계로 이동할 수 있습니다.' };
+      if (['D5','D6','D7','D8'].includes(stage) && !isD4StageComplete(c)) return { allowed: false, message: 'D4 발생·유출·시스템 근본원인을 Evidence로 승인해야 영구대책 단계로 이동할 수 있습니다.' };
       return { allowed: true };
     }
 
@@ -979,6 +892,156 @@
       c.currentStage='D3'; saveAppData(); alert('D3 긴급 봉쇄조치가 승인되었습니다. D4 원인분석을 시작할 수 있습니다.'); renderCurrentView();
     }
 
+    const D4_CORE_TOOL_IDS = ['timeline','process-flow','change-point','fishbone','five-why'];
+
+    function getD4ToolCatalog() {
+      return [
+        {id:'timeline',category:'문제 구조화',name:'발생 타임라인',desc:'마지막 정상부터 고객 불량까지 사건과 변경점을 시간축으로 정렬',needs:'생산·검사·입출고·고객 발생 일시'},
+        {id:'process-flow',category:'문제 구조화',name:'Process Flow / SIPOC',desc:'Wafer·외주 Assembly·Test·입고·출하·고객 사용 경로에서 발생·검출 지점을 확인',needs:'공정 흐름도, 외주사/검사 단계'},
+        {id:'change-point',category:'문제 구조화',name:'Change Point Analysis',desc:'정상과 불량 사이의 4M1E·설계·외주사 변경점을 비교',needs:'변경통보, Recipe·자재·설비 이력'},
+        {id:'fishbone',category:'원인 발굴',name:'Fishbone 8M',desc:'Man·Machine·Material·Method·Measurement·Environment·Design·Supplier 후보 발굴',needs:'CFT 브레인스토밍과 사실자료'},
+        {id:'five-why',category:'원인 발굴',name:'3-Track 5 Why',desc:'발생·유출·시스템 원인을 분리하여 Why마다 Evidence를 연결',needs:'검증된 현상과 원인 후보'},
+        {id:'fta',category:'원인 발굴',name:'Fault Tree Analysis',desc:'복합·간헐 고장의 AND/OR 원인 경로를 논리적으로 분해',needs:'고장 Mode와 기능 블록'},
+        {id:'cause-effect',category:'원인 발굴',name:'Cause & Effect Matrix',desc:'후보 원인의 연관성·재현성·Evidence 수준으로 우선순위 선정',needs:'원인 후보 목록과 평가기준'},
+        {id:'stratification',category:'데이터 분석',name:'층별 분석',desc:'LOT·외주사·설비·Tester·Socket·일자·교대조별 불량 집중도를 비교',needs:'조건 열이 포함된 불량 데이터'},
+        {id:'pareto',category:'데이터 분석',name:'Pareto 분석',desc:'복수 불량 Mode·Bin·조건 중 주요 기여 항목을 선별',needs:'범주별 건수 또는 불량수량'},
+        {id:'run-chart',category:'데이터 분석',name:'Trend / Run Chart',desc:'시간에 따른 불량률·측정값·설비 Parameter 변화 확인',needs:'시간순 연속 데이터'},
+        {id:'spc',category:'데이터 분석',name:'SPC 관리도',desc:'공정의 우연변동과 이상원인을 관리한계 기준으로 구분',needs:'충분한 시계열 표본과 관리 기준'},
+        {id:'distribution',category:'데이터 분석',name:'Histogram / Box Plot',desc:'정상·불량 LOT 또는 설비 간 평균과 산포를 비교',needs:'수치형 측정 원본'},
+        {id:'correlation',category:'데이터 분석',name:'산점도 / 상관분석',desc:'공정조건과 불량률·측정값 사이의 연관 패턴 확인',needs:'짝을 이룬 두 개 이상의 수치 변수'},
+        {id:'statistics',category:'데이터 분석',name:'가설검정 / ANOVA / 회귀',desc:'그룹 간 차이와 변수 영향이 통계적으로 유의한지 검증',needs:'표본수와 분포조건을 만족하는 원시 데이터'},
+        {id:'genealogy',category:'반도체·외주',name:'LOT Genealogy',desc:'Wafer·Assembly·Test·당사 입고·고객 출하 LOT 연결관계 추적',needs:'외주 Trace, CoA, Packing/입고 이력'},
+        {id:'wafer-bin-map',category:'반도체·외주',name:'Wafer Map / Bin Map',desc:'Edge·Center·Ring·Die 위치·특정 Bin 집중 패턴 탐색',needs:'Wafer 좌표 또는 Test Bin 데이터'},
+        {id:'cross-swap',category:'반도체·외주',name:'Cross / Swap Test',desc:'제품·Board·Socket·Program·자재를 교환하여 원인 위치 분리',needs:'정상/불량 비교시료와 교환 시험'},
+        {id:'reproduction',category:'반도체·외주',name:'재현시험',desc:'의심 조건의 투입·제거를 반복해 동일 Failure Mode 재현',needs:'시험조건, 반복수, 대조군'},
+        {id:'physical-fa',category:'반도체·외주',name:'Physical FA Tree',desc:'외관·X-ray·SAT·Decap·SEM/EDS·Cross Section 결과를 단계적으로 연결',needs:'시료정보와 공인 분석 성적서'},
+        {id:'shainin',category:'반도체·외주',name:'Shainin 기법',desc:'Paired Comparison·Component Search·Multi-Vari로 핵심 변수를 압축',needs:'Best/Worst 시료와 비교 가능한 변수'},
+        {id:'test-coverage',category:'유출원인',name:'검사 Coverage 분석',desc:'해당 Failure Mode를 어느 검사에서 어떤 조건으로 검출해야 했는지 확인',needs:'검사 Flow, 항목, 조건, 검출능력'},
+        {id:'test-limit',category:'유출원인',name:'Test Limit / Guard Band',desc:'정상·불량 분포와 Spec/Test Limit 사이 False Pass 영역 확인',needs:'측정 원본, Limit, 고객 사용조건'},
+        {id:'msa',category:'유출원인',name:'MSA / Gage R&R',desc:'장비·검사자·반복측정 변동과 불량 구분 능력 평가',needs:'반복·재현 측정 데이터'},
+        {id:'sampling-risk',category:'유출원인',name:'Sampling Risk / AQL',desc:'샘플링 검사에서 Lot Accept 및 Escape 확률 평가',needs:'검사수량, AQL, 허용불량 기준'},
+        {id:'fmea-gap',category:'유출·시스템',name:'PFMEA / Control Plan Gap',desc:'Failure Mode의 예방·검출 관리 누락과 실제 작업 불일치 확인',needs:'PFMEA, Control Plan, 작업표준, Audit 결과'}
+      ];
+    }
+
+    function ensureD4Structure(c) {
+      c.d4 = c.d4 || {};
+      const d4 = c.d4;
+      d4.faMatrix = Array.isArray(d4.faMatrix) ? d4.faMatrix : [];
+      d4.occurrence5Why = Array.isArray(d4.occurrence5Why) ? d4.occurrence5Why : [];
+      d4.escape5Why = Array.isArray(d4.escape5Why) ? d4.escape5Why : [];
+      d4.candidateCauses = Array.isArray(d4.candidateCauses) ? d4.candidateCauses : [];
+      d4.analysisProfile = d4.analysisProfile || {failureMode:'unknown',pattern:'unknown',dataScope:'limited',productionModel:'outsourced',escapeConcern:'unknown'};
+      d4.recommendations = Array.isArray(d4.recommendations) ? d4.recommendations : [];
+      d4.selectedTools = Array.isArray(d4.selectedTools) ? d4.selectedTools : [];
+      const legacyCause = type => d4.candidateCauses.find(row => String(row.type || '').toLowerCase().includes(type.toLowerCase()));
+      const makeCause = (type, legacy) => ({type,statement:legacy?.title || '',evidence:(legacy?.supportingEvidence || []).join(', '),contraryEvidence:legacy?.contradictingEvidence || '',validationMethod:'',status:legacy?.status === 'Confirmed' ? 'Confirmed' : 'Candidate',checks:{reproduced:false,removed:false,boundary:false,evidence:false}});
+      d4.rootCauses = d4.rootCauses || {};
+      d4.rootCauses.Occurrence = {...makeCause('Occurrence',legacyCause('occurrence')),...(d4.rootCauses.Occurrence || {})};
+      d4.rootCauses.Escape = {...makeCause('Escape',legacyCause('escape')),...(d4.rootCauses.Escape || {})};
+      d4.rootCauses.System = {...makeCause('System',legacyCause('system')),...(d4.rootCauses.System || {})};
+      ['Occurrence','Escape','System'].forEach(type => { d4.rootCauses[type].checks = {reproduced:false,removed:false,boundary:false,evidence:false,...(d4.rootCauses[type].checks || {})}; });
+      d4.approval = d4.approval || {status:'Draft',humanConfirmed:false};
+      return d4;
+    }
+
+    function buildD4ToolRecommendations(d4) {
+      const p=d4.analysisProfile; const scores={}; const reasons={};
+      const add=(id,score,reason)=>{scores[id]=(scores[id]||0)+score; reasons[id]=reasons[id] ? `${reasons[id]} · ${reason}` : reason;};
+      D4_CORE_TOOL_IDS.forEach((id,idx)=>add(id,100-idx,idx===0?'모든 D4의 시간 기준선 확보':'D4 필수 원인분석 흐름'));
+      if (p.failureMode==='electrical' || p.failureMode==='functional') { add('fta',30,'전기·기능 고장의 복수 경로 분해'); add('cross-swap',28,'제품/Board/Test 조건 분리'); add('test-limit',26,'False Pass 가능성 확인'); }
+      if (p.failureMode==='physical') { add('physical-fa',34,'물리적 고장 메커니즘 입증'); add('genealogy',27,'동일 자재·공정 노출 LOT 추적'); add('reproduction',25,'파손 조건 재현'); }
+      if (p.failureMode==='reliability') { add('run-chart',29,'시간·Stress 누적 변화 확인'); add('reproduction',28,'가속조건 재현'); add('fta',24,'복합 열화 경로 분해'); }
+      if (p.pattern==='intermittent') { add('fta',32,'간헐 고장의 조건 조합 분석'); add('cross-swap',30,'간헐 발생 위치 분리'); add('reproduction',29,'Trigger 조건 확인'); }
+      if (p.pattern==='lot-cluster' || p.pattern==='multiple') { add('stratification',34,'조건별 집중도 비교'); add('genealogy',32,'공통 투입요소 추적'); add('pareto',26,'주요 Failure Mode 우선순위화'); }
+      if (p.dataScope==='continuous') { add('run-chart',32,'시계열 변화점 탐색'); add('spc',28,'이상변동 판단'); add('distribution',24,'정상/불량 분포 비교'); }
+      if (p.dataScope==='map') { add('wafer-bin-map',38,'좌표·Bin 공간 패턴 확인'); add('stratification',28,'Wafer·Tester별 층별 비교'); }
+      if (p.productionModel==='outsourced' || p.productionModel==='mixed') { add('genealogy',70,'외주 Assembly/Test Trace 연결'); add('fmea-gap',22,'외주 관리·변경통제 누락 확인'); }
+      if (p.escapeConcern==='yes') { add('test-coverage',70,'미검출 검사 단계 확인'); add('test-limit',34,'Limit/Guard Band 검토'); add('msa',26,'측정시스템 검출력 확인'); add('fmea-gap',24,'관리계획 누락 확인'); }
+      const adaptive=Object.keys(scores).filter(id=>!D4_CORE_TOOL_IDS.includes(id)).sort((a,b)=>scores[b]-scores[a]).slice(0,4);
+      return [...D4_CORE_TOOL_IDS,...adaptive].map(id=>({id,priority:D4_CORE_TOOL_IDS.includes(id)?'필수':'AI 추천',reason:reasons[id]}));
+    }
+
+    function getD4ToolById(id) { return getD4ToolCatalog().find(tool=>tool.id===id); }
+
+    function renderD4QualityWorkspace(c) {
+      const d4=ensureD4Structure(c); const catalog=getD4ToolCatalog();
+      if (!d4.recommendations.length) d4.recommendations=buildD4ToolRecommendations(d4);
+      const selectedIds=d4.selectedTools.map(row=>row.id); const approved=d4.approval.status==='Approved'&&d4.approval.humanConfirmed;
+      const recommendationRows=d4.recommendations.map(rec=>{ const tool=getD4ToolById(rec.id); return `<div class="d4-recommend-row"><span class="d4-priority ${rec.priority==='필수'?'core':'adaptive'}">${rec.priority}</span><div><strong>${tool?.name||rec.id}</strong><span>${rec.reason}</span></div><span class="d4-tool-state">${selectedIds.includes(rec.id)?'적용됨':'대기'}</span></div>`; }).join('');
+      const groups=[...new Set(catalog.map(tool=>tool.category))].map(category=>`<details class="d4-library-group"><summary>${category}<span>${catalog.filter(tool=>tool.category===category).length}개</span></summary><div class="d4-library-grid">${catalog.filter(tool=>tool.category===category).map(tool=>`<div class="d4-library-item"><div><strong>${tool.name}</strong><p>${tool.desc}</p><small>필요자료 · ${tool.needs}</small></div><button type="button" class="btn btn-secondary btn-sm" onclick="addD4Tool('${tool.id}')" ${selectedIds.includes(tool.id)?'disabled':''}>${selectedIds.includes(tool.id)?'적용됨':'추가'}</button></div>`).join('')}</div></details>`).join('');
+      return `<form id="d4QualityForm" onsubmit="return false;">
+        <div class="quality-boundary-note d4-boundary"><strong>AI는 원인 후보와 분석 도구를 추천할 뿐 Root Cause를 확정하지 않습니다.</strong><span>발생·유출·시스템 원인을 각각 Evidence와 검증시험으로 입증한 후 품질 담당자가 승인합니다.</span></div>
+        <div class="card quality-stage-card d4-selector-panel">
+          <div class="quality-tool-head inline-head"><div><span class="quality-tool-kicker">D4 · AI QUALITY TOOL SELECTOR</span><h3>Case 특성 기반 분석 도구 선정</h3><p>생산형태와 불량 패턴, 확보 데이터 수준에 따라 필수 도구와 선택형 도구를 조합합니다.</p></div><button type="button" class="btn btn-primary" onclick="recommendD4Tools()"><i data-lucide="sparkles"></i> AI 추천 다시 계산</button></div>
+          <div class="d4-profile-grid">
+            <label><span>불량 유형</span><select class="form-control" name="d4FailureMode"><option value="unknown" ${d4.analysisProfile.failureMode==='unknown'?'selected':''}>미확정</option><option value="electrical" ${d4.analysisProfile.failureMode==='electrical'?'selected':''}>전기적 불량</option><option value="functional" ${d4.analysisProfile.failureMode==='functional'?'selected':''}>기능 불량</option><option value="physical" ${d4.analysisProfile.failureMode==='physical'?'selected':''}>외관·물리적 불량</option><option value="reliability" ${d4.analysisProfile.failureMode==='reliability'?'selected':''}>신뢰성·열화 불량</option><option value="process" ${d4.analysisProfile.failureMode==='process'?'selected':''}>공정 변동</option></select></label>
+            <label><span>발생 패턴</span><select class="form-control" name="d4Pattern"><option value="unknown" ${d4.analysisProfile.pattern==='unknown'?'selected':''}>미확정</option><option value="single" ${d4.analysisProfile.pattern==='single'?'selected':''}>단발</option><option value="intermittent" ${d4.analysisProfile.pattern==='intermittent'?'selected':''}>간헐</option><option value="lot-cluster" ${d4.analysisProfile.pattern==='lot-cluster'?'selected':''}>특정 LOT 집중</option><option value="trend" ${d4.analysisProfile.pattern==='trend'?'selected':''}>시간 추세</option><option value="multiple" ${d4.analysisProfile.pattern==='multiple'?'selected':''}>복수 Mode</option></select></label>
+            <label><span>확보 데이터</span><select class="form-control" name="d4DataScope"><option value="none" ${d4.analysisProfile.dataScope==='none'?'selected':''}>거의 없음</option><option value="limited" ${d4.analysisProfile.dataScope==='limited'?'selected':''}>성적서·요약자료</option><option value="lot" ${d4.analysisProfile.dataScope==='lot'?'selected':''}>LOT별 데이터</option><option value="continuous" ${d4.analysisProfile.dataScope==='continuous'?'selected':''}>연속 측정 원본</option><option value="map" ${d4.analysisProfile.dataScope==='map'?'selected':''}>Wafer/Bin Map</option></select></label>
+            <label><span>생산 형태</span><select class="form-control" name="d4ProductionModel"><option value="outsourced" ${d4.analysisProfile.productionModel==='outsourced'?'selected':''}>Assembly·Test 외주</option><option value="mixed" ${d4.analysisProfile.productionModel==='mixed'?'selected':''}>내부+외주 혼합</option><option value="internal" ${d4.analysisProfile.productionModel==='internal'?'selected':''}>사내 생산</option></select></label>
+            <label><span>검사 유출 의심</span><select class="form-control" name="d4EscapeConcern"><option value="unknown" ${d4.analysisProfile.escapeConcern==='unknown'?'selected':''}>미확정</option><option value="yes" ${d4.analysisProfile.escapeConcern==='yes'?'selected':''}>있음</option><option value="no" ${d4.analysisProfile.escapeConcern==='no'?'selected':''}>낮음</option></select></label>
+          </div>
+          <div class="d4-recommend-board">${recommendationRows}</div>
+          <div class="d4-selector-actions"><button type="button" class="btn btn-primary" onclick="applyD4Recommendations()"><i data-lucide="wand-sparkles"></i> 추천 도구 작업대에 적용</button><span>핵심 5개 + Case 특화 최대 4개</span></div>
+        </div>
+
+        <div class="card quality-stage-card">
+          <div class="quality-tool-head"><span class="quality-tool-kicker">ACTIVE ANALYSIS WORKBENCH</span><h3>선택된 품질도구 · ${d4.selectedTools.length}개</h3><p>가설과 Evidence, 분석결과를 입력하고 사실 검증을 완료하세요. 선택 도구가 없으면 위 추천을 적용합니다.</p></div>
+          <div class="d4-active-stack">${d4.selectedTools.length?d4.selectedTools.map((row,idx)=>renderD4ActiveTool(row,idx)).join(''):'<div class="quality-empty-row">아직 적용된 품질도구가 없습니다. AI 추천을 적용하거나 라이브러리에서 추가하세요.</div>'}</div>
+        </div>
+
+        <div class="card quality-stage-card d4-library-panel">
+          <div class="quality-tool-head"><span class="quality-tool-kicker">QUALITY TOOL LIBRARY · 25</span><h3>추가 분석 도구</h3><p>AI 추천 외에도 CFT 판단에 따라 필요한 도구를 추가할 수 있습니다.</p></div>${groups}
+        </div>
+
+        ${d4.faMatrix.length?`<div class="card quality-stage-card"><div class="quality-tool-head"><span class="quality-tool-kicker">LEGACY / RECEIVED FA EVIDENCE</span><h3>기존 FA 분석자료</h3></div><div class="quality-table-wrap"><table class="custom-table"><thead><tr><th>분석</th><th>시료</th><th>기관</th><th>결과</th><th>증거</th></tr></thead><tbody>${d4.faMatrix.map(fa=>`<tr><td>${fa.test}</td><td>${fa.sample}</td><td>${fa.lab}</td><td>${fa.result}</td><td class="num-mono">${fa.evidenceId}</td></tr>`).join('')}</tbody></table></div></div>`:''}
+
+        <div class="card quality-stage-card d4-cause-gate">
+          <div class="quality-tool-head"><span class="quality-tool-kicker">ROOT CAUSE PROOF GATE</span><h3>발생·유출·시스템 원인 분리 확정</h3><p>세 원인을 각각 기술하고 인과관계 4개 기준을 모두 확인해야 D4를 승인할 수 있습니다.</p></div>
+          <div class="d4-cause-grid">${['Occurrence','Escape','System'].map(type=>renderD4CauseLane(type,d4.rootCauses[type])).join('')}</div>
+          <label class="quality-human-check"><input type="checkbox" name="d4HumanConfirmed" ${approved?'checked':''}><span><strong>D4 원인 검토 완료</strong> · AI 추천이 아닌 CFT 시험결과와 원본 Evidence를 확인했으며 발생·유출·시스템 원인을 승인합니다.</span></label>
+          <div class="quality-stage-actions"><button type="button" class="btn btn-secondary" onclick="saveD4Analysis(false)">임시 저장</button><button type="button" class="btn btn-primary" onclick="saveD4Analysis(true)"><i data-lucide="badge-check"></i> D4 근본원인 승인</button></div>
+        </div>
+      </form>`;
+    }
+
+    function renderD4ActiveTool(row,idx) {
+      const tool=getD4ToolById(row.id)||{name:row.id,category:'기타',desc:'',needs:''};
+      return `<section class="d4-active-tool ${row.verified?'verified':''}"><header><div><span>${tool.category}</span><h4>${tool.name}</h4><p>${tool.desc}</p></div><div class="d4-tool-actions"><span class="d4-tool-state">${row.source==='AI'?'AI 추천':'CFT 추가'}</span><button type="button" class="icon-danger-btn" onclick="removeD4Tool(${idx})" title="도구 제외"><i data-lucide="trash-2"></i></button></div></header><div class="d4-tool-form"><label><span>분석 목적·가설 *</span><textarea class="form-control" name="d4ToolHypothesis${idx}" placeholder="이 도구로 무엇을 확인하거나 기각할 것인지">${escapeWorkspaceValue(row.hypothesis)}</textarea></label><label><span>연결 Evidence *</span><textarea class="form-control" name="d4ToolEvidence${idx}" placeholder="파일명, 성적서 번호, 원시데이터 위치">${escapeWorkspaceValue(row.evidence)}</textarea></label><label class="wide"><span>분석 결과·해석 *</span><textarea class="form-control" name="d4ToolFinding${idx}" placeholder="관찰된 사실과 가설에 대한 결론을 구분해서 작성">${escapeWorkspaceValue(row.finding)}</textarea></label><label><span>담당자</span><input class="form-control" name="d4ToolOwner${idx}" value="${escapeWorkspaceValue(row.owner)}" placeholder="분석 담당"></label><label><span>상태</span><select class="form-control" name="d4ToolStatus${idx}">${['Planned','Testing','Rejected','Supported','Confirmed'].map(status=>`<option value="${status}" ${row.status===status?'selected':''}>${status}</option>`).join('')}</select></label></div><footer><small>필요자료 · ${tool.needs}</small><label class="row-verify-control"><input type="checkbox" name="d4ToolVerified${idx}" ${row.verified?'checked':''}><span>Evidence와 결과 사실 확인</span></label></footer></section>`;
+    }
+
+    function renderD4CauseLane(type,cause) {
+      const meta={Occurrence:['발생원인','왜 불량이 만들어졌는가','#38bdf8'],Escape:['유출원인','왜 검사에서 발견하지 못했는가','#c084fc'],System:['시스템원인','왜 관리체계가 예방하지 못했는가','#f59e0b']}[type]; const checks=cause.checks||{};
+      return `<section class="d4-cause-lane" style="--lane-color:${meta[2]}"><header><span>${type.toUpperCase()}</span><h4>${meta[0]}</h4><p>${meta[1]}</p></header><label><span>원인 문장 *</span><textarea class="form-control" name="d4CauseStatement${type}">${escapeWorkspaceValue(cause.statement)}</textarea></label><label><span>입증 Evidence *</span><textarea class="form-control" name="d4CauseEvidence${type}">${escapeWorkspaceValue(cause.evidence)}</textarea></label><label><span>반대 Evidence·기각 가설</span><textarea class="form-control" name="d4CauseContrary${type}">${escapeWorkspaceValue(cause.contraryEvidence)}</textarea></label><label><span>검증 방법·결과 *</span><textarea class="form-control" name="d4CauseValidation${type}" placeholder="재현시험, 제거시험, 통계검정 등">${escapeWorkspaceValue(cause.validationMethod)}</textarea></label><label><span>판정</span><select class="form-control" name="d4CauseStatus${type}">${['Candidate','Testing','Supported','Confirmed'].map(status=>`<option ${cause.status===status?'selected':''}>${status}</option>`).join('')}</select></label><div class="d4-proof-checks"><label><input type="checkbox" name="d4CheckReproduced${type}" ${checks.reproduced?'checked':''}> 원인 투입 시 재현 또는 동등 검증</label><label><input type="checkbox" name="d4CheckRemoved${type}" ${checks.removed?'checked':''}> 원인 제거 시 불량 제거</label><label><input type="checkbox" name="d4CheckBoundary${type}" ${checks.boundary?'checked':''}> IS / IS NOT 경계 설명</label><label><input type="checkbox" name="d4CheckEvidence${type}" ${checks.evidence?'checked':''}> 원본 Evidence 확인</label></div></section>`;
+    }
+
+    function captureD4Form(c) {
+      const d4=ensureD4Structure(c); const form=document.getElementById('d4QualityForm'); if(!form)return d4;
+      d4.analysisProfile={failureMode:form.elements.d4FailureMode?.value||'unknown',pattern:form.elements.d4Pattern?.value||'unknown',dataScope:form.elements.d4DataScope?.value||'limited',productionModel:form.elements.d4ProductionModel?.value||'outsourced',escapeConcern:form.elements.d4EscapeConcern?.value||'unknown'};
+      d4.selectedTools=d4.selectedTools.map((row,idx)=>({...row,hypothesis:form.elements[`d4ToolHypothesis${idx}`]?.value?.trim()||'',evidence:form.elements[`d4ToolEvidence${idx}`]?.value?.trim()||'',finding:form.elements[`d4ToolFinding${idx}`]?.value?.trim()||'',owner:form.elements[`d4ToolOwner${idx}`]?.value?.trim()||'',status:form.elements[`d4ToolStatus${idx}`]?.value||'Planned',verified:Boolean(form.elements[`d4ToolVerified${idx}`]?.checked)}));
+      ['Occurrence','Escape','System'].forEach(type=>{d4.rootCauses[type]={type,statement:form.elements[`d4CauseStatement${type}`]?.value?.trim()||'',evidence:form.elements[`d4CauseEvidence${type}`]?.value?.trim()||'',contraryEvidence:form.elements[`d4CauseContrary${type}`]?.value?.trim()||'',validationMethod:form.elements[`d4CauseValidation${type}`]?.value?.trim()||'',status:form.elements[`d4CauseStatus${type}`]?.value||'Candidate',checks:{reproduced:Boolean(form.elements[`d4CheckReproduced${type}`]?.checked),removed:Boolean(form.elements[`d4CheckRemoved${type}`]?.checked),boundary:Boolean(form.elements[`d4CheckBoundary${type}`]?.checked),evidence:Boolean(form.elements[`d4CheckEvidence${type}`]?.checked)}};});
+      return d4;
+    }
+
+    function recommendD4Tools() { const c=getActiveCase(); const d4=captureD4Form(c); d4.recommendations=buildD4ToolRecommendations(d4); d4.approval={status:'Draft',humanConfirmed:false}; saveAppData(); renderCurrentView(); }
+    function applyD4Recommendations() { const c=getActiveCase(); const d4=captureD4Form(c); d4.recommendations=buildD4ToolRecommendations(d4); d4.recommendations.forEach(rec=>{if(!d4.selectedTools.some(row=>row.id===rec.id))d4.selectedTools.push({id:rec.id,source:'AI',hypothesis:'',evidence:'',finding:'',owner:'',status:'Planned',verified:false});}); d4.approval={status:'Draft',humanConfirmed:false}; saveAppData(); renderCurrentView(); }
+    function addD4Tool(id) { const c=getActiveCase(); const d4=captureD4Form(c); if(!getD4ToolById(id)||d4.selectedTools.some(row=>row.id===id))return; d4.selectedTools.push({id,source:'CFT',hypothesis:'',evidence:'',finding:'',owner:'',status:'Planned',verified:false}); d4.approval={status:'Draft',humanConfirmed:false}; saveAppData(); renderCurrentView(); }
+    function removeD4Tool(idx) { const c=getActiveCase(); const d4=captureD4Form(c); d4.selectedTools.splice(idx,1); d4.approval={status:'Draft',humanConfirmed:false}; saveAppData(); renderCurrentView(); }
+    function isD4StageComplete(c) { return c.d4?.approval?.status==='Approved'&&c.d4?.approval?.humanConfirmed===true; }
+
+    function saveD4Analysis(approve) {
+      const c=getActiveCase(); const d4=captureD4Form(c); const form=document.getElementById('d4QualityForm');
+      if(!approve){d4.approval={status:'Draft',humanConfirmed:false,savedAt:new Date().toISOString().replace('T',' ').slice(0,16)};saveAppData();alert('D4 분석 내용이 임시 저장되었습니다.');renderCurrentView();return;}
+      if(!isD3StageComplete(c)){alert('D4 승인 전 D3 봉쇄 범위와 효과성 승인이 필요합니다.');return;}
+      const ids=d4.selectedTools.map(row=>row.id); if(D4_CORE_TOOL_IDS.some(id=>!ids.includes(id))){alert('D4 필수 도구 5개(타임라인·Process Flow·Change Point·Fishbone·3-Track 5 Why)를 적용해 주세요.');return;}
+      if(d4.selectedTools.some(row=>!row.hypothesis||!row.evidence||!row.finding||!row.owner||row.status==='Planned'||row.status==='Testing'||!row.verified)){alert('선택한 모든 품질도구의 가설·Evidence·결과·담당자·판정을 작성하고 사실 확인해 주세요.');return;}
+      const incomplete=['Occurrence','Escape','System'].some(type=>{const root=d4.rootCauses[type];return !root.statement||!root.evidence||!root.validationMethod||root.status!=='Confirmed'||Object.values(root.checks||{}).some(value=>!value);});
+      if(incomplete){alert('발생·유출·시스템 원인 각각의 문장·Evidence·검증결과와 인과관계 4개 기준을 모두 충족해 주세요.');return;}
+      if(!form?.elements.d4HumanConfirmed?.checked){alert('[D4 원인 검토 완료]에 체크해 주세요.');return;}
+      d4.candidateCauses=['Occurrence','Escape','System'].map((type,idx)=>({id:`RC-${String(idx+1).padStart(2,'0')}`,type,title:d4.rootCauses[type].statement,status:'Confirmed',supportingEvidence:d4.rootCauses[type].evidence.split(',').map(v=>v.trim()).filter(Boolean),contradictingEvidence:d4.rootCauses[type].contraryEvidence||'반대 Evidence 없음',missingEvidence:'없음 · 인과관계 Gate 확인'}));
+      d4.approval={status:'Approved',humanConfirmed:true,approvedAt:new Date().toISOString().replace('T',' ').slice(0,16),approvedBy:{name:CURRENT_USER.name,dept:CURRENT_USER.dept,email:CURRENT_USER.email}}; c.currentStage='D4'; saveAppData(); alert('D4 발생·유출·시스템 근본원인이 승인되었습니다. D5 영구대책을 시작할 수 있습니다.'); renderCurrentView();
+    }
+
     function renderAISidePanelContent(c, stage) {
       let checks = [];
 
@@ -1017,15 +1080,18 @@
       }
 
       if (stage === 'D4' || stage === 'overview') {
+        const d4 = ensureD4Structure(c);
+        const verifiedTools = d4.selectedTools.filter(row => row.verified).length;
+        const confirmedCauses = ['Occurrence','Escape','System'].filter(type => d4.rootCauses[type]?.status === 'Confirmed').length;
         checks.push({
-          type: 'success',
-          title: 'Root Cause 승격 조건 충족 (Confirmed)',
-          desc: '① IV Curve 단락 + ② MLCC 탈거 후 복구 + ③ SEM 유전체 수직 Crack 성적서(EVD-08)가 완벽 연결되어 Confirmed로 승격됨.'
+          type: isD4StageComplete(c) ? 'success' : 'warning',
+          title: isD4StageComplete(c) ? 'D4 Root Cause 사람 승인 완료' : 'D4 분석 증거 Gate 진행 중',
+          desc: `선택 도구 ${d4.selectedTools.length}개 중 ${verifiedTools}개 Evidence 확인 · 발생/유출/시스템 원인 ${confirmedCauses}/3개 Confirmed.`
         });
         checks.push({
           type: 'info',
-          title: 'Escape Cause FMEA 갭 발견',
-          desc: '체크리스트 상 고온 HTOL 125℃와 부품 X5R(85℃) 간 Cross Check 누락이 입증되었습니다.'
+          title: 'AI 품질도구 선택 원칙',
+          desc: '타임라인·Process Flow·Change Point·Fishbone·3-Track 5 Why는 필수이며 Case 특성에 따라 최대 4개 도구를 추가 추천합니다.'
         });
       }
 
