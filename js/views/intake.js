@@ -139,15 +139,26 @@
       const intakeRegistrar = getIntakeRegistrar();
       const initialOwner = getRecommendedIntakeOwner('LGE (LG전자)');
       const hasRegistrationAuthority = hasIntakeRegistrationAuthority(intakeRegistrar);
+      const pendingIntakeCount = (appData.intakeQueue || []).filter(item => item.status === 'Quality Review Pending').length;
       return `
         <div style="max-width: 960px; margin: 0 auto;">
           <div style="margin-bottom: 20px;">
             <h1 style="font-size: 1.35rem; font-weight: 800; color: #f8fafc; display:flex; align-items:center; gap:8px;">
-              <i data-lucide="plus-circle" style="color: #38bdf8;"></i> STEP 01. 신규 부적합 접수 & 8D Case 생성
+              <i data-lucide="inbox" style="color: #38bdf8;"></i> STEP 01. 신규 고객 부적합 접수
             </h1>
             <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
-              그룹웨어 메일 캡쳐(이미지), 고객 공문(PDF/Word), 불량 내역(Excel)을 <b>드래그 또는 붙여넣기(Ctrl+V)</b>하면 AI가 자동으로 폼을 완성합니다.
+              접수 원본을 등록하고 AI 추출 내용을 확인해 품질혁신팀에 검토를 요청합니다. 이 단계에서는 8D 발행과 CFT를 확정하지 않습니다.
             </p>
+          </div>
+
+          <div class="intake-workflow-strip" aria-label="고객 부적합 처리 흐름">
+            <div class="intake-workflow-step is-current"><span>01</span><strong>접수 입력</strong><small>CS · 영업</small></div>
+            <i data-lucide="chevron-right"></i>
+            <div class="intake-workflow-step"><span>02</span><strong>품질 검토</strong><small>${pendingIntakeCount}건 대기</small></div>
+            <i data-lucide="chevron-right"></i>
+            <div class="intake-workflow-step"><span>03</span><strong>Case 승인</strong><small>8D 여부 확정</small></div>
+            <i data-lucide="chevron-right"></i>
+            <div class="intake-workflow-step"><span>D1</span><strong>CFT 구성</strong><small>승인 후 진행</small></div>
           </div>
 
           <!-- TOP AI SMART INGEST HERO CARD -->
@@ -207,7 +218,7 @@
           </div>
 
           <!-- FORM START -->
-          <form id="newCaseForm" onsubmit="handleCreateCase(event)">
+          <form id="newCaseForm" onsubmit="handleSubmitIntake(event)">
             <div class="card">
               <div class="card-header">
                 <div class="card-title">
@@ -278,12 +289,13 @@
               </div>
             </div>
 
-            <!-- Severity & AI Rule Decision Card -->
+            <!-- Preliminary Risk Signals: final decision belongs to Quality Triage -->
             <div class="card">
               <div class="card-header">
                 <div class="card-title">
-                  <i data-lucide="shield-alert" style="color:#ef4444; width:16px; height:16px;"></i> Severity & 8D 트리거 판정 요소
+                  <i data-lucide="shield-alert" style="color:#f59e0b; width:16px; height:16px;"></i> 접수 위험 신호 (품질 검토용)
                 </div>
+                <span class="intake-human-gate-badge">잠정 정보 · 품질 확정 필요</span>
               </div>
 
               <div class="grid-3">
@@ -310,26 +322,27 @@
                 </div>
               </div>
 
-              <!-- AI Auto Decision Result Box -->
+              <!-- Preliminary System Recommendation -->
               <div id="aiDecisionResultBox" style="background: rgba(59, 130, 246, 0.08); border: 1px solid #3b82f6; border-radius: var(--radius-sm); padding: 14px 16px; margin-top: 10px;">
                 <div style="font-size:0.85rem; font-weight:700; color:#60a5fa; display:flex; align-items:center; gap:6px;">
-                  <i data-lucide="sparkles" style="width:16px; height:16px;"></i> AI 시스템 자동 판정 결과
+                  <i data-lucide="sparkles" style="width:16px; height:16px;"></i> 시스템 사전 검토 신호
                 </div>
                 <div style="margin-top: 8px; font-size:0.8rem; color:#e2e8f0; display:grid; grid-template-columns: repeat(3, 1fr); gap:12px;">
                   <div>
-                    <span style="color:var(--text-muted);">8D Report 필요 여부:</span>
+                    <span style="color:var(--text-muted);">8D 검토 제안:</span>
                     <span id="decision8DRequired" style="font-weight:700; color:#34d399;">● 8D 필수 발행 대상 (Mandatory)</span>
                   </div>
                   <div>
-                    <span style="color:var(--text-muted);">긴급 대응 Level:</span>
+                    <span style="color:var(--text-muted);">잠정 위험 신호:</span>
                     <span id="decisionSeverityLevel" style="font-weight:700; color:#f87171;">● CRITICAL (Level 1)</span>
                   </div>
                   <div>
-                    <span style="color:var(--text-muted);">Initial 3D SLA Due:</span>
+                    <span style="color:var(--text-muted);">권고 검토 시간:</span>
                     <span id="decisionSlaDue" style="font-weight:700; color:#fbbf24;" class="num-mono">24시간 이내 (D3 봉쇄 필수)</span>
                   </div>
                 </div>
               </div>
+              <p class="intake-preliminary-note">이 결과는 접수 누락과 긴급 검토 필요성을 알리는 참고 신호입니다. 최종 Severity, 8D 발행 여부와 SLA는 품질 Triage 승인에서 확정합니다.</p>
             </div>
 
             <!-- AI Intake Routing & Human Confirmation Card -->
@@ -368,7 +381,7 @@
                   <i data-lucide="arrow-right"></i>
                 </div>
                 <div class="intake-routing-node">
-                  <span class="intake-routing-label">품질 접수 코디네이터</span>
+                  <span class="intake-routing-label">품질 검토 담당</span>
                   <strong>${QUALITY_INTAKE_COORDINATOR.name} ${QUALITY_INTAKE_COORDINATOR.position}</strong>
                   <span>${QUALITY_INTAKE_COORDINATOR.dept} · ${QUALITY_INTAKE_COORDINATOR.email}</span>
                 </div>
@@ -410,14 +423,14 @@
               <label class="intake-assignment-confirmation" for="formAssignmentConfirmed">
                 <input type="checkbox" id="formAssignmentConfirmed" name="assignmentConfirmed" required>
                 <span>
-                  <strong>담당자 배정 확인</strong>
-                  AI가 추천한 고객 대응 담당자와 품질 코디네이터를 확인했으며, 이 배정으로 Case를 등록합니다.
+                  <strong>접수 내용 및 전달 대상 확인</strong>
+                  AI가 입력한 내용과 고객 대응 담당자를 확인했으며, 품질혁신팀에 검토를 요청합니다.
                 </span>
               </label>
             </div>
 
-            <!-- CFT Leadership Assignment Card -->
-            <div class="card" style="border: 1px solid #3b82f6; background: rgba(13, 21, 39, 0.7);">
+            <!-- CFT selection is intentionally deferred until Quality Triage approval / D1 -->
+            <div class="card" hidden aria-hidden="true" style="border: 1px solid #3b82f6; background: rgba(13, 21, 39, 0.7);">
               <div class="card-header" style="border-bottom: 1px solid rgba(59, 130, 246, 0.2);">
                 <div class="card-title" style="color: #60a5fa;">
                   <i data-lucide="shield-check" style="color:#38bdf8; width:16px; height:16px;"></i> 초동 CFT 핵심 리더십 지정
@@ -507,7 +520,7 @@
             <div style="display:flex; justify-content:flex-end; gap:12px; margin-bottom:40px;">
               <button type="button" class="btn btn-secondary" onclick="switchNav('dashboard')">취소</button>
               <button type="submit" class="btn btn-primary" style="padding: 10px 24px;">
-                <i data-lucide="check" style="width:16px; height:16px;"></i> Case 생성 및 8D Workspace 진입
+                <i data-lucide="send" style="width:16px; height:16px;"></i> 품질 검토 요청
               </button>
             </div>
           </form>
@@ -770,7 +783,87 @@
       }
     }
 
-    function handleCreateCase(e) {
+    function handleSubmitIntake(e) {
+      e.preventDefault();
+      const form = e.target;
+      const intakeRegistrar = getIntakeRegistrar();
+      if (!hasIntakeRegistrationAuthority(intakeRegistrar)) {
+        alert(`현재 로그인 계정은 ${intakeRegistrar.dept} 소속입니다.\n\n고객 부적합 접수는 전략소싱팀(CS 포함)과 영업팀 계정만 가능합니다.`);
+        return;
+      }
+
+      const confirmation = document.getElementById('formAssignmentConfirmed');
+      if (!confirmation?.checked) {
+        alert('AI 입력 내용과 고객 대응 담당자를 확인한 뒤 [접수 내용 및 전달 대상 확인]에 체크해 주세요.');
+        confirmation?.focus();
+        return;
+      }
+
+      const intakeOwner = readSelectedIntakeOwner();
+      const submittedAt = new Date().toISOString().replace('T', ' ').slice(0, 16);
+      const queue = appData.intakeQueue || (appData.intakeQueue = []);
+      const intakeId = `RAMOS-INTAKE-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(queue.length + 1).padStart(3, '0')}`;
+      const lineStop = form.lineStop.value === 'true';
+      const safetyRisk = form.safetyRisk.value === 'true';
+      const recurrentDefect = form.recurrentDefect.value === 'true';
+      const defectQty = Number.parseInt(form.defectQty.value, 10) || 0;
+      const inspectQty = Number.parseInt(form.inspectQty.value, 10) || 0;
+
+      const intakeRequest = {
+        intakeId,
+        status: 'Quality Review Pending',
+        submittedAt,
+        customer: form.customer.value,
+        customerContact: form.customerContact.value,
+        customerEmail: form.customerEmail.value,
+        product: form.product.value,
+        partNumber: form.partNumber.value,
+        lotNumber: form.lotNumber.value,
+        mfgSite: form.mfgSite.value,
+        incidentSite: form.incidentSite.value,
+        defectQty,
+        inspectQty,
+        ppm: inspectQty > 0 ? Math.round((defectQty / inspectQty) * 1000000) : 0,
+        claimTitle: form.claimTitle.value,
+        riskSignals: { lineStop, safetyRisk, recurrentDefect },
+        preliminaryAssessment: {
+          riskSignal: (lineStop || safetyRisk) ? 'Critical Review Required' : (recurrentDefect ? 'Major Review Required' : 'Standard Review'),
+          isFinalDecision: false,
+          note: 'Final Severity, 8D requirement and SLA require Quality Triage approval.'
+        },
+        intakeRouting: {
+          sourceType: getIntakeSourceType(),
+          intakeChannel: intakeRegistrar.dept,
+          registeredBy: intakeRegistrar,
+          primaryOwner: intakeOwner,
+          qualityReviewer: { ...QUALITY_INTAKE_COORDINATOR },
+          confirmedBy: intakeRegistrar,
+          confirmedAt: submittedAt
+        },
+        triage: {
+          status: 'Pending',
+          assignedTo: { ...QUALITY_INTAKE_COORDINATOR },
+          finalSeverity: null,
+          requires8D: null,
+          approvedCaseId: null
+        },
+        evidenceList: intakeFiles.map((file, index) => ({
+          id: `INT-EVD-${String(index + 1).padStart(2, '0')}`,
+          title: `[고객 접수 원본] ${file.name}`,
+          file: file.name,
+          sourceType: getIntakeSourceType()
+        }))
+      };
+
+      queue.unshift(intakeRequest);
+      intakeFiles = [];
+      saveAppData();
+      alert(`접수번호 [${intakeId}]가 품질 검토 대기함에 등록되었습니다.\n\n접수자: ${intakeRegistrar.name} (${intakeRegistrar.dept})\n고객 대응: ${intakeOwner.name} (${intakeOwner.dept})\n품질 검토: ${QUALITY_INTAKE_COORDINATOR.name} (${QUALITY_INTAKE_COORDINATOR.dept})\n\n아직 정식 8D Case와 D1 CFT는 생성되지 않았습니다.`);
+      switchNav('dashboard');
+    }
+
+    // Reserved for the next step: Quality Triage approval converts an intake into an official D1 Case.
+    function createApprovedCaseFromCurrentIntake(e) {
       e.preventDefault();
       const form = e.target;
       const intakeRegistrar = getIntakeRegistrar();

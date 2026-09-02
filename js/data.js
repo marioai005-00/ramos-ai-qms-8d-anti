@@ -975,6 +975,7 @@
     function loadStoredAppData() {
       const defaultState = {
         cases: INITIAL_CASES,
+        intakeQueue: [],
         activeCaseId: INITIAL_CASES[0]?.id || 'RAMOS-8D-20260901-01',
         currentView: 'dashboard',
         activeStage: 'overview',
@@ -1012,6 +1013,7 @@
           const validActiveId = validCases.some(c => c.id === parsed.activeCaseId) ? parsed.activeCaseId : validCases[0].id;
           return {
             cases: validCases,
+            intakeQueue: Array.isArray(parsed.intakeQueue) ? parsed.intakeQueue : [],
             activeCaseId: validActiveId,
             currentView: parsed.currentView || 'dashboard',
             activeStage: parsed.activeStage || 'overview',
