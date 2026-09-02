@@ -56,6 +56,56 @@
       }
     };
 
+    const INTAKE_OWNER_CATALOG = [
+      { id: 'sales-lge', name: 'Sahong_Kim_김사홍', position: '팀장_P.Pro', dept: '영업팀', email: 'shk@ramostek.com', customerKeywords: ['lge', 'lg전자'] },
+      { id: 'sales-samsung', name: 'Aria_김애정', position: 'Pro', dept: '영업팀', email: 'anasta@ramostek.com', customerKeywords: ['samsung', '삼성전자'] },
+      { id: 'sales-hynix', name: 'Jinyi Ahn_안진의', position: 'Pro', dept: '영업팀', email: 'jinyi711@ramostek.com', customerKeywords: ['sk hynix', 'sk하이닉스', '하이닉스'] },
+      { id: 'sales-general', name: 'Jun Lee_이학준', position: 'Pro', dept: '영업팀', email: 'junlee@ramostek.com', customerKeywords: [] },
+      { id: 'quality-intake', name: '김성중', position: 'Senior Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', customerKeywords: [] }
+    ];
+
+    const QUALITY_INTAKE_COORDINATOR = {
+      name: '김성중',
+      position: 'Senior Pro',
+      dept: '품질혁신팀',
+      email: 'sjkim@ramostek.com'
+    };
+
+    function getIntakeRegistrar() {
+      const fallback = QUALITY_INTAKE_COORDINATOR;
+      const user = (typeof CURRENT_USER !== 'undefined' && CURRENT_USER) ? CURRENT_USER : fallback;
+      return {
+        name: user.name || fallback.name,
+        position: user.position || fallback.position,
+        dept: user.dept || fallback.dept,
+        email: user.email || fallback.email
+      };
+    }
+
+    function detectIntakePresetKey(text = '') {
+      const normalized = String(text).toLowerCase().replace(/\s+/g, ' ');
+      if (normalized.includes('samsung') || normalized.includes('삼성전자')) return 'samsung';
+      if (normalized.includes('hynix') || normalized.includes('하이닉스')) return 'hynix';
+      if (normalized.includes('lge') || normalized.includes('lg전자')) return 'lge';
+      return '';
+    }
+
+    function getRecommendedIntakeOwner(customer = '') {
+      const normalizedCustomer = String(customer).toLowerCase();
+      return INTAKE_OWNER_CATALOG.find(owner =>
+        owner.customerKeywords.some(keyword => normalizedCustomer.includes(keyword))
+      ) || INTAKE_OWNER_CATALOG.find(owner => owner.id === 'sales-general');
+    }
+
+    function getIntakeSourceType() {
+      if (intakeFiles.length === 0) return '수기 입력 / 붙여넣기';
+      const extensions = intakeFiles.map(file => (file.name.split('.').pop() || '').toLowerCase());
+      if (extensions.some(ext => ['png', 'jpg', 'jpeg'].includes(ext))) return '메일 캡처 · 이미지 OCR';
+      if (extensions.some(ext => ['xlsx', 'xls'].includes(ext))) return 'Excel 구조화 문서 추출';
+      if (extensions.some(ext => ['pdf', 'docx', 'txt', 'eml', 'msg'].includes(ext))) return '문서 OCR · 텍스트 분석';
+      return '복합 첨부문서 분석';
+    }
+
     function renderNewCaseView() {
       return `
         <div style="max-width: 960px; margin: 0 auto;">
@@ -137,7 +187,7 @@
               <div class="grid-3">
                 <div class="form-group">
                   <label class="form-label">고객사 <span class="required">*</span></label>
-                  <input type="text" id="formCustomer" name="customer" class="form-control" placeholder="예: LGE (LG전자)" required value="LGE (LG전자)">
+                  <input type="text" id="formCustomer" name="customer" class="form-control" placeholder="예: LGE (LG전자)" required value="LGE (LG전자)" onchange="recommendIntakeOwnerFromForm()">
                 </div>
                 <div class="form-group">
                   <label class="form-label">고객 담당자 <span class="required">*</span></label>
@@ -248,6 +298,82 @@
                   </div>
                 </div>
               </div>
+            </div>
+
+            <!-- AI Intake Routing & Human Confirmation Card -->
+            <div class="card intake-routing-card" id="intakeRoutingCard">
+              <div class="card-header intake-routing-header">
+                <div class="card-title" style="color:#67e8f9;">
+                  <i data-lucide="route" style="color:#22d3ee; width:17px; height:17px;"></i>
+                  AI 접수 라우팅 & 담당자 자동 지정
+                </div>
+                <span class="intake-human-gate-badge">AI 추천 · 사람 확인 필수</span>
+              </div>
+
+              <div class="intake-routing-summary">
+                <div class="intake-routing-node">
+                  <span class="intake-routing-label">접수 등록자</span>
+                  <strong id="intakeRegistrarName">${getIntakeRegistrar().name} ${getIntakeRegistrar().position}</strong>
+                  <span id="intakeRegistrarMeta">${getIntakeRegistrar().dept} · ${getIntakeRegistrar().email}</span>
+                </div>
+                <div class="intake-routing-arrow" aria-hidden="true">
+                  <i data-lucide="arrow-right"></i>
+                </div>
+                <div class="intake-routing-node intake-routing-node-primary">
+                  <span class="intake-routing-label">고객 대응 주관 담당</span>
+                  <strong id="intakeOwnerSummary">Sahong_Kim_김사홍 팀장_P.Pro</strong>
+                  <span id="intakeOwnerMeta">영업팀 · shk@ramostek.com</span>
+                </div>
+                <div class="intake-routing-arrow" aria-hidden="true">
+                  <i data-lucide="arrow-right"></i>
+                </div>
+                <div class="intake-routing-node">
+                  <span class="intake-routing-label">품질 접수 코디네이터</span>
+                  <strong>${QUALITY_INTAKE_COORDINATOR.name} ${QUALITY_INTAKE_COORDINATOR.position}</strong>
+                  <span>${QUALITY_INTAKE_COORDINATOR.dept} · ${QUALITY_INTAKE_COORDINATOR.email}</span>
+                </div>
+              </div>
+
+              <div class="grid-2 intake-routing-controls">
+                <div class="form-group">
+                  <label class="form-label" for="formIntakeOwner">
+                    고객 대응 주관 담당자 <span class="required">*</span>
+                    <span class="intake-ai-chip">고객사 기반 자동 추천</span>
+                  </label>
+                  <select id="formIntakeOwner" name="intakeOwner" class="form-control" required onchange="handleIntakeOwnerChange()">
+                    ${INTAKE_OWNER_CATALOG.map(owner => `
+                      <option value="${owner.id}|${owner.name}|${owner.position}|${owner.dept}|${owner.email}" ${owner.id === 'sales-lge' ? 'selected' : ''}>
+                        ${owner.name} ${owner.position} (${owner.dept}) — ${owner.email}
+                      </option>
+                    `).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">AI 배정 근거</label>
+                  <div class="intake-assignment-reason" id="intakeAssignmentReason">
+                    LGE 고객 키워드 감지 → 영업팀 고객 대응 담당 자동 연결
+                  </div>
+                </div>
+              </div>
+
+              <div class="intake-routing-footer">
+                <div class="intake-source-indicator">
+                  <i data-lucide="scan-text"></i>
+                  <span>접수 원본:</span>
+                  <strong id="intakeSourceType">수기 입력 / 붙여넣기</strong>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="recommendIntakeOwnerFromForm()">
+                  <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> 현재 고객정보로 재추천
+                </button>
+              </div>
+
+              <label class="intake-assignment-confirmation" for="formAssignmentConfirmed">
+                <input type="checkbox" id="formAssignmentConfirmed" name="assignmentConfirmed" required>
+                <span>
+                  <strong>담당자 배정 확인</strong>
+                  AI가 추천한 접수 담당자와 품질 코디네이터를 확인했으며, 이 배정으로 Case를 등록합니다.
+                </span>
+              </label>
             </div>
 
             <!-- CFT Leadership Assignment Card (실장 / 센터장 / 임원급 전용) -->
@@ -432,19 +558,11 @@
     function removeIntakeFile(idx) {
       intakeFiles.splice(idx, 1);
       renderAttachedFilesList();
+      recommendIntakeOwnerFromForm();
     }
 
-    function applyIntakePreset(presetKey) {
-      const p = INTAKE_PRESETS[presetKey];
+    function setIntakeFormFromPreset(p) {
       if (!p) return;
-
-      intakeFiles = [{
-        name: p.sampleFileName,
-        size: '1.4 MB',
-        fileObj: null
-      }];
-      renderAttachedFilesList();
-
       document.getElementById('formCustomer').value = p.customer;
       document.getElementById('formCustomerContact').value = p.customerContact;
       document.getElementById('formCustomerEmail').value = p.customerEmail;
@@ -459,9 +577,68 @@
       document.getElementById('formLineStop').value = p.lineStop;
       document.getElementById('formSafetyRisk').value = p.safetyRisk;
       document.getElementById('formRecurrentDefect').value = p.recurrentDefect;
-
       calculatePPM();
       autoEvaluateSeverity();
+    }
+
+    function readSelectedIntakeOwner() {
+      const select = document.getElementById('formIntakeOwner');
+      const parts = (select?.value || '').split('|');
+      return {
+        id: parts[0] || '',
+        name: parts[1] || '',
+        position: parts[2] || '',
+        dept: parts[3] || '',
+        email: parts[4] || ''
+      };
+    }
+
+    function updateIntakeRoutingUI(owner, reason) {
+      if (!owner) return;
+      const ownerSummary = document.getElementById('intakeOwnerSummary');
+      const ownerMeta = document.getElementById('intakeOwnerMeta');
+      const reasonEl = document.getElementById('intakeAssignmentReason');
+      const sourceEl = document.getElementById('intakeSourceType');
+      const confirmation = document.getElementById('formAssignmentConfirmed');
+
+      if (ownerSummary) ownerSummary.textContent = `${owner.name} ${owner.position}`;
+      if (ownerMeta) ownerMeta.textContent = `${owner.dept} · ${owner.email}`;
+      if (reasonEl) reasonEl.textContent = reason;
+      if (sourceEl) sourceEl.textContent = getIntakeSourceType();
+      if (confirmation) confirmation.checked = false;
+    }
+
+    function recommendIntakeOwnerFromForm() {
+      const customer = document.getElementById('formCustomer')?.value || '';
+      const owner = getRecommendedIntakeOwner(customer);
+      const select = document.getElementById('formIntakeOwner');
+      if (select && owner) {
+        const option = Array.from(select.options).find(item => item.value.startsWith(`${owner.id}|`));
+        if (option) select.value = option.value;
+      }
+      const reason = owner?.id === 'sales-general'
+        ? '고객사 전담 매핑 없음 → 영업팀 공통 접수 담당 자동 연결'
+        : `${customer || '고객사'} 키워드 감지 → 영업팀 고객 대응 담당 자동 연결`;
+      updateIntakeRoutingUI(owner, reason);
+    }
+
+    function handleIntakeOwnerChange() {
+      const owner = readSelectedIntakeOwner();
+      updateIntakeRoutingUI(owner, '사용자가 조직도 후보에서 담당자를 직접 확인·변경함');
+    }
+
+    function applyIntakePreset(presetKey) {
+      const p = INTAKE_PRESETS[presetKey];
+      if (!p) return;
+
+      intakeFiles = [{
+        name: p.sampleFileName,
+        size: '1.4 MB',
+        fileObj: null
+      }];
+      renderAttachedFilesList();
+      setIntakeFormFromPreset(p);
+      recommendIntakeOwnerFromForm();
 
       const notif = document.getElementById('aiParseNotification');
       const notifText = document.getElementById('aiParseNotificationText');
@@ -471,13 +648,34 @@
       }
     }
 
-    function triggerAIExtraction() {
-      // Simulate quick intelligent extraction from attached files
+    function parseRawTextIntoForm(text) {
+      const presetKey = detectIntakePresetKey(text);
+      if (presetKey) {
+        setIntakeFormFromPreset(INTAKE_PRESETS[presetKey]);
+      } else {
+        const claimField = document.getElementById('formClaimTitle');
+        if (claimField) claimField.value = String(text).trim().slice(0, 1200);
+      }
+      triggerAIExtraction(text);
+    }
+
+    function triggerAIExtraction(rawText = '') {
+      // Prototype document intelligence: filename/text/customer heuristics.
+      // A production OCR/LLM connector will replace this adapter without changing the intake workflow.
+      const detectionText = [
+        rawText,
+        ...intakeFiles.map(file => file.name)
+      ].join(' ');
+      const presetKey = detectIntakePresetKey(detectionText);
+      if (presetKey) setIntakeFormFromPreset(INTAKE_PRESETS[presetKey]);
+      recommendIntakeOwnerFromForm();
+
       const notif = document.getElementById('aiParseNotification');
       const notifText = document.getElementById('aiParseNotificationText');
       if (notif && notifText) {
         notif.style.display = 'flex';
-        notifText.innerText = '🧠 AI 문서 인식 엔진이 그룹웨어 메일 및 첨부파일을 파싱하여 폼을 자동으로 완성하였습니다!';
+        const owner = readSelectedIntakeOwner();
+        notifText.innerText = `🧠 문서 인식 결과가 폼에 반영되었고, 고객 대응 담당자로 ${owner.name} ${owner.position} (${owner.dept}) 님을 추천했습니다. 담당자 배정을 확인해 주세요.`;
       }
       calculatePPM();
       autoEvaluateSeverity();
@@ -538,9 +736,19 @@
       }
     }
 
-        function handleCreateCase(e) {
+    function handleCreateCase(e) {
       e.preventDefault();
       const form = e.target;
+      const confirmation = document.getElementById('formAssignmentConfirmed');
+      if (!confirmation?.checked) {
+        alert('AI가 추천한 접수 담당자를 확인한 뒤 [담당자 배정 확인]에 체크해 주세요.');
+        confirmation?.focus();
+        return;
+      }
+
+      const intakeOwner = readSelectedIntakeOwner();
+      const intakeRegistrar = getIntakeRegistrar();
+      const assignmentTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 16);
       const newCaseId = `RAMOS-8D-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-0${appData.cases.length + 1}`;
       
       const newCaseObj = {
@@ -548,6 +756,15 @@
         customer: form.customer.value,
         customerContact: form.customerContact.value,
         customerEmail: form.customerEmail.value,
+        intakeRouting: {
+          sourceType: getIntakeSourceType(),
+          registeredBy: intakeRegistrar,
+          primaryOwner: intakeOwner,
+          qualityCoordinator: { ...QUALITY_INTAKE_COORDINATOR },
+          assignmentMethod: 'AI customer routing recommendation + human confirmation',
+          confirmedBy: intakeRegistrar,
+          confirmedAt: assignmentTimestamp
+        },
         product: form.product.value,
         partNumber: form.partNumber.value,
         lotNumber: form.lotNumber.value,
@@ -568,6 +785,14 @@
         recurrentDefect: form.recurrentDefect.value === 'true',
         currentStage: 'D1',
         team: [
+          ...(intakeOwner.email !== QUALITY_INTAKE_COORDINATOR.email ? [{
+            role: 'Customer Response Owner (CS / 영업)',
+            name: `${intakeOwner.name} ${intakeOwner.position}`,
+            dept: intakeOwner.dept,
+            contact: intakeOwner.email,
+            status: 'Active',
+            assignment: 'AI Recommended / Human Confirmed'
+          }] : []),
           {
             role: '8D Champion',
             name: form.cftChampion.value.split('|')[0],
@@ -634,6 +859,6 @@
       appData.cases.unshift(newCaseObj);
       appData.activeCaseId = newCaseId;
       saveAppData();
-      alert(`신규 Case [${newCaseId}]가 성공적으로 등록되었습니다. D1 단계로 이동합니다.`);
+      alert(`신규 Case [${newCaseId}]가 성공적으로 등록되었습니다.\n\n고객 대응 담당: ${intakeOwner.name} ${intakeOwner.position} (${intakeOwner.dept})\n접수 확인: ${intakeRegistrar.name} ${intakeRegistrar.position}\n\nD1 단계로 이동합니다.`);
       switchStage('D1');
     }

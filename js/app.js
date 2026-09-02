@@ -143,7 +143,7 @@ function renderUserSwitcherHeader() {
 
 function onUserSwitch(userName) {
   setCurrentUser(userName);
-  sessionStorage.setItem('RAMOS_AUTH_USER', CURRENT_USER.username);
+  sessionStorage.setItem('RAMOS_AUTH_USER', CURRENT_USER.username || CURRENT_USER.email.split('@')[0]);
   isBannerDismissed = false;
   renderUserSwitcherHeader();
   updateNotificationBadge();

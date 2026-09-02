@@ -1050,7 +1050,7 @@
     // CURRENT LOGGED-IN USER & PERSONALIZED TASK ENGINE
     // =========================================================================
     const PRESET_USERS = [
-      { name: '김성중', position: 'Senior Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', roleDesc: '8D 품질 실무 간사 / Facilitator' },
+      { username: 'sjkim', name: '김성중', position: 'Senior Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', roleDesc: '8D 품질 실무 간사 / Facilitator' },
       { name: '김현수', position: '실장_상무', dept: 'Flash 개발실', email: 'hskim@ramostek.com', roleDesc: '8D Leader (Flash 개발 총괄)' },
       { name: '박재환', position: '팀장_S.Pro', dept: 'Flash 개발2팀', email: 'jhpark@ramostek.com', roleDesc: '불량 분석 리더 (FA / Technical Lead)' },
       { name: '이은산', position: '센터장_상무', dept: '제조기획센터', email: 'eunsan.lee@ramostek.com', roleDesc: '물류/자재 격리 책임자 (Containment Lead)' },
@@ -1080,6 +1080,53 @@
       }
     }
     loadCurrentUser();
+
+    function getAllUserAccounts() {
+      const accounts = [];
+      const seenEmails = new Set();
+
+      function traverse(node, parentDept = '') {
+        const deptName = node.name || parentDept;
+        (node.members || []).forEach(member => {
+          if (!member.email || !member.email.includes('@')) return;
+          const email = member.email.toLowerCase();
+          if (seenEmails.has(email)) return;
+          seenEmails.add(email);
+          const preset = PRESET_USERS.find(user => user.email.toLowerCase() === email);
+          accounts.push({
+            username: email.split('@')[0],
+            password: '1',
+            name: member.name,
+            position: member.position || 'Pro',
+            dept: member.dept || deptName,
+            email: member.email,
+            isMe: Boolean(member.isMe),
+            roleDesc: preset?.roleDesc || 'CFT 유관부서 담당자'
+          });
+        });
+        (node.children || []).forEach(child => traverse(child, deptName));
+      }
+
+      RAMOS_TREE.forEach(root => traverse(root));
+      PRESET_USERS.forEach(user => {
+        if (!seenEmails.has(user.email.toLowerCase())) accounts.push({ ...user, password: '1' });
+      });
+      return accounts;
+    }
+
+    const ALL_USER_ACCOUNTS = getAllUserAccounts();
+
+    function authenticateUser(username, password) {
+      const cleanUser = String(username || '').trim().toLowerCase();
+      const cleanPassword = String(password || '').trim();
+      if (!cleanUser || cleanPassword !== '1') return null;
+
+      return ALL_USER_ACCOUNTS.find(account =>
+        account.username.toLowerCase() === cleanUser ||
+        account.email.toLowerCase() === cleanUser ||
+        account.name.toLowerCase() === cleanUser
+      ) || null;
+    }
 
     function getUserPendingTasks(user = CURRENT_USER) {
       const tasks = [];
