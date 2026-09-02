@@ -153,9 +153,17 @@ function onUserSwitch(userName) {
 function updateNotificationBadge() {
   const tasks = getUserPendingTasks(CURRENT_USER);
   const badge = document.getElementById('headerNotifBadge');
+  const intakeBadge = document.getElementById('nav-intake-count');
+  const pendingIntakeCount = (appData.intakeQueue || []).filter(item =>
+    ['Quality Review Pending', 'Quality Review In Progress'].includes(item.status)
+  ).length;
   if (badge) {
     badge.innerText = tasks.length;
     badge.style.display = tasks.length > 0 ? 'flex' : 'none';
+  }
+  if (intakeBadge) {
+    intakeBadge.innerText = pendingIntakeCount;
+    intakeBadge.style.display = pendingIntakeCount > 0 ? 'inline-flex' : 'none';
   }
 }
 
@@ -246,6 +254,12 @@ function renderUserTaskBannerHTML() {
 }
 
 function jumpToUserTask(caseId, targetStage, gateKey) {
+  if (targetStage === 'intake-triage') {
+    appData.activeIntakeId = caseId;
+    saveAppData();
+    switchNav('intake-triage');
+    return;
+  }
   appData.activeCaseId = caseId;
   saveAppData();
   renderCaseSelector();
@@ -326,6 +340,9 @@ function renderCurrentView() {
       break;
     case 'new-case':
       viewHtml = renderNewCaseView();
+      break;
+    case 'intake-triage':
+      viewHtml = renderIntakeTriageView();
       break;
     case 'cases-list':
       viewHtml = renderCasesListView();

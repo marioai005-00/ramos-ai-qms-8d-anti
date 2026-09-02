@@ -20,6 +20,8 @@
           </div>
         </div>
 
+        ${renderIntakeQueueDashboardPanel()}
+
         <!-- Live Case List with Full D1~D8 Progress & GAP Trackers -->
         <div style="display:flex; flex-direction:column; gap:16px;">
           ${cases.map(c => renderCaseGapCardHTML(c)).join('')}

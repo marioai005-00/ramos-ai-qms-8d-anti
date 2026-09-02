@@ -127,7 +127,12 @@
       <div class="menu-cat">Nonconformance & Cases</div>
       <a class="nav-item" onclick="switchNav('new-case', this)">
         <i data-lucide="plus-circle" style="width: 16px; height: 16px; color: #38bdf8;"></i>
-        <span>신규 부적합 접수 (New Case)</span>
+        <span>STEP 01. 신규 부적합 접수</span>
+      </a>
+      <a class="nav-item" onclick="switchNav('intake-triage', this)">
+        <i data-lucide="clipboard-search" style="width: 16px; height: 16px; color: #f59e0b;"></i>
+        <span>STEP 02. 품질 검토 대기</span>
+        <span class="badge badge-warn" id="nav-intake-count" style="display:none;">0</span>
       </a>
       <a class="nav-item" onclick="switchNav('cases-list', this)">
         <i data-lucide="folder-kanban" style="width: 16px; height: 16px;"></i>

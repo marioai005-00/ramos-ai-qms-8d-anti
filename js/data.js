@@ -976,6 +976,7 @@
       const defaultState = {
         cases: INITIAL_CASES,
         intakeQueue: [],
+        activeIntakeId: null,
         activeCaseId: INITIAL_CASES[0]?.id || 'RAMOS-8D-20260901-01',
         currentView: 'dashboard',
         activeStage: 'overview',
@@ -1014,6 +1015,7 @@
           return {
             cases: validCases,
             intakeQueue: Array.isArray(parsed.intakeQueue) ? parsed.intakeQueue : [],
+            activeIntakeId: parsed.activeIntakeId || null,
             activeCaseId: validActiveId,
             currentView: parsed.currentView || 'dashboard',
             activeStage: parsed.activeStage || 'overview',
@@ -1138,6 +1140,25 @@
     function getUserPendingTasks(user = CURRENT_USER) {
       const tasks = [];
       const cases = (appData && Array.isArray(appData.cases)) ? appData.cases : INITIAL_CASES;
+      const intakeQueue = (appData && Array.isArray(appData.intakeQueue)) ? appData.intakeQueue : [];
+      const canReviewIntake = hasMasterAuthority(user) || user?.dept === '품질혁신팀';
+
+      if (canReviewIntake) {
+        intakeQueue
+          .filter(item => ['Quality Review Pending', 'Quality Review In Progress'].includes(item.status))
+          .forEach(item => {
+            tasks.unshift({
+              caseId: item.intakeId,
+              customer: item.customer,
+              targetStage: 'intake-triage',
+              stageCode: 'STEP 02. Triage',
+              urgency: item.riskSignals?.lineStop || item.riskSignals?.safetyRisk ? 'critical' : 'high',
+              isApproval: false,
+              title: item.status === 'Quality Review Pending' ? '[신규 접수 품질 검토 대기]' : '[품질 검토 진행 중]',
+              desc: `${item.customer} · ${item.product} · ${item.claimTitle}`
+            });
+          });
+      }
 
       cases.forEach(c => {
         const cft = c.team || [];

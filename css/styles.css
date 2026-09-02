@@ -975,6 +975,64 @@
   line-height: 1.5;
 }
 
+.triage-dashboard-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-left: 3px solid #f59e0b;
+  background: #0b1424;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+}
+
+.triage-dashboard-panel > div { display: grid; gap: 3px; }
+.triage-dashboard-panel strong { color: #f8fafc; font-size: 0.86rem; }
+.triage-dashboard-panel small { color: #94a3b8; font-size: 0.7rem; }
+.triage-dashboard-kicker { color: #fbbf24; font: 800 0.65rem 'JetBrains Mono', 'Consolas', monospace; letter-spacing: 0.08em; }
+.triage-workspace { max-width: 1120px; margin: 0 auto; }
+.triage-page-header { display:flex; justify-content:space-between; align-items:end; gap:16px; margin-bottom:18px; }
+.triage-page-header h1 { color:#f8fafc; font-size:1.35rem; margin:4px 0; }
+.triage-page-header p { color:#94a3b8; font-size:0.76rem; }
+.triage-count-block { display:grid; min-width:90px; border-left:2px solid #f59e0b; padding-left:12px; }
+.triage-count-block strong { color:#fbbf24; font:800 1.5rem 'JetBrains Mono','Consolas',monospace; }
+.triage-count-block span { color:#94a3b8; font-size:0.68rem; }
+.triage-layout { display:grid; grid-template-columns:300px minmax(0,1fr); gap:14px; }
+.triage-queue-list { display:flex; flex-direction:column; gap:6px; }
+.triage-queue-item { position:relative; display:grid; gap:3px; width:100%; border:1px solid rgba(148,163,184,.16); background:#0b1424; padding:12px; color:inherit; text-align:left; cursor:pointer; }
+.triage-queue-item:hover,.triage-queue-item.is-active { border-color:rgba(34,211,238,.48); background:#0e192b; }
+.triage-queue-item .num-mono { color:#67e8f9; font-size:.67rem; }
+.triage-queue-item strong { color:#f8fafc; font-size:.78rem; padding-right:74px; }
+.triage-queue-item small { color:#64748b; font-size:.65rem; }
+.triage-queue-item .triage-status { position:absolute; top:10px; right:10px; }
+.triage-status { display:inline-flex; border:1px solid rgba(148,163,184,.25); padding:2px 7px; color:#cbd5e1; font-size:.63rem; font-weight:800; }
+.triage-status.is-pending { border-color:rgba(245,158,11,.45); color:#fbbf24; background:rgba(245,158,11,.08); }
+.triage-status.is-reviewing { border-color:rgba(34,211,238,.45); color:#67e8f9; background:rgba(34,211,238,.08); }
+.triage-status.is-approved { border-color:rgba(16,185,129,.45); color:#6ee7b7; }
+.triage-status.is-revision,.triage-status.is-rejected { border-color:rgba(244,63,94,.45); color:#fda4af; }
+.triage-detail { border:1px solid rgba(148,163,184,.18); background:#0b1424; padding:18px; }
+.triage-detail-head { display:flex; justify-content:space-between; align-items:start; gap:12px; border-bottom:1px solid rgba(148,163,184,.14); padding-bottom:12px; }
+.triage-detail-head .num-mono { color:#67e8f9; font-size:.7rem; }
+.triage-detail-head h2 { color:#f8fafc; font-size:1rem; margin-top:3px; }
+.triage-fact-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin:14px 0; }
+.triage-fact-grid > div { display:grid; gap:3px; border-left:2px solid #334155; padding:5px 9px; }
+.triage-fact-grid span,.triage-claim span { color:#64748b; font-size:.65rem; font-weight:700; }
+.triage-fact-grid strong { color:#e2e8f0; font-size:.75rem; }
+.triage-claim { border:1px solid rgba(148,163,184,.14); background:#0e192b; padding:11px; }
+.triage-claim p { color:#e2e8f0; font-size:.76rem; line-height:1.55; margin-top:5px; }
+.triage-signal-row { display:flex; flex-wrap:wrap; gap:7px; margin:12px 0; }
+.triage-signal-row span { border:1px solid rgba(148,163,184,.18); padding:4px 8px; color:#94a3b8; font-size:.67rem; }
+.triage-signal-row span.is-alert { border-color:rgba(244,63,94,.42); color:#fda4af; }
+.triage-review-boundary { display:flex; gap:10px; border-left:3px solid #f59e0b; background:rgba(245,158,11,.06); padding:11px 13px; }
+.triage-review-boundary svg { width:16px; color:#fbbf24; flex:0 0 auto; }
+.triage-review-boundary strong { color:#f8fafc; font-size:.76rem; }
+.triage-review-boundary p { color:#94a3b8; font-size:.68rem; margin-top:3px; }
+.triage-actions { display:flex; justify-content:flex-end; align-items:center; margin-top:14px; }
+.triage-in-progress-note { color:#67e8f9; font-size:.7rem; }
+.triage-empty-state { display:grid; place-items:center; gap:8px; min-height:260px; border:1px dashed #334155; color:#64748b; }
+.triage-empty-state svg { width:28px; }
+
 .intake-routing-header {
   border-bottom: 1px solid rgba(34, 211, 238, 0.18);
 }
@@ -1165,6 +1223,9 @@
 }
 
 @media (max-width: 820px) {
+  .triage-layout { grid-template-columns:1fr; }
+  .triage-dashboard-panel,.triage-page-header { align-items:stretch; flex-direction:column; }
+  .triage-fact-grid { grid-template-columns:1fr; }
   .intake-workflow-strip {
     grid-template-columns: 1fr;
   }

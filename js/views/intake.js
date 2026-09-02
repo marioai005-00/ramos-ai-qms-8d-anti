@@ -531,6 +531,155 @@
       `;
     }
 
+    function canReviewIntakeQueue(user = CURRENT_USER) {
+      return hasMasterAuthority(user) || user?.dept === '품질혁신팀';
+    }
+
+    function getVisibleIntakeQueue(user = CURRENT_USER) {
+      const queue = appData.intakeQueue || [];
+      if (canReviewIntakeQueue(user)) return queue;
+      return queue.filter(item => item.intakeRouting?.registeredBy?.email === user?.email);
+    }
+
+    function renderIntakeStatusBadge(status) {
+      const statusMap = {
+        'Quality Review Pending': ['검토 대기', 'is-pending'],
+        'Quality Review In Progress': ['검토 진행 중', 'is-reviewing'],
+        'Revision Requested': ['보완 요청', 'is-revision'],
+        'Approved': ['승인 완료', 'is-approved'],
+        'Rejected': ['반려', 'is-rejected']
+      };
+      const [label, className] = statusMap[status] || [status, ''];
+      return `<span class="triage-status ${className}">${label}</span>`;
+    }
+
+    function renderIntakeQueueDashboardPanel() {
+      const visibleQueue = getVisibleIntakeQueue();
+      if (visibleQueue.length === 0) return '';
+      const pendingCount = visibleQueue.filter(item => item.status === 'Quality Review Pending').length;
+      const reviewCount = visibleQueue.filter(item => item.status === 'Quality Review In Progress').length;
+      const isReviewer = canReviewIntakeQueue();
+
+      return `
+        <section class="triage-dashboard-panel">
+          <div>
+            <span class="triage-dashboard-kicker">${isReviewer ? 'QUALITY INBOX' : 'MY INTAKE STATUS'}</span>
+            <strong>${isReviewer ? '품질 검토가 필요한 고객 부적합 접수' : '내가 제출한 고객 부적합 접수'}</strong>
+            <small>검토 대기 ${pendingCount}건 · 진행 중 ${reviewCount}건 · 전체 ${visibleQueue.length}건</small>
+          </div>
+          <button class="btn btn-secondary" onclick="switchNav('intake-triage')">
+            <i data-lucide="clipboard-search" style="width:15px;height:15px;"></i> STEP 02 대기함 열기
+          </button>
+        </section>
+      `;
+    }
+
+    function renderIntakeTriageView() {
+      const visibleQueue = getVisibleIntakeQueue();
+      const canReview = canReviewIntakeQueue();
+      const selected = visibleQueue.find(item => item.intakeId === appData.activeIntakeId) || visibleQueue[0];
+      if (selected) appData.activeIntakeId = selected.intakeId;
+
+      return `
+        <div class="triage-workspace">
+          <header class="triage-page-header">
+            <div>
+              <span class="triage-dashboard-kicker">STEP 02 · QUALITY TRIAGE</span>
+              <h1>품질 검토 대기함</h1>
+              <p>${canReview ? '접수 사실정보를 확인하고 품질 검토를 시작합니다. 아직 정식 8D Case는 아닙니다.' : '내가 제출한 접수 요청의 품질 검토 상태를 확인합니다.'}</p>
+            </div>
+            <div class="triage-count-block"><strong>${visibleQueue.filter(item => item.status === 'Quality Review Pending').length}</strong><span>검토 대기</span></div>
+          </header>
+
+          ${visibleQueue.length === 0 ? `
+            <div class="triage-empty-state"><i data-lucide="inbox"></i><strong>표시할 접수 요청이 없습니다.</strong></div>
+          ` : `
+            <div class="triage-layout">
+              <aside class="triage-queue-list">
+                ${visibleQueue.map(item => `
+                  <button class="triage-queue-item ${selected?.intakeId === item.intakeId ? 'is-active' : ''}" onclick="selectIntakeForTriage('${item.intakeId}')">
+                    <span class="num-mono">${item.intakeId}</span>
+                    <strong>${item.customer}</strong>
+                    <small>${item.product} · ${item.submittedAt}</small>
+                    ${renderIntakeStatusBadge(item.status)}
+                  </button>
+                `).join('')}
+              </aside>
+              ${renderIntakeTriageDetail(selected, canReview)}
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    function renderIntakeTriageDetail(item, canReview) {
+      if (!item) return '';
+      const signals = item.riskSignals || {};
+      const registrar = item.intakeRouting?.registeredBy || {};
+      const owner = item.intakeRouting?.primaryOwner || {};
+      return `
+        <section class="triage-detail">
+          <div class="triage-detail-head">
+            <div><span class="num-mono">${item.intakeId}</span><h2>${item.customer} · ${item.product}</h2></div>
+            ${renderIntakeStatusBadge(item.status)}
+          </div>
+          <div class="triage-fact-grid">
+            <div><span>접수자</span><strong>${registrar.name || '-'} · ${registrar.dept || '-'}</strong></div>
+            <div><span>고객 대응</span><strong>${owner.name || '-'} · ${owner.dept || '-'}</strong></div>
+            <div><span>품번 / LOT</span><strong>${item.partNumber || '-'} / ${item.lotNumber || '-'}</strong></div>
+            <div><span>불량 수량</span><strong class="num-mono">${item.defectQty} / ${item.inspectQty} · ${item.ppm.toLocaleString()} PPM</strong></div>
+          </div>
+          <div class="triage-claim"><span>고객 불만 현상</span><p>${item.claimTitle}</p></div>
+          <div class="triage-signal-row">
+            <span class="${signals.lineStop ? 'is-alert' : ''}">Line Stop: <b>${signals.lineStop ? 'YES' : 'NO'}</b></span>
+            <span class="${signals.safetyRisk ? 'is-alert' : ''}">Safety: <b>${signals.safetyRisk ? 'YES' : 'NO'}</b></span>
+            <span class="${signals.recurrentDefect ? 'is-alert' : ''}">재발: <b>${signals.recurrentDefect ? 'YES' : 'NO'}</b></span>
+            <span>증거: <b>${(item.evidenceList || []).length}건</b></span>
+          </div>
+          <div class="triage-review-boundary">
+            <i data-lucide="shield-check"></i>
+            <div><strong>다음 판단은 품질 담당자가 수행합니다.</strong><p>Severity, 8D 발행 여부, SLA와 D1 CFT는 검토 승인 단계에서 확정됩니다.</p></div>
+          </div>
+          ${canReview ? `
+            <div class="triage-actions">
+              ${item.status === 'Quality Review Pending' ? `
+                <button class="btn btn-primary" onclick="startIntakeQualityReview('${item.intakeId}')"><i data-lucide="play" style="width:14px;height:14px;"></i> 품질 검토 시작</button>
+              ` : `<span class="triage-in-progress-note">${item.triage?.reviewedBy?.name || CURRENT_USER.name} 검토 진행 중 · 다음 단계에서 판정/승인 항목 작성</span>`}
+            </div>
+          ` : ''}
+        </section>
+      `;
+    }
+
+    function selectIntakeForTriage(intakeId) {
+      appData.activeIntakeId = intakeId;
+      saveAppData();
+      renderCurrentView();
+    }
+
+    function startIntakeQualityReview(intakeId) {
+      if (!canReviewIntakeQueue()) {
+        alert('품질 검토 권한이 없습니다.');
+        return;
+      }
+      const item = (appData.intakeQueue || []).find(entry => entry.intakeId === intakeId);
+      if (!item) return;
+      item.status = 'Quality Review In Progress';
+      item.triage = {
+        ...(item.triage || {}),
+        status: 'In Review',
+        reviewedBy: {
+          name: CURRENT_USER.name,
+          position: CURRENT_USER.position,
+          dept: CURRENT_USER.dept,
+          email: CURRENT_USER.email
+        },
+        startedAt: new Date().toISOString().replace('T', ' ').slice(0, 16)
+      };
+      saveAppData();
+      renderCurrentView();
+    }
+
     /* Ingest Drag & Drop & Clipboard Handlers */
     function handleDragOver(e) {
       e.preventDefault();
@@ -863,7 +1012,7 @@
       intakeFiles = [];
       saveAppData();
       alert(`접수번호 [${intakeId}]가 품질 검토 대기함에 등록되었습니다.\n\n접수자: ${intakeRegistrar.name} (${intakeRegistrar.dept})\n고객 대응: ${intakeOwner.name} (${intakeOwner.dept})\n품질 검토: ${QUALITY_INTAKE_COORDINATOR.name} (${QUALITY_INTAKE_COORDINATOR.dept})\n\n아직 정식 8D Case와 D1 CFT는 생성되지 않았습니다.`);
-      switchNav('dashboard');
+      switchNav(hasMasterAuthority(CURRENT_USER) ? 'intake-triage' : 'dashboard');
     }
 
     // Reserved for the next step: Quality Triage approval converts an intake into an official D1 Case.
