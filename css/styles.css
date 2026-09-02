@@ -1032,6 +1032,30 @@
 .triage-in-progress-note { color:#67e8f9; font-size:.7rem; }
 .triage-empty-state { display:grid; place-items:center; gap:8px; min-height:260px; border:1px dashed #334155; color:#64748b; }
 .triage-empty-state svg { width:28px; }
+.triage-decision-workspace { margin-top:16px; border:1px solid rgba(34,211,238,.32); background:#081321; padding:16px; }
+.triage-decision-head { display:flex; justify-content:space-between; align-items:start; gap:16px; border-bottom:1px solid rgba(148,163,184,.16); padding-bottom:12px; }
+.triage-decision-head h3 { color:#f8fafc; font-size:.95rem; margin:3px 0; }
+.triage-decision-head p { color:#94a3b8; font-size:.68rem; }
+.triage-ai-recommendation { max-width:270px; border-left:2px solid #22d3ee; padding:5px 9px; color:#67e8f9; font-size:.65rem; line-height:1.45; }
+.triage-decision-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-top:14px; }
+.triage-decision-grid label,.triage-review-note { display:grid; gap:6px; }
+.triage-decision-grid label > span,.triage-review-note > span { color:#cbd5e1; font-size:.68rem; font-weight:800; }
+.triage-review-note { margin-top:12px; }
+.triage-review-note textarea { min-height:92px; resize:vertical; line-height:1.5; }
+.triage-human-confirm { display:flex; align-items:flex-start; gap:9px; margin-top:12px; border:1px solid rgba(245,158,11,.36); background:rgba(245,158,11,.06); padding:11px; color:#cbd5e1; font-size:.68rem; line-height:1.45; cursor:pointer; }
+.triage-human-confirm input { margin-top:2px; accent-color:#f59e0b; }
+.triage-human-confirm strong { color:#fbbf24; }
+.triage-decision-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
+.triage-btn-revision { border:1px solid rgba(245,158,11,.48); background:transparent; color:#fbbf24; }
+.triage-btn-reject { border:1px solid rgba(244,63,94,.48); background:transparent; color:#fda4af; }
+.triage-decision-result { display:grid; gap:10px; margin-top:14px; border-left:3px solid #f43f5e; background:rgba(244,63,94,.05); padding:13px; }
+.triage-decision-result.is-approved { border-left-color:#10b981; background:rgba(16,185,129,.05); }
+.triage-decision-result-head { display:flex; justify-content:space-between; color:#f8fafc; font-size:.76rem; }
+.triage-decision-result-head span { color:#64748b; font:600 .65rem 'JetBrains Mono','Consolas',monospace; }
+.triage-result-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
+.triage-result-grid span { border:1px solid rgba(148,163,184,.15); padding:7px; color:#64748b; font-size:.62rem; }
+.triage-result-grid b { display:block; color:#e2e8f0; font-size:.7rem; margin-top:3px; }
+.triage-decision-result p { color:#cbd5e1; font-size:.7rem; line-height:1.5; }
 
 .fresh-start-empty {
   display: grid;
@@ -1286,6 +1310,10 @@
   .triage-layout { grid-template-columns:1fr; }
   .triage-dashboard-panel,.triage-page-header { align-items:stretch; flex-direction:column; }
   .triage-fact-grid { grid-template-columns:1fr; }
+  .triage-decision-head { flex-direction:column; }
+  .triage-decision-grid,.triage-result-grid { grid-template-columns:1fr; }
+  .triage-decision-actions { flex-direction:column-reverse; }
+  .triage-decision-actions .btn { width:100%; justify-content:center; }
   .intake-workflow-strip {
     grid-template-columns: 1fr;
   }

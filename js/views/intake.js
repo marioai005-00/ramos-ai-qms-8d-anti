@@ -640,14 +640,109 @@
             <i data-lucide="shield-check"></i>
             <div><strong>다음 판단은 품질 담당자가 수행합니다.</strong><p>Severity, 8D 발행 여부, SLA와 D1 CFT는 검토 승인 단계에서 확정됩니다.</p></div>
           </div>
+          ${renderTriageDecisionResult(item)}
           ${canReview ? `
-            <div class="triage-actions">
-              ${item.status === 'Quality Review Pending' ? `
+            ${item.status === 'Quality Review Pending' ? `
+              <div class="triage-actions">
                 <button class="btn btn-primary" onclick="startIntakeQualityReview('${item.intakeId}')"><i data-lucide="play" style="width:14px;height:14px;"></i> 품질 검토 시작</button>
-              ` : `<span class="triage-in-progress-note">${item.triage?.reviewedBy?.name || CURRENT_USER.name} 검토 진행 중 · 다음 단계에서 판정/승인 항목 작성</span>`}
-            </div>
+              </div>
+            ` : item.status === 'Quality Review In Progress' ? renderTriageDecisionForm(item) : ''}
           ` : ''}
         </section>
+      `;
+    }
+
+    function getTriageRecommendation(item) {
+      const signals = item.riskSignals || {};
+      if (signals.lineStop || signals.safetyRisk) {
+        return { severity: 'Critical', requires8D: 'yes', slaHours: '24', reason: 'Line Stop 또는 Safety 위험 신호 감지' };
+      }
+      if (signals.recurrentDefect) {
+        return { severity: 'Major', requires8D: 'yes', slaHours: '48', reason: '재발 부적합 위험 신호 감지' };
+      }
+      return { severity: 'Minor', requires8D: 'no', slaHours: '72', reason: '긴급 위험 신호 없음' };
+    }
+
+    function renderTriageDecisionForm(item) {
+      const recommendation = getTriageRecommendation(item);
+      const triage = item.triage || {};
+      const severity = triage.finalSeverity || recommendation.severity;
+      const requires8D = triage.requires8D === null || triage.requires8D === undefined
+        ? recommendation.requires8D
+        : (triage.requires8D ? 'yes' : 'no');
+      const slaHours = String(triage.slaHours || recommendation.slaHours);
+      const leadDept = triage.leadDepartment || (item.product?.toLowerCase().includes('emmc') ? 'Flash 개발실' : '품질혁신팀');
+      const selected = (value, current) => value === current ? 'selected' : '';
+
+      return `
+        <form id="triageDecisionForm-${item.intakeId}" class="triage-decision-workspace" onsubmit="event.preventDefault()">
+          <div class="triage-decision-head">
+            <div>
+              <span class="triage-dashboard-kicker">HUMAN DECISION GATE</span>
+              <h3>품질 최종 판정</h3>
+              <p>AI 권고를 참고하되 최종 결정과 고객 전달 책임은 검토자에게 있습니다.</p>
+            </div>
+            <span class="triage-ai-recommendation">AI 권고 · ${recommendation.reason}</span>
+          </div>
+          <div class="triage-decision-grid">
+            <label><span>최종 Severity *</span>
+              <select name="finalSeverity" class="form-control" required>
+                <option value="Critical" ${selected('Critical', severity)}>Critical · 즉시 경영/고객 대응</option>
+                <option value="Major" ${selected('Major', severity)}>Major · 중대 부적합</option>
+                <option value="Minor" ${selected('Minor', severity)}>Minor · 일반 부적합</option>
+              </select>
+            </label>
+            <label><span>8D 발행 여부 *</span>
+              <select name="requires8D" class="form-control" required>
+                <option value="yes" ${selected('yes', requires8D)}>발행 · 정식 8D 진행</option>
+                <option value="no" ${selected('no', requires8D)}>미발행 · 일반 부적합 관리</option>
+              </select>
+            </label>
+            <label><span>초동조치 SLA *</span>
+              <select name="slaHours" class="form-control" required>
+                <option value="24" ${selected('24', slaHours)}>24시간 · 긴급</option>
+                <option value="48" ${selected('48', slaHours)}>48시간 · 중대</option>
+                <option value="72" ${selected('72', slaHours)}>72시간 · 일반</option>
+              </select>
+            </label>
+            <label><span>원인분석 주관부서 *</span>
+              <select name="leadDepartment" class="form-control" required>
+                ${['Flash 개발실', 'DRAM 개발실', '품질혁신팀', '제조기획센터', '전략소싱팀', '영업팀'].map(dept => `<option value="${dept}" ${selected(dept, leadDept)}>${dept}</option>`).join('')}
+              </select>
+            </label>
+          </div>
+          <label class="triage-review-note"><span>품질 검토 의견 / 판정 근거 *</span>
+            <textarea name="reviewNote" class="form-control" rows="4" required placeholder="고객 영향, 위험도, 8D 발행 판단 근거와 요청할 보완사항을 기록하세요.">${triage.reviewNote || ''}</textarea>
+          </label>
+          <label class="triage-human-confirm">
+            <input type="checkbox" name="humanConfirmed" value="yes">
+            <span><strong>사람 검토 완료</strong> · 원본 증거와 AI 추출값을 확인했으며 이 판정에 책임을 갖고 처리합니다.</span>
+          </label>
+          <div class="triage-decision-actions">
+            <button type="button" class="btn triage-btn-reject" onclick="submitIntakeTriageDecision('${item.intakeId}', 'reject')">반려</button>
+            <button type="button" class="btn triage-btn-revision" onclick="submitIntakeTriageDecision('${item.intakeId}', 'revision')">보완 요청</button>
+            <button type="button" class="btn btn-primary" onclick="submitIntakeTriageDecision('${item.intakeId}', 'approve')"><i data-lucide="badge-check" style="width:15px;height:15px;"></i> 승인 및 정식 Case 생성</button>
+          </div>
+        </form>
+      `;
+    }
+
+    function renderTriageDecisionResult(item) {
+      if (!['Approved', 'Revision Requested', 'Rejected'].includes(item.status)) return '';
+      const triage = item.triage || {};
+      const resultLabel = item.status === 'Approved' ? '품질 승인 완료' : item.status === 'Revision Requested' ? '접수자 보완 필요' : '품질 검토 반려';
+      return `
+        <div class="triage-decision-result ${item.status === 'Approved' ? 'is-approved' : 'is-blocked'}">
+          <div class="triage-decision-result-head"><strong>${resultLabel}</strong><span>${triage.decidedAt || '-'}</span></div>
+          <div class="triage-result-grid">
+            <span>Severity <b>${triage.finalSeverity || '-'}</b></span>
+            <span>8D <b>${triage.requires8D === true ? '발행' : triage.requires8D === false ? '미발행' : '-'}</b></span>
+            <span>SLA <b>${triage.slaHours ? `${triage.slaHours}시간` : '-'}</b></span>
+            <span>주관부서 <b>${triage.leadDepartment || '-'}</b></span>
+          </div>
+          <p>${triage.reviewNote || '검토 의견 없음'}</p>
+          ${triage.approvedCaseId ? `<button class="btn btn-secondary" onclick="openApprovedIntakeCase('${triage.approvedCaseId}')">${triage.approvedCaseId} 열기</button>` : ''}
+        </div>
       `;
     }
 
@@ -678,6 +773,127 @@
       };
       saveAppData();
       renderCurrentView();
+    }
+
+    function submitIntakeTriageDecision(intakeId, decision) {
+      if (!canReviewIntakeQueue()) {
+        alert('품질 검토 권한이 없습니다.');
+        return;
+      }
+      const item = (appData.intakeQueue || []).find(entry => entry.intakeId === intakeId);
+      const form = document.getElementById(`triageDecisionForm-${intakeId}`);
+      if (!item || !form) return;
+      const reviewNote = form.reviewNote.value.trim();
+      if (!reviewNote) {
+        alert('품질 검토 의견 또는 판정 근거를 입력해 주세요.');
+        form.reviewNote.focus();
+        return;
+      }
+      if (!form.humanConfirmed.checked) {
+        alert('원본 증거와 AI 추출값을 확인한 뒤 [사람 검토 완료]에 체크해 주세요.');
+        form.humanConfirmed.focus();
+        return;
+      }
+
+      const decisionAt = new Date().toISOString().replace('T', ' ').slice(0, 16);
+      item.triage = {
+        ...(item.triage || {}),
+        status: decision === 'approve' ? 'Approved' : decision === 'revision' ? 'Revision Requested' : 'Rejected',
+        finalSeverity: form.finalSeverity.value,
+        requires8D: form.requires8D.value === 'yes',
+        slaHours: Number.parseInt(form.slaHours.value, 10),
+        leadDepartment: form.leadDepartment.value,
+        reviewNote,
+        humanConfirmed: true,
+        decidedAt: decisionAt,
+        decidedBy: {
+          name: CURRENT_USER.name,
+          position: CURRENT_USER.position,
+          dept: CURRENT_USER.dept,
+          email: CURRENT_USER.email
+        }
+      };
+
+      if (decision === 'approve') {
+        const caseId = createCaseFromApprovedIntake(item);
+        item.status = 'Approved';
+        item.triage.approvedCaseId = caseId;
+        saveAppData();
+        renderCaseSelector();
+        alert(`품질 검토가 승인되어 정식 Case [${caseId}]가 생성되었습니다.\n\n다음 단계는 D1 CFT 구성입니다.`);
+        switchStage('D1');
+        return;
+      }
+
+      item.status = decision === 'revision' ? 'Revision Requested' : 'Rejected';
+      saveAppData();
+      renderCurrentView();
+    }
+
+    function createCaseFromApprovedIntake(item) {
+      const sequence = String((appData.cases || []).length + 1).padStart(3, '0');
+      const caseId = `RAMOS-8D-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${sequence}`;
+      const owner = item.intakeRouting?.primaryOwner || {};
+      const triage = item.triage || {};
+      const now = new Date();
+      const dueInitial = new Date(now.getTime() + (triage.slaHours || 72) * 60 * 60 * 1000);
+      const dueFinal = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+      const caseObj = {
+        id: caseId,
+        sourceIntakeId: item.intakeId,
+        customer: item.customer,
+        customerContact: item.customerContact,
+        customerEmail: item.customerEmail,
+        intakeRouting: {
+          ...(item.intakeRouting || {}),
+          qualityCoordinator: item.intakeRouting?.qualityReviewer || { ...QUALITY_INTAKE_COORDINATOR }
+        },
+        triageApproval: { ...triage },
+        product: item.product,
+        partNumber: item.partNumber,
+        lotNumber: item.lotNumber,
+        mfgSite: item.mfgSite,
+        incidentSite: item.incidentSite,
+        application: '고객 부적합 접수 승인 Case',
+        receiptDate: item.submittedAt,
+        incidentDate: item.submittedAt,
+        dueDateInitial: dueInitial.toISOString().replace('T', ' ').slice(0, 16),
+        dueDateFinal: dueFinal.toISOString().replace('T', ' ').slice(0, 16),
+        defectQty: item.defectQty,
+        inspectQty: item.inspectQty,
+        ppm: item.ppm,
+        claimTitle: item.claimTitle,
+        severityLevel: triage.finalSeverity,
+        requires8D: triage.requires8D,
+        lineStop: Boolean(item.riskSignals?.lineStop),
+        safetyRisk: Boolean(item.riskSignals?.safetyRisk),
+        recurrentDefect: Boolean(item.riskSignals?.recurrentDefect),
+        leadDepartment: triage.leadDepartment,
+        currentStage: 'D1',
+        team: [
+          ...(owner.email ? [{ role: 'Customer Response Owner', name: `${owner.name} ${owner.position || ''}`.trim(), dept: owner.dept, contact: owner.email, status: 'Active' }] : []),
+          { role: '8D Quality Facilitator / 실무', name: `${CURRENT_USER.name} ${CURRENT_USER.position || ''}`.trim(), dept: CURRENT_USER.dept, contact: CURRENT_USER.email, status: 'Active' }
+        ],
+        d2: { problemWhat: item.claimTitle, problemWhere: item.incidentSite, problemWhen: item.submittedAt?.slice(0, 10), problemWho: '고객 접수', problemWhich: item.partNumber, problemHow: '고객 부적합 접수', problemHowMany: `${item.defectQty} / ${item.inspectQty}ea`, isIsNot: [], hypotheses: [] },
+        d3: { materialFlow: [], actions: [], effectivenessStatement: '' },
+        d4: { faMatrix: [], occurrence5Why: [], escape5Why: [], candidateCauses: [] },
+        d5: { candidates: [] },
+        d6: { validationTests: [] },
+        d7: { systemUpdates: [], horizontalDeployment: [] },
+        d8: { checklist: [], approvalFlow: [] },
+        evidenceList: (item.evidenceList || []).map(evidence => ({ ...evidence, linkedStages: ['D2', 'D3'] }))
+      };
+      appData.cases.unshift(caseObj);
+      appData.activeCaseId = caseId;
+      return caseId;
+    }
+
+    function openApprovedIntakeCase(caseId) {
+      if (!(appData.cases || []).some(item => item.id === caseId)) return;
+      appData.activeCaseId = caseId;
+      saveAppData();
+      renderCaseSelector();
+      switchStage('D1');
     }
 
     /* Ingest Drag & Drop & Clipboard Handlers */
