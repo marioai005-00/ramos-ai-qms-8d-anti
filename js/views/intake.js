@@ -57,12 +57,21 @@
     };
 
     const INTAKE_OWNER_CATALOG = [
+      { id: 'sourcing-lead', name: 'John_Woo_우준수', position: '팀장_이사', dept: '전략소싱팀', email: 'johnwoo@ramostek.com', customerKeywords: [] },
+      { id: 'sourcing-kbj', name: '강병주', position: 'Pro', dept: '전략소싱팀', email: 'kbj8420@ramostek.com', customerKeywords: [] },
+      { id: 'sourcing-shnam', name: '남서현', position: 'Pro', dept: '전략소싱팀', email: 'shnam1228@ramostek.com', customerKeywords: [] },
+      { id: 'sourcing-lhy', name: '이하영', position: 'Pro', dept: '전략소싱팀', email: 'lhyduddlgk@ramostek.com', customerKeywords: [] },
       { id: 'sales-lge', name: 'Sahong_Kim_김사홍', position: '팀장_P.Pro', dept: '영업팀', email: 'shk@ramostek.com', customerKeywords: ['lge', 'lg전자'] },
       { id: 'sales-samsung', name: 'Aria_김애정', position: 'Pro', dept: '영업팀', email: 'anasta@ramostek.com', customerKeywords: ['samsung', '삼성전자'] },
       { id: 'sales-hynix', name: 'Jinyi Ahn_안진의', position: 'Pro', dept: '영업팀', email: 'jinyi711@ramostek.com', customerKeywords: ['sk hynix', 'sk하이닉스', '하이닉스'] },
       { id: 'sales-general', name: 'Jun Lee_이학준', position: 'Pro', dept: '영업팀', email: 'junlee@ramostek.com', customerKeywords: [] },
-      { id: 'quality-intake', name: '김성중', position: 'Senior Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', customerKeywords: [] }
+      { id: 'sales-homebot', name: 'Martin Lee_이지훈', position: 'Pro', dept: '영업팀', email: 'homebot@ramostek.com', customerKeywords: [] },
+      { id: 'sales-roen', name: 'Roen Kim_김려은', position: 'Pro', dept: '영업팀', email: 'roenkim@ramostek.com', customerKeywords: [] },
+      { id: 'sales-selly', name: 'Selly Park_박소진', position: 'Pro', dept: '영업팀', email: 'sjpark@ramostek.com', customerKeywords: [] },
+      { id: 'sales-benjamin', name: '빈철우_Benjamin', position: 'Pro', dept: '영업팀', email: 'cwbeen@ramostek.com', customerKeywords: [] }
     ];
+
+    const INTAKE_AUTHORIZED_DEPARTMENTS = ['전략소싱팀', '영업팀'];
 
     const QUALITY_INTAKE_COORDINATOR = {
       name: '김성중',
@@ -82,6 +91,10 @@
       };
     }
 
+    function hasIntakeRegistrationAuthority(registrar = getIntakeRegistrar()) {
+      return INTAKE_AUTHORIZED_DEPARTMENTS.includes(registrar.dept);
+    }
+
     function detectIntakePresetKey(text = '') {
       const normalized = String(text).toLowerCase().replace(/\s+/g, ' ');
       if (normalized.includes('samsung') || normalized.includes('삼성전자')) return 'samsung';
@@ -91,10 +104,26 @@
     }
 
     function getRecommendedIntakeOwner(customer = '') {
+      const registrar = getIntakeRegistrar();
+      const registrarAsOwner = INTAKE_OWNER_CATALOG.find(owner => owner.email === registrar.email);
+      if (hasIntakeRegistrationAuthority(registrar) && registrarAsOwner) return registrarAsOwner;
+
       const normalizedCustomer = String(customer).toLowerCase();
       return INTAKE_OWNER_CATALOG.find(owner =>
         owner.customerKeywords.some(keyword => normalizedCustomer.includes(keyword))
       ) || INTAKE_OWNER_CATALOG.find(owner => owner.id === 'sales-general');
+    }
+
+    function getIntakeAssignmentReason(owner, customer = '') {
+      const registrar = getIntakeRegistrar();
+      if (owner?.email === registrar.email && hasIntakeRegistrationAuthority(registrar)) {
+        const csNote = registrar.dept === '전략소싱팀' ? 'CS 포함 접수 조직' : '고객 영업 접수 조직';
+        return `${registrar.dept} 로그인 접수자 감지 (${csNote}) → 접수자를 1차 고객 대응 주관으로 자동 지정`;
+      }
+      if (owner?.customerKeywords?.length) {
+        return `${customer || '고객사'} 키워드 감지 → 고객사 전담 영업 담당 자동 연결`;
+      }
+      return '접수 권한 조직의 전담 매핑 없음 → 영업팀 공통 고객 대응 담당 연결';
     }
 
     function getIntakeSourceType() {
@@ -107,6 +136,9 @@
     }
 
     function renderNewCaseView() {
+      const intakeRegistrar = getIntakeRegistrar();
+      const initialOwner = getRecommendedIntakeOwner('LGE (LG전자)');
+      const hasRegistrationAuthority = hasIntakeRegistrationAuthority(intakeRegistrar);
       return `
         <div style="max-width: 960px; margin: 0 auto;">
           <div style="margin-bottom: 20px;">
@@ -307,22 +339,30 @@
                   <i data-lucide="route" style="color:#22d3ee; width:17px; height:17px;"></i>
                   AI 접수 라우팅 & 담당자 자동 지정
                 </div>
-                <span class="intake-human-gate-badge">AI 추천 · 사람 확인 필수</span>
+                <span class="intake-human-gate-badge">접수 권한: 전략소싱팀 · 영업팀</span>
+              </div>
+
+              <div class="intake-permission-strip ${hasRegistrationAuthority ? 'is-authorized' : 'is-restricted'}">
+                <i data-lucide="${hasRegistrationAuthority ? 'badge-check' : 'shield-alert'}"></i>
+                <span>${hasRegistrationAuthority
+                  ? `${intakeRegistrar.dept} 소속 접수 권한이 확인되었습니다. AI 추천 후 사람 확인을 거쳐 등록합니다.`
+                  : `현재 로그인 계정은 ${intakeRegistrar.dept} 소속입니다. Case 접수 등록은 전략소싱팀(CS 포함)과 영업팀만 가능합니다.`}
+                </span>
               </div>
 
               <div class="intake-routing-summary">
                 <div class="intake-routing-node">
                   <span class="intake-routing-label">접수 등록자</span>
-                  <strong id="intakeRegistrarName">${getIntakeRegistrar().name} ${getIntakeRegistrar().position}</strong>
-                  <span id="intakeRegistrarMeta">${getIntakeRegistrar().dept} · ${getIntakeRegistrar().email}</span>
+                  <strong id="intakeRegistrarName">${intakeRegistrar.name} ${intakeRegistrar.position}</strong>
+                  <span id="intakeRegistrarMeta">${intakeRegistrar.dept} · ${intakeRegistrar.email}</span>
                 </div>
                 <div class="intake-routing-arrow" aria-hidden="true">
                   <i data-lucide="arrow-right"></i>
                 </div>
                 <div class="intake-routing-node intake-routing-node-primary">
                   <span class="intake-routing-label">고객 대응 주관 담당</span>
-                  <strong id="intakeOwnerSummary">Sahong_Kim_김사홍 팀장_P.Pro</strong>
-                  <span id="intakeOwnerMeta">영업팀 · shk@ramostek.com</span>
+                  <strong id="intakeOwnerSummary">${initialOwner.name} ${initialOwner.position}</strong>
+                  <span id="intakeOwnerMeta">${initialOwner.dept} · ${initialOwner.email}</span>
                 </div>
                 <div class="intake-routing-arrow" aria-hidden="true">
                   <i data-lucide="arrow-right"></i>
@@ -338,11 +378,11 @@
                 <div class="form-group">
                   <label class="form-label" for="formIntakeOwner">
                     고객 대응 주관 담당자 <span class="required">*</span>
-                    <span class="intake-ai-chip">고객사 기반 자동 추천</span>
+                    <span class="intake-ai-chip">접수자·고객사 기반 자동 추천</span>
                   </label>
                   <select id="formIntakeOwner" name="intakeOwner" class="form-control" required onchange="handleIntakeOwnerChange()">
                     ${INTAKE_OWNER_CATALOG.map(owner => `
-                      <option value="${owner.id}|${owner.name}|${owner.position}|${owner.dept}|${owner.email}" ${owner.id === 'sales-lge' ? 'selected' : ''}>
+                      <option value="${owner.id}|${owner.name}|${owner.position}|${owner.dept}|${owner.email}" ${owner.id === initialOwner.id ? 'selected' : ''}>
                         ${owner.name} ${owner.position} (${owner.dept}) — ${owner.email}
                       </option>
                     `).join('')}
@@ -351,7 +391,7 @@
                 <div class="form-group">
                   <label class="form-label">AI 배정 근거</label>
                   <div class="intake-assignment-reason" id="intakeAssignmentReason">
-                    LGE 고객 키워드 감지 → 영업팀 고객 대응 담당 자동 연결
+                    ${getIntakeAssignmentReason(initialOwner, 'LGE (LG전자)')}
                   </div>
                 </div>
               </div>
@@ -371,7 +411,7 @@
                 <input type="checkbox" id="formAssignmentConfirmed" name="assignmentConfirmed" required>
                 <span>
                   <strong>담당자 배정 확인</strong>
-                  AI가 추천한 접수 담당자와 품질 코디네이터를 확인했으며, 이 배정으로 Case를 등록합니다.
+                  AI가 추천한 고객 대응 담당자와 품질 코디네이터를 확인했으며, 이 배정으로 Case를 등록합니다.
                 </span>
               </label>
             </div>
@@ -616,9 +656,7 @@
         const option = Array.from(select.options).find(item => item.value.startsWith(`${owner.id}|`));
         if (option) select.value = option.value;
       }
-      const reason = owner?.id === 'sales-general'
-        ? '고객사 전담 매핑 없음 → 영업팀 공통 접수 담당 자동 연결'
-        : `${customer || '고객사'} 키워드 감지 → 영업팀 고객 대응 담당 자동 연결`;
+      const reason = getIntakeAssignmentReason(owner, customer);
       updateIntakeRoutingUI(owner, reason);
     }
 
@@ -739,6 +777,11 @@
     function handleCreateCase(e) {
       e.preventDefault();
       const form = e.target;
+      const intakeRegistrar = getIntakeRegistrar();
+      if (!hasIntakeRegistrationAuthority(intakeRegistrar)) {
+        alert(`현재 로그인 계정은 ${intakeRegistrar.dept} 소속입니다.\n\n고객 부적합 접수 등록은 전략소싱팀(CS 포함)과 영업팀 계정만 가능합니다.`);
+        return;
+      }
       const confirmation = document.getElementById('formAssignmentConfirmed');
       if (!confirmation?.checked) {
         alert('AI가 추천한 접수 담당자를 확인한 뒤 [담당자 배정 확인]에 체크해 주세요.');
@@ -747,7 +790,6 @@
       }
 
       const intakeOwner = readSelectedIntakeOwner();
-      const intakeRegistrar = getIntakeRegistrar();
       const assignmentTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 16);
       const newCaseId = `RAMOS-8D-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-0${appData.cases.length + 1}`;
       
@@ -758,6 +800,8 @@
         customerEmail: form.customerEmail.value,
         intakeRouting: {
           sourceType: getIntakeSourceType(),
+          intakeChannel: intakeRegistrar.dept,
+          registrationAuthority: '전략소싱팀(CS 포함) 또는 영업팀',
           registeredBy: intakeRegistrar,
           primaryOwner: intakeOwner,
           qualityCoordinator: { ...QUALITY_INTAKE_COORDINATOR },
@@ -786,7 +830,7 @@
         currentStage: 'D1',
         team: [
           ...(intakeOwner.email !== QUALITY_INTAKE_COORDINATOR.email ? [{
-            role: 'Customer Response Owner (CS / 영업)',
+            role: 'Customer Response Owner (전략소싱 CS / 영업)',
             name: `${intakeOwner.name} ${intakeOwner.position}`,
             dept: intakeOwner.dept,
             contact: intakeOwner.email,
