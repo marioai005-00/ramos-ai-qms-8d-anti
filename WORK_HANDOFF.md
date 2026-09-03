@@ -6,11 +6,19 @@
 
 ## 📌 현재 활성 프로젝트 상태 (Latest Active Status)
 
-* **최근 업데이트 일시**: `2026-09-03 10:22 (KST)`
-* **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System`
+* **최근 업데이트 일시**: `2026-09-03 10:33 (KST)`
+* **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **D1~D4 단계별 품질 도구와 순차 사람 승인 Gate 구현**
+  1. **D4 고객 Report 이미지·PDF 실측 Evidence 카드 및 라이트박스 고도화**
+     - D4에 첨부한 이미지를 실제 분석 Evidence(Engineering FA Artifact) 형태로 렌더링: 정밀 뷰어 캔버스, `IMAGE EVIDENCE` 배지, 파일 크기·등록자 메타정보, [🔍 원본 확대] 라이트박스 팝업, [💾 다운로드] 버튼, 하단 물리/전기 분석 실측 증거 라벨 추가.
+     - D4에 첨부한 PDF를 공식 시험성적서(Official Technical Report PDF) 카드로 렌더링: `OFFICIAL PDF EVIDENCE` 배지, 600px 인라인 임베드 뷰어, [↗ 새 탭 전체화면] 열람, [💾 PDF 다운로드], 브라우저 뷰어 미지원 대비 안내 배너, 인쇄(@media print) 전용 요약 최적화.
+     - D4 Evidence 작성 모달(`openD4EvidenceBuilder`)의 파일 목록에 이미지/PDF 즉시 [미리보기] 버튼 추가.
+     - 공식 8D Report Hub (Interim 5D / Final 8D)의 D4 섹션에 D4 분석 Evidence 패키지 요약 바 및 [D4 독립 Evidence 성적서 열람] 바로가기 연동.
+     - 기존 25개 품질도구 구조화 양식 작성 방식 및 PPT·Excel·Word 원본 첨부 카드/다운로드 기능 100% 보존.
+     - 브라우저 IndexedDB 파일 저장 및 타 PC 미동기화 안내 카드 보존.
+     - Antigravity 전용 브랜치: `antigravity/d4-evidence-preview`.
+  2. **D1~D4 단계별 품질 도구와 순차 사람 승인 Gate 구현**
      - D1에 RACI 책임표와 필수 CFT 역할·RACI 확인을 결합한 사람 확정 Gate 추가.
      - D2를 5W2H·IS/IS NOT·AI 사실 종합 문제정의문을 작성·저장·승인하는 실제 작업대로 전환.
      - D3에 LOT 추적, 7-Area Material Flow, 긴급 봉쇄조치, 효과성 검증 작업대와 승인 조건 추가.
@@ -125,6 +133,40 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 10:33] D4 고객 Report 이미지·PDF 실측 Evidence 카드 및 라이트박스 뷰어 구현
+* **Git 브랜치**: `antigravity/d4-evidence-preview`
+* **변경 파일**: `js/views/d4_evidence.js`, `js/views/reports.js`, `css/styles.css`, `WORK_HANDOFF.md`
+* **원인**: D4에 첨부한 분석자료가 단순 태그로 나열되어, 고객 보고서(Stage Report Preview 및 8D Report Hub)에서 실제 분석 결과 및 입증 성적서(Analysis Evidence Artifact)로서의 품격과 전문성이 부족했음.
+* **수정 내용**:
+  1. **이미지 실측 Evidence 카드 구축**:
+     - 정밀 뷰어 캔버스: 엔지니어링 검토용 미세 격자 패턴 배경 적용.
+     - 헤더 툴바: `IMAGE EVIDENCE` 배지, 확장자 뱃지, 파일명, 파일 크기, 등록자 메타정보.
+     - 액션 툴바: `[🔍 원본 확대]` 고해상도 라이트박스 팝업 버튼, `[💾 다운로드]` 원본 저장 버튼.
+     - 하단 바: `물리/전기 분석 실측 증거 자료` 라벨 및 등록자/시각 표기.
+  2. **공식 시험성적서 PDF 카드 구축**:
+     - 성적서 프레임: `OFFICIAL PDF EVIDENCE` 배지 및 600px 인라인 임베드 뷰어.
+     - 액션 툴바: `[↗ 새 탭 전체화면]` 열람 버튼, `[💾 PDF 다운로드]` 버튼.
+     - 브라우저 보안/모바일 미지원 대비: `새 탭에서 성적서 열람하기 ➔` 인라인 Fallback 스트립 제공.
+     - 인쇄(@media print) 모드: 화면용 버튼 및 iframe 깨짐 방지, 성적서 문서 식별 카드 형태로 깔끔 인쇄 최적화.
+  3. **고해상도 라이트박스 뷰어 (`openD4ImageLightbox`)**:
+     - 이미지 클릭 또는 확대 버튼 클릭 시 전체화면 라이트박스 팝업으로 SEM 단면, X-Ray, Decap 사진 등을 초고해상도로 정밀 검토 가능.
+  4. **D4 Evidence 작성 모달 편의성 강화**:
+     - 첨부 파일 목록(`d4-attachment-list`)에서 이미지/PDF를 즉시 확인할 수 있는 `[미리보기]` 버튼 추가.
+  5. **8D Report Hub (Interim 5D / Final 8D) 연동**:
+     - 공식 보고서 D4 섹션에 선택 도구 수 및 첨부 성적서/이미지 건수 요약 바 연동.
+     - `[D4 독립 Evidence 성적서 열람 ➔]` 바로가기 버튼 추가.
+  6. **기존 기능 100% 보존**:
+     - 25개 품질도구 구조화 양식 작성 방식 및 필수/추천/AI 도구 체계 유지.
+     - PPT·Excel·Word Office 원본 첨부 카드 및 다운로드 기능 보존.
+     - IndexedDB 저장소 및 다른 PC 접속 시 원본 미존재 안내 카드 보존.
+* **검증**:
+  - Node.js 가상머신(VM)을 통한 7대 통합 테스트(모듈 로드, 예시 케이스, D4 부록, 첨부파일 렌더링, Stage 미리보기, Gate 체크, Reports Hub 바) 전원 PASS.
+  - 전체 JavaScript 문법 검사(`node -c`) 에러 0건 통과.
+  - Git whitespace 무결성(`git diff --check`) 통과.
+  - `.env` 및 민감정보 제외 확인.
+* **현재 제약**:
+  - D4 첨부 원본은 브라우저 IndexedDB에 보관되므로, 다른 PC 접속 시 첨부 원본은 표시되지 않고 정직한 미존재 안내 카드가 표시됨.
 
 ### 🗓️ [2026-09-03 10:22] Antigravity 전용 Private GitHub 저장소 복제
 * **원본 저장소**: `https://github.com/marioai005-00/ramos-ai-qms-8d`

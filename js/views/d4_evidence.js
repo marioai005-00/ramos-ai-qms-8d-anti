@@ -96,7 +96,38 @@ function renderD4EvidenceBuilderRow(schema,item={values:[]}) {
   return `<tr>${schema.columns.map((col,i)=>`<td><textarea class="form-control" data-d4-evidence-cell="${i}" placeholder="${escapeD4Evidence(col[1])}">${escapeD4Evidence(item.values?.[i]||'')}</textarea></td>`).join('')}<td><button type="button" class="icon-danger-btn" onclick="this.closest('tr').remove()" title="행 삭제"><i data-lucide="trash-2"></i></button></td></tr>`;
 }
 function addD4EvidenceBuilderRow(){const c=getActiveCase();const row=c?.d4?.selectedTools?.[activeD4EvidenceIndex];if(!row)return;const schema=getD4EvidenceSchema(row.id);document.getElementById('d4EvidenceRows').insertAdjacentHTML('beforeend',renderD4EvidenceBuilderRow(schema));if(window.lucide)lucide.createIcons();}
-function renderD4AttachmentList(){return pendingD4Attachments.length?pendingD4Attachments.map((item,index)=>`<div class="d4-attachment-row"><span class="d4-file-kind">${escapeD4Evidence((item.extension||'FILE').toUpperCase())}</span><div><b>${escapeD4Evidence(item.name)}</b><small>${formatD4FileSize(item.size||0)} · ${item.previewType==='image'?'Report 이미지 표시':item.previewType==='pdf'?'Report PDF 표시':'원본 첨부/다운로드'}</small></div><button type="button" class="icon-danger-btn" onclick="removePendingD4Attachment(${index})" title="첨부 제외"><i data-lucide="trash-2"></i></button></div>`).join(''):'<div class="d4-no-attachment">첨부된 분석자료가 없습니다. 직접 양식을 작성하거나 완성된 원본 파일을 첨부하세요.</div>';}
+function renderD4AttachmentList(){
+  return pendingD4Attachments.length?pendingD4Attachments.map((item,index)=>`
+    <div class="d4-attachment-row">
+      <span class="d4-file-kind d4-kind-${escapeD4Evidence(item.previewType||'doc')}">${escapeD4Evidence((item.extension||'FILE').toUpperCase())}</span>
+      <div>
+        <b>${escapeD4Evidence(item.name)}</b>
+        <small>${formatD4FileSize(item.size||0)} · ${item.previewType==='image'?'Report 고해상도 이미지 표시':item.previewType==='pdf'?'Report 공식 PDF 뷰어 내장':'원본 첨부 카드 (다운로드)'}</small>
+      </div>
+      <div class="d4-attach-item-actions">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="previewPendingD4Attachment(${index})" title="미리보기"><i data-lucide="eye"></i> 보기</button>
+        <button type="button" class="icon-danger-btn" onclick="removePendingD4Attachment(${index})" title="첨부 제외"><i data-lucide="trash-2"></i></button>
+      </div>
+    </div>`).join(''):'<div class="d4-no-attachment">첨부된 분석자료가 없습니다. 직접 양식을 작성하거나 완성된 원본 파일을 첨부하세요.</div>';
+}
+
+async function previewPendingD4Attachment(index){
+  const item=pendingD4Attachments[index];
+  if(!item)return;
+  try{
+    const blob=await getD4EvidenceFile(item.storageKey);
+    if(!blob){alert('원본 파일을 불러오지 못했습니다.');return;}
+    const url=URL.createObjectURL(blob);
+    if(item.previewType==='image'){
+      openD4ImageLightbox(url, item.name);
+    }else{
+      window.open(url, '_blank');
+    }
+  }catch(e){
+    console.error(e);
+    alert('파일 미리보기를 열 수 없습니다.');
+  }
+}
 async function handleD4EvidenceFiles(fileList){
   const c=getActiveCase();const row=c?.d4?.selectedTools?.[activeD4EvidenceIndex];if(!row)return;
   for(const file of [...fileList]){const extension=(file.name.split('.').pop()||'').toLowerCase();if(!D4_ALLOWED_EXTENSIONS.includes(extension)){alert(`${file.name}: 지원하지 않는 형식입니다.`);continue;}if(file.size>30*1024*1024){alert(`${file.name}: 파일당 30MB를 초과했습니다.`);continue;}const id=makeD4AttachmentId();const storageKey=`${c.id}__${row.id}__${id}`;try{await putD4EvidenceFile(storageKey,file);pendingD4Attachments.push({id,storageKey,name:file.name,type:file.type||'application/octet-stream',extension,size:file.size,previewType:file.type.startsWith('image/')?'image':extension==='pdf'?'pdf':'document',uploadedBy:CURRENT_USER.name,uploadedAt:new Date().toISOString().replace('T',' ').slice(0,16)});}catch(error){console.error(error);alert(`${file.name}: 브라우저 Evidence 저장소에 보관하지 못했습니다.`);}}
@@ -123,9 +154,154 @@ function renderD4EvidenceSheet(c,row,index) {
   const schema=getD4EvidenceSchema(row.id); const artifact=row.artifact||createD4EvidenceArtifact(row.id,row,c,false); const rows=artifact.rows||[];
   return `<article class="stage-report-paper d4-evidence-paper"><div class="stage-report-watermark">${c.isExampleCase?'SAMPLE · TRAINING DATA':'DRAFT · HUMAN APPROVAL REQUIRED'}</div><div class="d4-evidence-doc-head"><div><b>RAMOS</b><small>D4 ROOT CAUSE EVIDENCE</small></div><div><span>EVIDENCE ${String(index+1).padStart(2,'0')}</span><h2>${escapeD4Evidence(schema.title)}</h2></div><dl><dt>문서번호</dt><dd>${escapeD4Evidence(artifact.documentNo)}</dd><dt>확인상태</dt><dd class="${artifact.humanConfirmed?'ok':'wait'}">${artifact.humanConfirmed?'HUMAN VERIFIED':'DRAFT'}</dd></dl></div><div class="d4-evidence-purpose"><b>분석 목적 / 가설</b><p>${escapeD4Evidence(artifact.objective)||'작성 대기'}</p><small>Source · ${escapeD4Evidence(artifact.sourceEvidence)||'연결 Evidence 대기'}</small></div>${rows.length?renderD4EvidenceVisual(row.id,schema,rows):'<div class="d4-file-only-note">구조화 입력 대신 첨부된 완성 분석자료를 원본 Evidence로 사용합니다.</div>'}${renderD4ReportAttachments(artifact.attachments||[])}<div class="d4-evidence-result"><b>분석 결론</b><p>${escapeD4Evidence(artifact.conclusion)||'분석 결론 작성 대기'}</p></div><footer class="stage-report-foot"><span>작성/확인 · ${escapeD4Evidence(artifact.updatedBy)||'미확인'} ${escapeD4Evidence(artifact.updatedAt)}</span><span>${c.id} · D4-E${String(index+1).padStart(2,'0')}</span></footer></article>`;
 }
-function renderD4ReportAttachments(attachments){if(!attachments.length)return '';return `<section class="d4-report-attachments"><h3>Attached Source Evidence · ${attachments.length}</h3>${attachments.map(item=>`<div class="d4-report-attachment" data-d4-file-key="${escapeD4Evidence(item.storageKey)}" data-d4-file-name="${escapeD4Evidence(item.name)}" data-d4-preview-type="${escapeD4Evidence(item.previewType)}"><div class="d4-attachment-loading"><b>${escapeD4Evidence(item.name)}</b><span>${formatD4FileSize(item.size||0)} · 원본 불러오는 중</span></div></div>`).join('')}</section>`;}
-function releaseD4AttachmentUrls(){d4AttachmentObjectUrls.forEach(url=>URL.revokeObjectURL(url));d4AttachmentObjectUrls=[];}
-async function hydrateD4EvidenceAttachments(root=document){releaseD4AttachmentUrls();const nodes=[...root.querySelectorAll('[data-d4-file-key]')];for(const node of nodes){const key=node.dataset.d4FileKey;const name=node.dataset.d4FileName;const previewType=node.dataset.d4PreviewType;try{const blob=await getD4EvidenceFile(key);if(!blob){node.innerHTML=`<div class="d4-attachment-missing"><b>${escapeD4Evidence(name)}</b><span>이 PC에서 원본 파일을 찾을 수 없습니다.</span></div>`;continue;}const url=URL.createObjectURL(blob);d4AttachmentObjectUrls.push(url);if(previewType==='image')node.innerHTML=`<figure><img src="${url}" alt="${escapeD4Evidence(name)}"><figcaption>${escapeD4Evidence(name)} · 원본 분석 이미지</figcaption></figure>`;else if(previewType==='pdf')node.innerHTML=`<div class="d4-pdf-head"><b>${escapeD4Evidence(name)}</b><a href="${url}" download="${escapeD4Evidence(name)}">원본 PDF 저장</a></div><object data="${url}" type="application/pdf"><a href="${url}" download="${escapeD4Evidence(name)}">${escapeD4Evidence(name)} 열기</a></object>`;else node.innerHTML=`<div class="d4-document-attachment"><span>${escapeD4Evidence((name.split('.').pop()||'FILE').toUpperCase())}</span><div><b>${escapeD4Evidence(name)}</b><small>PPT·Excel·Word 원본 분석자료</small></div><a href="${url}" download="${escapeD4Evidence(name)}">원본 열기/저장</a></div>`;}catch(error){console.error(error);node.innerHTML=`<div class="d4-attachment-missing"><b>${escapeD4Evidence(name)}</b><span>원본 파일을 불러오지 못했습니다.</span></div>`;}}}
+function renderD4ReportAttachments(attachments){
+  if(!attachments.length)return '';
+  return `<section class="d4-report-attachments">
+    <div class="d4-report-attach-head">
+      <div class="d4-attach-title">
+        <span class="d4-attach-tag">SOURCE EVIDENCE ARTIFACTS</span>
+        <h3>완성 분석자료 및 시험 성적서 원본 (${attachments.length}건)</h3>
+      </div>
+      <div class="d4-attach-meta">
+        <span>이미지·PDF 리포트 직접 인라인 검토</span>
+        <span>Office 원본 보존</span>
+      </div>
+    </div>
+    <div class="d4-report-attachments-grid">
+      ${attachments.map((item,idx)=>`<div class="d4-report-attachment d4-attachment-card-${item.previewType||'document'}" data-d4-file-key="${escapeD4Evidence(item.storageKey)}" data-d4-file-name="${escapeD4Evidence(item.name)}" data-d4-preview-type="${escapeD4Evidence(item.previewType)}" data-d4-file-size="${item.size||0}" data-d4-file-uploader="${escapeD4Evidence(item.uploadedBy||'CFT 담당자')}" data-d4-file-date="${escapeD4Evidence(item.uploadedAt||'')}"><div class="d4-attachment-loading"><div class="d4-attach-spinner"></div><b>${escapeD4Evidence(item.name)}</b><span>${formatD4FileSize(item.size||0)} · 원본 분석자료 로딩 중...</span></div></div>`).join('')}
+    </div>
+  </section>`;
+}
+
+function releaseD4AttachmentUrls(){
+  d4AttachmentObjectUrls.forEach(url=>URL.revokeObjectURL(url));
+  d4AttachmentObjectUrls=[];
+}
+
+async function hydrateD4EvidenceAttachments(root=document){
+  releaseD4AttachmentUrls();
+  const nodes=[...root.querySelectorAll('[data-d4-file-key]')];
+  for(const node of nodes){
+    const key=node.dataset.d4FileKey;
+    const name=node.dataset.d4FileName;
+    const previewType=node.dataset.d4PreviewType;
+    const size=Number(node.dataset.d4FileSize||0);
+    const uploader=node.dataset.d4FileUploader||'CFT 담당자';
+    const uploadDate=node.dataset.d4FileDate||'';
+    const ext=((name.split('.').pop()||'FILE')).toLowerCase();
+    try{
+      const blob=await getD4EvidenceFile(key);
+      if(!blob){
+        node.innerHTML=`<div class="d4-attachment-missing">
+          <div class="d4-missing-icon"><i data-lucide="alert-triangle"></i></div>
+          <div class="d4-missing-content">
+            <b>${escapeD4Evidence(name)}</b>
+            <span>이 PC의 브라우저 Evidence 저장소(IndexedDB)에 원본 파일이 없습니다.</span>
+            <small>※ 다중 PC 자동 동기화는 차기 중앙 파일 저장소 연동 시 제공됩니다. 원본을 등록한 PC에서 확인하거나 다시 첨부해 주십시오.</small>
+          </div>
+        </div>`;
+        continue;
+      }
+      const url=URL.createObjectURL(blob);
+      d4AttachmentObjectUrls.push(url);
+
+      if(previewType==='image'){
+        node.innerHTML=`<div class="d4-evidence-image-card">
+          <div class="d4-evidence-card-bar">
+            <div class="d4-card-badge-group">
+              <span class="d4-evidence-pill d4-pill-img">IMAGE EVIDENCE</span>
+              <span class="d4-ext-pill">${escapeD4Evidence(ext.toUpperCase())}</span>
+              <strong class="d4-evidence-filename" title="${escapeD4Evidence(name)}">${escapeD4Evidence(name)}</strong>
+            </div>
+            <div class="d4-card-action-group no-print">
+              <span class="d4-evidence-filesize">${formatD4FileSize(size)}</span>
+              <button type="button" class="btn-evidence-action" onclick="openD4ImageLightbox('${url}','${escapeD4Evidence(name)}')"><i data-lucide="zoom-in"></i> 원본 확대</button>
+              <a href="${url}" download="${escapeD4Evidence(name)}" class="btn-evidence-action btn-evidence-dl"><i data-lucide="download"></i> 다운로드</a>
+            </div>
+          </div>
+          <div class="d4-image-viewport" onclick="openD4ImageLightbox('${url}','${escapeD4Evidence(name)}')">
+            <img src="${url}" alt="${escapeD4Evidence(name)}" loading="lazy" class="d4-inspect-img">
+            <div class="d4-image-hover-hint no-print"><span><i data-lucide="maximize-2"></i> 클릭하여 고해상도 확대 보기</span></div>
+          </div>
+          <div class="d4-evidence-footer-bar">
+            <span class="d4-foot-label"><i data-lucide="microscope"></i> 물리/전기 분석 실측 증거 자료</span>
+            <span class="d4-foot-uploader">등록: ${escapeD4Evidence(uploader)} ${escapeD4Evidence(uploadDate)}</span>
+          </div>
+        </div>`;
+      } else if(previewType==='pdf'){
+        node.innerHTML=`<div class="d4-evidence-pdf-card">
+          <div class="d4-evidence-card-bar d4-pdf-bar">
+            <div class="d4-card-badge-group">
+              <span class="d4-evidence-pill d4-pill-pdf">OFFICIAL PDF EVIDENCE</span>
+              <span class="d4-ext-pill">PDF</span>
+              <strong class="d4-evidence-filename" title="${escapeD4Evidence(name)}">${escapeD4Evidence(name)}</strong>
+            </div>
+            <div class="d4-card-action-group no-print">
+              <span class="d4-evidence-filesize">${formatD4FileSize(size)}</span>
+              <button type="button" class="btn-evidence-action" onclick="window.open('${url}','_blank')"><i data-lucide="external-link"></i> 새 탭 전체화면</button>
+              <a href="${url}" download="${escapeD4Evidence(name)}" class="btn-evidence-action btn-evidence-dl"><i data-lucide="download"></i> PDF 다운로드</a>
+            </div>
+          </div>
+          <div class="d4-pdf-viewport">
+            <iframe src="${url}#view=FitH" class="d4-pdf-frame" title="${escapeD4Evidence(name)}"></iframe>
+            <div class="d4-pdf-fallback-strip no-print">
+              <span><i data-lucide="file-text"></i> 브라우저 내장 뷰어가 표시되지 않을 경우</span>
+              <button type="button" class="btn-evidence-link" onclick="window.open('${url}','_blank')">새 탭에서 성적서 열람하기 ➔</button>
+            </div>
+          </div>
+          <div class="d4-evidence-footer-bar">
+            <span class="d4-foot-label"><i data-lucide="file-check"></i> 공식 시험 / 분석 성적서 PDF</span>
+            <span class="d4-foot-uploader">등록: ${escapeD4Evidence(uploader)} ${escapeD4Evidence(uploadDate)}</span>
+          </div>
+        </div>`;
+      } else {
+        node.innerHTML=`<div class="d4-document-attachment">
+          <span class="d4-doc-icon ${escapeD4Evidence(ext)}">${escapeD4Evidence(ext.toUpperCase())}</span>
+          <div class="d4-doc-info">
+            <b title="${escapeD4Evidence(name)}">${escapeD4Evidence(name)}</b>
+            <small>${formatD4FileSize(size)} · PPT·Excel·Word 원본 분석자료 (등록: ${escapeD4Evidence(uploader)} ${escapeD4Evidence(uploadDate)})</small>
+          </div>
+          <a href="${url}" download="${escapeD4Evidence(name)}" class="btn-evidence-action btn-evidence-dl"><i data-lucide="download"></i> 원본 저장</a>
+        </div>`;
+      }
+    }catch(error){
+      console.error(error);
+      node.innerHTML=`<div class="d4-attachment-missing"><div class="d4-missing-icon"><i data-lucide="alert-circle"></i></div><div class="d4-missing-content"><b>${escapeD4Evidence(name)}</b><span>원본 파일을 불러오지 못했습니다.</span></div></div>`;
+    }
+  }
+  if(window.lucide)lucide.createIcons();
+}
+
+function openD4ImageLightbox(imageUrl, title){
+  let lb=document.getElementById('d4ImageLightboxModal');
+  if(!lb){
+    lb=document.createElement('div');
+    lb.id='d4ImageLightboxModal';
+    lb.className='d4-image-lightbox-modal';
+    document.body.appendChild(lb);
+  }
+  lb.innerHTML=`<div class="d4-lightbox-backdrop" onclick="closeD4ImageLightbox()"></div>
+    <div class="d4-lightbox-container">
+      <header class="d4-lightbox-header">
+        <div class="d4-lightbox-title"><i data-lucide="microscope"></i><b>${escapeD4Evidence(title)}</b><span>고해상도 실측 분석 Evidence</span></div>
+        <div class="d4-lightbox-actions">
+          <a href="${imageUrl}" download="${escapeD4Evidence(title)}" class="btn btn-secondary btn-sm"><i data-lucide="download"></i> 다운로드</a>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeD4ImageLightbox()"><i data-lucide="x"></i> 닫기</button>
+        </div>
+      </header>
+      <div class="d4-lightbox-body">
+        <img src="${imageUrl}" alt="${escapeD4Evidence(title)}" class="d4-lightbox-img">
+      </div>
+    </div>`;
+  lb.style.display='flex';
+  if(window.lucide)lucide.createIcons();
+}
+
+function closeD4ImageLightbox(){
+  const lb=document.getElementById('d4ImageLightboxModal');
+  if(lb)lb.style.display='none';
+}
+
 function renderD4EvidenceVisual(toolId,schema,rows){
   const cells=item=>schema.columns.map((_,i)=>escapeD4Evidence(item.values?.[i])||'—');
   if(toolId==='timeline')return `<div class="d4-report-timeline">${rows.map(item=>{const v=cells(item);return `<div><time>${v[0]}</time><section><b>${v[1]}</b><p>${v[2]}</p><small>${v[3]}</small></section></div>`}).join('')}</div>`;

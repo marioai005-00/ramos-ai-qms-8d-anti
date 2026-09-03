@@ -334,14 +334,34 @@ function renderReportsHubView(c) {
       ${reportType !== 'initial' ? `
         <!-- D4 Root Cause -->
         <div class="report-section">
-          <div class="report-sec-title"><span>D4. Root Cause Analysis (Occurrence & Escape)</span> <span>Root Cause Confirmed</span></div>
+          <div class="report-sec-title"><span>D4. Root Cause Analysis (Occurrence, Escape & System)</span> <span>Root Cause Confirmed</span></div>
           <div class="report-sec-content">
             <div style="font-size:12px; margin-bottom:4px;">
-              <b>1. Occurrence Root Cause:</b> ${c.d4?.candidateCauses[0]?.title || 'MLCC X5R 내열 마진 부족에 의한 Reflow 열응력 Crack 발생'}
-              <div style="font-size:11px; color:#475569;">(Evidence: Decap 소손 확인 및 SEM Cross-Section 수직 Crack 성적서 EVD-08 입증 완료)</div>
+              <b>1. Occurrence Root Cause:</b> ${c.d4?.candidateCauses?.[0]?.title || c.d4?.rootCauses?.Occurrence?.statement || 'MLCC X5R 내열 마진 부족에 의한 Reflow 열응력 Crack 발생'}
+              <div style="font-size:11px; color:#475569;">(Evidence: ${c.d4?.rootCauses?.Occurrence?.evidence || 'Decap 소손 확인 및 SEM Cross-Section 수직 Crack 성적서 EVD-08 입증 완료'})</div>
+            </div>
+            <div style="font-size:12px; margin-top:6px; margin-bottom:4px;">
+              <b>2. Escape Root Cause:</b> ${c.d4?.candidateCauses?.[1]?.title || c.d4?.rootCauses?.Escape?.statement || 'BOM 승인 단계에서 고온 신뢰성 Rating 대조 Checklist 누락'}
+              <div style="font-size:11px; color:#475569;">(Evidence: ${c.d4?.rootCauses?.Escape?.evidence || 'FT Program Rev.1, Test Coverage Review'})</div>
             </div>
             <div style="font-size:12px; margin-top:6px;">
-              <b>2. Escape Root Cause:</b> ${c.d4?.candidateCauses[1]?.title || 'BOM 승인 단계에서 고온 신뢰성 Rating 대조 Checklist 누락'}
+              <b>3. System Root Cause:</b> ${c.d4?.candidateCauses?.[2]?.title || c.d4?.rootCauses?.System?.statement || '외주 자재 변경 시 신뢰성 등급과 고객 사용조건을 대조하는 변경 승인 Gate 부재'}
+              <div style="font-size:11px; color:#475569;">(Evidence: ${c.d4?.rootCauses?.System?.evidence || 'BOM Review Checklist Rev.2, Supplier Change Audit'})</div>
+            </div>
+
+            <!-- D4 Structured Evidence & Source Attachment Link Bar -->
+            <div class="report-d4-evidence-bar no-print" style="margin-top:10px; padding:8px 12px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:4px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <div style="font-size:11.5px; color:#1e293b;">
+                <span style="font-weight:800; color:#1e40af;"><i data-lucide="folder-check" style="width:13px;height:13px;vertical-align:middle;"></i> D4 분석 Evidence 패키지:</span>
+                선택 품질도구 ${(c.d4?.selectedTools || []).length}건
+                ${(() => {
+                  const attachCount = (c.d4?.selectedTools || []).reduce((sum, t) => sum + (t.artifact?.attachments?.length || 0), 0);
+                  return attachCount > 0 ? `<span style="margin-left:6px; background:#dbeafe; color:#1d4ed8; padding:2px 6px; border-radius:10px; font-weight:700; font-size:10.5px;">첨부 성적서/이미지 ${attachCount}건 포함</span>` : '';
+                })()}
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="openStageReportPreview('D4')" style="font-size:11px; padding:3px 10px; font-weight:700;">
+                <i data-lucide="file-search" style="width:12px;height:12px;"></i> D4 독립 Evidence 성적서 열람 ➔
+              </button>
             </div>
           </div>
         </div>
