@@ -10,7 +10,11 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **D2 Problem '표준 문제 정의문' AI 사실 종합 초안 생성 API 고도화**
+  1. **RAK4/RAK5 창고 엑셀 업로드 시 인접 LOT 자동 식별 및 세부 내역 표출**
+     - RAK4/5 창고 분리 관리 체계는 100% 유지하면서, 엑셀 파서가 `🔴 발생 LOT`, `🟡 직전 인접 LOT`, `🟡 직후 인접 LOT`를 자동 감지.
+     - 창고 카드 내에 각 로트별 현재고, Hold 수량, 권고 상태 테이블 표출 및 D3 상단 `adjacentLots` 자동 연동.
+     - `input/RAK4_완제품재고_인접LOT_샘플양식.xlsx`, `input/RAK5_출하대기재고_인접LOT_샘플양식.xlsx` 생성 완비.
+  2. **D2 Problem '표준 문제 정의문' AI 사실 종합 초안 생성 API 고도화**
      - 기존의 단순 템플릿 문자열 결합을 전면 폐기하고 Dual AI(Groq ⚡ LPU) 사실 종합 추론 엔진 탑재.
      - 원인 추정 문구를 배제하고 5W2H 사실에만 기반한 IATF 16949 표준 문제 정의문(2~3문장)을 0.3초 만에 생성.
      - 오프라인 100% Graceful Fallback 내장.
@@ -185,6 +189,27 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 12:26] RAK4/RAK5 완제품 창고 엑셀 업로드 시 인접 LOT 자동 식별 및 세부 내역 표출 기능 구현
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `js/views/workspace.js`, `css/styles.css`, `index.html`, `input/RAK4_완제품재고_인접LOT_샘플양식.xlsx`, `input/RAK5_출하대기재고_인접LOT_샘플양식.xlsx`, `WORK_HANDOFF.md`
+* **원인**: 마리오님의 현업 창고 관리 실무 지침("RAK4, 5에도 Lot No가 기록이 되니까! 그 부분에 대해서도 인접 Lot에 대해서 확인할 수 있도록 해줘야 해!")에 따라, 단일 타겟 로트만 검색하던 기존 필터를 전면 개편하여 창고 내 재고에서 인접 배치 로트까지 자동 감지하고 상세 테이블로 표출하도록 고도화함.
+* **수정 내용**:
+  1. **인접 LOT 패턴 분류 엔진 (`getLotPrefixAndSeq`, `classifyLotRelation`) 탑재 (`js/views/workspace.js`)**:
+     - 타겟 로트(예: `EM2608-DTV01`)를 접두사와 시퀀스로 분해하여, 동일 시리즈 내 `🔴 발생 LOT`, `🟡 직전 인접 LOT (EM2608-DTV00)`, `🟡 직후 인접 LOT (EM2608-DTV02)`, `⚪ 연관 배치`를 자동으로 식별 및 분류.
+  2. **엑셀 필터 및 그룹핑 로직 고도화 (`filterInventoryRowsForCase`, `handleInventoryExcelImport`)**:
+     - 단일 로트 검색 제한을 해제하고 품목 일치 및 인접 접두사 매칭을 지원.
+     - 업로드 시 `lotBreakdown` 배열을 생성하여 각 로트별 현재고 수량과 Hold 수량을 개별 집계.
+     - 발견된 인접 Lot 목록을 D3 상단의 `lotScope.adjacentLots`에 자동 연동 추천.
+  3. **창고 카드 내 `🔎 감지된 LOT 현황` 상세 테이블 렌더러 (`renderD3InventorySourcePanel`)**:
+     - RAK4 / RAK5 블록 아래에 각 로트별 구분 뱃지, 로트 번호, 현재고, Hold 수량, 권고 상태를 일목요연하게 표시하는 서브 테이블 추가.
+  4. **현업 검증용 표준 엑셀 양식 2종 생성 (`input/`)**:
+     - `RAK4_완제품재고_인접LOT_샘플양식.xlsx` (발생 Lot + 직전/직후 인접 Lot + 타 규격 재고)
+     - `RAK5_출하대기재고_인접LOT_샘플양식.xlsx` (출하 대기 랙 인접 Lot 재고)
+* **검증 결과**:
+  - `node -c js/views/workspace.js` 구문 검사 오류 0건 통과.
+  - Python openpyxl 엑셀 2종 정상 생성 완료.
+  - `git diff --check` 오류 0건 통과.
 
 ### 🗓️ [2026-09-03 12:00] D2 Problem '표준 문제 정의문' AI 사실 종합 초안 생성 API 고도화
 * **Git 브랜치**: `antigravity/step01-intake-agent`

@@ -924,14 +924,59 @@
           <div class="erp-warehouse-grid">
             ${['RAK4','RAK5'].map(code => {
               const row = sources.erp[code];
+              const breakdown = Array.isArray(row.lotBreakdown) && row.lotBreakdown.length > 0 ? row.lotBreakdown : null;
+              const breakdownHTML = breakdown ? `
+                <div class="warehouse-lot-breakdown">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:0.75rem; font-weight:800; color:#cbd5e1;">🔎 ${code} 창고 내 감지된 LOT 현황 (${breakdown.length}개 LOT)</span>
+                    <span style="font-size:0.68rem; color:#38bdf8; font-weight:700;">인접 Lot 자동 분류 완료</span>
+                  </div>
+                  <div style="overflow-x:auto;">
+                    <table class="custom-table" style="font-size:0.72rem; margin:0;">
+                      <thead>
+                        <tr>
+                          <th>구분</th>
+                          <th>LOT 번호</th>
+                          <th style="text-align:right;">현재고</th>
+                          <th style="text-align:right;">Hold 수량</th>
+                          <th>권고 상태</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${breakdown.map(b => {
+                          const badge = b.relation === 'Target'
+                            ? '<span class="lot-badge-target">🔴 발생 LOT</span>'
+                            : b.relation === 'PrevAdjacent'
+                            ? '<span class="lot-badge-adjacent">🟡 직전 인접</span>'
+                            : b.relation === 'NextAdjacent'
+                            ? '<span class="lot-badge-adjacent">🟡 직후 인접</span>'
+                            : '<span class="lot-badge-sibling">⚪ 연관 배치</span>';
+                          const isTgt = b.relation === 'Target';
+                          return `
+                            <tr style="${isTgt ? 'background:rgba(239,68,68,0.08); font-weight:700;' : ''}">
+                              <td>${badge}</td>
+                              <td class="num-mono" style="${isTgt ? 'color:#f87171;' : '#f8fafc;'}">${escapeWorkspaceValue(b.lot)}</td>
+                              <td class="num-mono" style="text-align:right;">${Number(b.currentQty || 0).toLocaleString()}</td>
+                              <td class="num-mono" style="text-align:right; color:${b.holdQty > 0 ? '#f87171' : 'inherit'};">${Number(b.holdQty || 0).toLocaleString()}</td>
+                              <td><span style="font-size:0.68rem; color:${isTgt ? '#f87171' : '#fbbf24'};">${isTgt ? '출하 락 & 전량 격리' : '선별 검사 대기'}</span></td>
+                            </tr>
+                          `;
+                        }).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ` : '';
+
               return `<article class="warehouse-inventory-block">
                 <div class="warehouse-code"><span>ERP FINISHED GOODS</span><strong>${code}</strong><em>${row.importedAt ? `Excel ${row.importedAt}` : '수동 입력 또는 Excel'}</em></div>
                 <div class="warehouse-field-grid">
-                  <label><span>관리 LOT</span><input class="form-control" name="erp${code}Lot" value="${escapeWorkspaceValue(row.lot || c.lotNumber)}"></label>
-                  <label><span>현재 재고</span><input class="form-control num-mono" type="number" min="0" name="erp${code}Qty" value="${Number(row.currentQty || 0)}" oninput="updateD3InventoryPreview()"></label>
-                  <label><span>Hold 수량</span><input class="form-control num-mono" type="number" min="0" name="erp${code}Hold" value="${Number(row.holdQty || 0)}"></label>
+                  <label><span>관리 LOT (인접 LOT 포함)</span><input class="form-control" name="erp${code}Lot" value="${escapeWorkspaceValue(row.lot || c.lotNumber)}"></label>
+                  <label><span>현재 재고 (합산)</span><input class="form-control num-mono" type="number" min="0" name="erp${code}Qty" value="${Number(row.currentQty || 0)}" oninput="updateD3InventoryPreview()"></label>
+                  <label><span>Hold 수량 (합산)</span><input class="form-control num-mono" type="number" min="0" name="erp${code}Hold" value="${Number(row.holdQty || 0)}"></label>
                   <label><span>근거 / 파일명</span><input class="form-control" name="erp${code}Evidence" value="${escapeWorkspaceValue(row.evidence)}" placeholder="ERP 재고조회 파일"></label>
                 </div>
+                ${breakdownHTML}
                 <div class="warehouse-actions"><input type="file" id="inventoryFile${code}" accept=".xlsx,.xls,.csv" hidden onchange="handleInventoryExcelImport(event,'erp','${code}')"><button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('inventoryFile${code}').click()"><i data-lucide="file-spreadsheet" style="width:13px;height:13px;"></i> ${code} Excel 가져오기</button><label><input type="checkbox" name="erp${code}Verified" ${row.verified ? 'checked' : ''}> ${code} 재고 확인</label></div>
               </article>`;
             }).join('')}
@@ -1050,16 +1095,61 @@
       };
     }
 
-    function filterInventoryRowsForCase(rows,columns,c) {
-      const lotNeedle=normalizeInventoryHeader(c.lotNumber); const partNeedle=normalizeInventoryHeader(c.partNumber);
-      const hasCaseKey=Boolean(columns.lot||columns.part);
+function getLotPrefixAndSeq(lotStr = '') {
+      const match = String(lotStr).trim().match(/^(.*?)([0-9]+)$/);
+      if (!match) return { prefix: String(lotStr).trim(), seq: null, padLen: 0 };
+      return { prefix: match[1], seq: parseInt(match[2], 10), padLen: match[2].length };
+    }
+
+    function classifyLotRelation(targetLot, candidateLot) {
+      const t = String(targetLot).trim();
+      const c = String(candidateLot).trim();
+      if (!t || !c) return 'Other';
+      if (t === c) return 'Target';
+
+      const tInfo = getLotPrefixAndSeq(t);
+      const cInfo = getLotPrefixAndSeq(c);
+
+      if (tInfo.prefix && cInfo.prefix && tInfo.prefix === cInfo.prefix && tInfo.seq !== null && cInfo.seq !== null) {
+        const diff = cInfo.seq - tInfo.seq;
+        if (diff === -1) return 'PrevAdjacent'; // 직전 인접
+        if (diff === 1) return 'NextAdjacent';  // 직후 인접
+        if (Math.abs(diff) <= 3) return 'Adjacent'; // 인접 배치 (±3 이내)
+        return 'BatchSibling'; // 동일 시리즈 배치
+      }
+
+      if (tInfo.prefix && c.startsWith(tInfo.prefix)) {
+        return 'BatchSibling';
+      }
+
+      return 'Sibling';
+    }
+
+    function filterInventoryRowsForCase(rows, columns, c) {
+      const targetLot = String(c.lotNumber || '').trim();
+      const lotNeedle = normalizeInventoryHeader(targetLot);
+      const tInfo = getLotPrefixAndSeq(targetLot);
+      const prefixNeedle = normalizeInventoryHeader(tInfo.prefix);
+      const partNeedle = normalizeInventoryHeader(c.partNumber);
+      const hasCaseKey = Boolean(columns.lot || columns.part);
       if (!hasCaseKey) return rows;
-      return rows.filter(row=>{
-        const lot=normalizeInventoryHeader(columns.lot?row[columns.lot]:''); const part=normalizeInventoryHeader(columns.part?row[columns.part]:'');
-        const checks=[];
-        if (columns.lot&&lotNeedle) checks.push(lot.includes(lotNeedle));
-        if (columns.part&&partNeedle) checks.push(part.includes(partNeedle));
-        return checks.length ? checks.every(Boolean) : true;
+
+      return rows.filter(row => {
+        const lot = normalizeInventoryHeader(columns.lot ? row[columns.lot] : '');
+        const part = normalizeInventoryHeader(columns.part ? row[columns.part] : '');
+
+        // Match part number if present
+        const partMatches = (!columns.part || !partNeedle) ? true : part.includes(partNeedle);
+
+        // Match lot: either exact lot, or prefix match for adjacent lots!
+        let lotMatches = true;
+        if (columns.lot && targetLot) {
+          const isExact = lot.includes(lotNeedle);
+          const isAdjacentPrefix = prefixNeedle && prefixNeedle.length >= 4 && lot.includes(prefixNeedle);
+          lotMatches = isExact || isAdjacentPrefix;
+        }
+
+        return partMatches && lotMatches;
       });
     }
 
@@ -1075,9 +1165,68 @@
         if (sourceType==='erp'&&columns.warehouse) filtered=filtered.filter(row=>normalizeInventoryHeader(row[columns.warehouse]).includes(normalizeInventoryHeader(sourceCode)));
         if (!filtered.length) throw new Error(`${c.lotNumber || c.partNumber} 및 ${sourceCode} 조건에 맞는 행을 찾지 못했습니다.`);
         const importedAt=new Date().toISOString().replace('T',' ').slice(0,16);
-        if (sourceType==='erp') {
-          const lots=[...new Set(filtered.map(row=>columns.lot?String(row[columns.lot]).trim():'').filter(Boolean))];
-          d3.inventorySources.erp[sourceCode]={...d3.inventorySources.erp[sourceCode],warehouse:sourceCode,lot:lots.join(', ')||c.lotNumber,currentQty:filtered.reduce((sum,row)=>sum+parseInventoryNumber(row[columns.quantity]),0),holdQty:columns.hold?filtered.reduce((sum,row)=>sum+parseInventoryNumber(row[columns.hold]),0):0,evidence:file.name,verified:false,importedAt,columnMapping:columns,rowCount:filtered.length};
+        if (sourceType === 'erp') {
+          // Group by Lot to detect target and adjacent lots individually
+          const lotMap = new Map();
+          filtered.forEach(row => {
+            const lotVal = columns.lot ? String(row[columns.lot]).trim() : (c.lotNumber || 'UNKNOWN');
+            const qty = parseInventoryNumber(row[columns.quantity]);
+            const hold = columns.hold ? parseInventoryNumber(row[columns.hold]) : 0;
+            const relation = classifyLotRelation(c.lotNumber, lotVal);
+
+            const curr = lotMap.get(lotVal) || {
+              lot: lotVal,
+              relation,
+              currentQty: 0,
+              holdQty: 0,
+              rowCount: 0
+            };
+            curr.currentQty += qty;
+            curr.holdQty += hold;
+            curr.rowCount += 1;
+            lotMap.set(lotVal, curr);
+          });
+
+          const lotBreakdown = Array.from(lotMap.values()).map(item => {
+            // Default recommended hold: 100% for target lot, user confirm for adjacent
+            if (item.relation === 'Target' && item.holdQty === 0) {
+              item.holdQty = item.currentQty;
+            }
+            return item;
+          });
+
+          // Sort breakdown: Target first, then adjacent lots by lot name
+          lotBreakdown.sort((a, b) => {
+            if (a.relation === 'Target') return -1;
+            if (b.relation === 'Target') return 1;
+            return a.lot.localeCompare(b.lot);
+          });
+
+          const allLots = lotBreakdown.map(b => b.lot);
+          const totalQty = lotBreakdown.reduce((sum, b) => sum + b.currentQty, 0);
+          const totalHold = lotBreakdown.reduce((sum, b) => sum + b.holdQty, 0);
+
+          d3.inventorySources.erp[sourceCode] = {
+            ...d3.inventorySources.erp[sourceCode],
+            warehouse: sourceCode,
+            lot: allLots.join(', ') || c.lotNumber,
+            currentQty: totalQty,
+            holdQty: totalHold,
+            evidence: file.name,
+            verified: false,
+            importedAt,
+            columnMapping: columns,
+            rowCount: filtered.length,
+            lotBreakdown
+          };
+
+          // Auto-suggest detected adjacent lots into D3 lotScope.adjacentLots if empty
+          const adjacentLotNames = lotBreakdown
+            .filter(b => b.relation !== 'Target')
+            .map(b => b.lot);
+          if (adjacentLotNames.length > 0 && !d3.lotScope.adjacentLots) {
+            d3.lotScope.adjacentLots = adjacentLotNames.join(', ');
+          }
         } else {
           if (!columns.process) throw new Error('MES Excel에서 공정명/Process 열을 찾지 못했습니다.');
           const grouped=new Map(); filtered.forEach(row=>{const process=String(row[columns.process]||'미지정 공정').trim();const current=grouped.get(process)||{process,lot:columns.lot?String(row[columns.lot]).trim():c.lotNumber,currentQty:0,holdQty:0,status:'In Process',evidence:file.name};current.currentQty+=parseInventoryNumber(row[columns.quantity]);if(columns.hold)current.holdQty+=parseInventoryNumber(row[columns.hold]);grouped.set(process,current);});
