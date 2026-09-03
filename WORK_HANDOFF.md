@@ -10,7 +10,12 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **LGE eMMC B2B 전담 비즈니스 모델로 시스템 전면 정렬**
+  1. **LGE DTV eMMC 및 Inked NAND Die 핵심 기술 배경 전면 반영**
+     - 차량용/전장 내용 전면 삭제 및 오직 **LGE DTV eMMC (Inked NAND 적용)** 비즈니스로 일원화.
+     - STEP 01 프리셋: `[LGE DTV] eMMC Boot CID Short` 및 `[LGE DTV] Inked NAND Read Timeout` 2대 전담 시나리오 재구성.
+     - Case 1, 2번 데이터셋 제품명에 `Inked NAND Die 적용` 특성 공식 명기.
+     - 전략소싱팀(남서현 Pro/이하영 Pro) 주력 제품군을 `LGE DTV eMMC 5.1 (Inked NAND 적용)`으로 동기화.
+  2. **LGE eMMC B2B 전담 비즈니스 모델로 시스템 전면 정렬**
      - 타사(삼성전자 SSD, SK하이닉스 DRAM) 예시·프리셋·목업 케이스를 전면 제거.
      - LGE eMMC 2대 B2B 전담 시나리오(`[LGE DTV]` eMMC 5.1 64GB / `[LGE 전장]` Automotive eMMC 5.1 32GB)로 일원화.
      - 기본 케이스 2번을 `LGE (LG전자 VS사업본부 전장) Automotive eMMC 5.1 32GB` 8D 케이스로 교체.
@@ -156,6 +161,25 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 11:20] LGE DTV eMMC 및 Inked NAND Die 핵심 기술 배경 전면 반영 (차량용 제거 및 DTV 일원화)
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `js/data.js`, `js/views/intake.js`, `js/org_tree.js`, `input/RAmos_조직도_업무스킬_양식.xlsx`, `WORK_HANDOFF.md`
+* **원인**: 마리오님의 핵심 기술 및 비즈니스 팩트 지침("아니아니! 지금은 DTV만 사업으로 하고있어! 차량용 아니야! NAND가 Inked라는것을 기억하란말야!")에 따라, 차량용/전장 관련 내용을 전면 삭제하고 오직 **LGE DTV 메인보드향 eMMC 5.1** 및 **Inked NAND Die 적용** 도메인 지식을 시스템 전반에 완벽하게 안착시킴.
+* **수정 내용**:
+  1. **LGE DTV eMMC (Inked NAND) 전용 프리셋 재구성 (`js/views/intake.js`)**:
+     - `[LGE DTV]` eMMC 5.1 Boot CID Fail & VCC-VSS Short 클레임 (평택 DTV SMT 3라인)
+     - `[LGE DTV]` Inked NAND 블록 Read Timeout & Retry 급증 클레임 (평택 DTV SMT 2라인)
+     - `detectIntakePresetKey` 역시 Inked NAND / 블록 결함 감지 로직으로 정밀 튜닝.
+  2. **8D Case 2번 데이터셋 팩트 정렬 (`js/data.js`)**:
+     - `RAMOS-8D-20260902-02`를 `LGE (LG전자 HE사업본부 DTV) DTV eMMC 5.1 32GB (Inked NAND Die 적용)` 정식 8D 케이스로 전면 교체.
+     - Case 1번 및 Case 2번 모두 제품명에 **`Inked NAND Die 적용`** 명시.
+  3. **조직도 스킬셋 및 엑셀 템플릿 연동 (`js/org_tree.js`, `input/RAmos_조직도_업무스킬_양식.xlsx`)**:
+     - 전략소싱팀 남서현 Pro(영업) 및 이하영 Pro(CS)의 주력 제품군을 `LGE DTV eMMC 5.1 (Inked NAND 적용)`으로 공식 업데이트.
+* **검증 결과**:
+  - `node -c js/data.js`, `node -c js/views/intake.js`, `node -c js/org_tree.js` 구문 검사 오류 0건 통과.
+  - Python openpyxl 엑셀 갱신 정상 완료.
+  - Git whitespace 무결성 통과.
 
 ### 🗓️ [2026-09-03 11:18] LGE eMMC B2B 전담 비즈니스 모델로 시스템 전면 정렬 (타사 예시 제거 및 LGE eMMC 전용화)
 * **Git 브랜치**: `antigravity/step01-intake-agent`

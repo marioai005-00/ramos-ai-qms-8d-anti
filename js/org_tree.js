@@ -61,8 +61,8 @@
     const DEFAULT_ORG_SKILLS = {
       'sahwang@ramostek.com': { jobDesc: '전사 품질 총괄, 8D Champion, 고객 공식 승인', products: '공통 (전제품)', skills: '품질경영, IATF16949, 고객감사' },
       'sjkim@ramostek.com': { jobDesc: '8D 품질 실무 간사, Master QA, 단계별 Evidence 검증', products: 'eMMC, SSD, DRAM', skills: '품질실무, 25개 품질도구, 원인검증' },
-      'shnam1228@ramostek.com': { jobDesc: '전략소싱팀 LGE eMMC 영업 담당, 고객사 소통, 공급 계약', products: 'eMMC 5.1, Flash', skills: 'LGE 영업 대응, 납기/단가 조율, 계약 관리' },
-      'lhyduddlgk@ramostek.com': { jobDesc: '전략소싱팀 LGE eMMC CS 담당, 고객 불량 클레임 1차 접수 및 소통', products: 'eMMC 5.1, Flash', skills: 'LGE CS 대응, 초동 소통, 클레임 접수' },
+      'shnam1228@ramostek.com': { jobDesc: '전략소싱팀 LGE DTV eMMC 영업 주관, 고객사 소통, 공급 계약', products: 'LGE DTV eMMC 5.1 (Inked NAND 적용)', skills: 'LGE DTV 영업 대응, 납기/단가 조율, 계약 관리' },
+      'lhyduddlgk@ramostek.com': { jobDesc: '전략소싱팀 LGE DTV eMMC CS 주관, 부적합 클레임 1차 접수 및 소통', products: 'LGE DTV eMMC 5.1 (Inked NAND 적용)', skills: 'LGE DTV CS 대응, 초동 접수, 부적합 소통, 클레임 채널' },
       'hskim@ramostek.com': { jobDesc: 'Flash 개발 총괄, 8D Leader, 회로/설계 분석', products: 'eMMC, UFS, SSD', skills: 'Flash 아키텍처, 펌웨어, 설계검토' },
       'jhpark@ramostek.com': { jobDesc: 'Physical FA / 불량 분석 총괄, 시각 증거 검증', products: 'eMMC, Flash', skills: 'SEM 단면분석, Decap, X-Ray, BGA 쇼트' },
       'shk@ramostek.com': { jobDesc: 'LGE 전담 영업 및 고객 부적합 1차 소통', products: 'DTV eMMC, Flash', skills: '고객사 CS, 클레임 접수, 납기조율' },

@@ -3,11 +3,11 @@
     let intakeFiles = [];
 
     const INTAKE_PRESETS = {
-      lge_dtv: {
+      lge_dtv_short: {
         customer: 'LGE (LG전자 HE사업본부 DTV)',
         customerContact: '최영수 책임 (DTV 품질보증팀)',
         customerEmail: 'ys.choi@lge.com',
-        product: 'eMMC 5.1 64GB (BGA153)',
+        product: 'DTV eMMC 5.1 64GB (Inked NAND Die 적용)',
         partNumber: 'RM-EM51-064G-X1',
         lotNumber: 'EM2608-DTV01',
         mfgSite: 'RAMOS 오창 1공장 SMT 3라인',
@@ -20,22 +20,22 @@
         recurrentDefect: 'false',
         sampleFileName: 'LGE_DTV_eMMC_Boot_Failure_Claim.png (LGE 품질불량 메일 캡쳐)'
       },
-      lge_auto: {
-        customer: 'LGE (LG전자 VS사업본부 전장)',
-        customerContact: '박진석 책임 (VS 전장품질팀)',
-        customerEmail: 'jinseok.park@lge.com',
-        product: 'Automotive eMMC 5.1 32GB (AEC-Q100)',
-        partNumber: 'RM-AUTO-EM51-032G',
-        lotNumber: 'EM2608-VS02',
-        mfgSite: 'RAMOS 오창 1공장 전장 전용 라인',
-        incidentSite: 'LGE 평택 VS 인포테인먼트 SMT 1라인',
-        defectQty: 3,
+      lge_dtv_inked: {
+        customer: 'LGE (LG전자 HE사업본부 DTV)',
+        customerContact: '김성식 책임 (HE DTV SMT품질팀)',
+        customerEmail: 'ss.kim@lge.com',
+        product: 'DTV eMMC 5.1 32GB (Inked NAND Die 적용)',
+        partNumber: 'RM-EM51-032G-DTV',
+        lotNumber: 'EM2608-DTV02',
+        mfgSite: 'RAMOS 오창 1공장 SMT 2라인',
+        incidentSite: 'LGE 평택 DTV Main Board 실장 2라인',
+        defectQty: 5,
         inspectQty: 5000,
-        claimTitle: '차량용 IVI 시스템 85℃ 고온 신뢰성 시험 중 eMMC I/O 응답 지연 및 초기화 Timeout 발생',
+        claimTitle: 'LGE DTV 메인보드 SMT 후 eMMC Inked NAND 특정 블록 Read Timeout 및 Boot CID 응답 지연',
         lineStop: 'true',
         safetyRisk: 'false',
         recurrentDefect: 'false',
-        sampleFileName: 'LGE_VS_Auto_eMMC_Reliability_Claim.pdf (LGE 전장 품질 공문 PDF)'
+        sampleFileName: 'LGE_DTV_Inked_NAND_Read_Timeout_Official.pdf (LGE 품질 공문 PDF)'
       }
     };
 
@@ -80,10 +80,10 @@
 
     function detectIntakePresetKey(text = '') {
       const normalized = String(text).toLowerCase().replace(/\s+/g, ' ');
-      if (normalized.includes('전장') || normalized.includes('auto') || normalized.includes('차량') || normalized.includes('ivi') || normalized.includes('vs')) {
-        return 'lge_auto';
+      if (normalized.includes('ink') || normalized.includes('블록') || normalized.includes('block') || normalized.includes('timeout') || normalized.includes('retry')) {
+        return 'lge_dtv_inked';
       }
-      return 'lge_dtv';
+      return 'lge_dtv_short';
     }
 
     function getRecommendedIntakeOwner(customer = '', productOrContext = '') {
@@ -184,15 +184,15 @@
               <div id="attachedFilesList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:10px;"></div>
             </div>
 
-            <!-- LGE eMMC B2B Quick Presets & AI Parse Button -->
+            <!-- LGE DTV eMMC (Inked NAND) Dedicated Presets & AI Parse Button -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; flex-wrap:wrap; gap:10px;">
               <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                <span style="font-size:0.72rem; color:#60a5fa; font-weight:800;">⚡ LGE eMMC B2B 전담 프리셋:</span>
-                <button type="button" class="preset-pill-btn" onclick="applyIntakePreset('lge_dtv')">
-                  <i data-lucide="image" style="width:12px; height:12px; color:#38bdf8;"></i> [LGE DTV] eMMC Boot Fail 클레임 캡쳐
+                <span style="font-size:0.72rem; color:#60a5fa; font-weight:800;">📺 LGE DTV eMMC (Inked NAND) 전담 프리셋:</span>
+                <button type="button" class="preset-pill-btn" onclick="applyIntakePreset('lge_dtv_short')">
+                  <i data-lucide="image" style="width:12px; height:12px; color:#38bdf8;"></i> [LGE DTV] eMMC Boot CID Short 클레임 캡쳐
                 </button>
-                <button type="button" class="preset-pill-btn" onclick="applyIntakePreset('lge_auto')">
-                  <i data-lucide="file-text" style="width:12px; height:12px; color:#a78bfa;"></i> [LGE 전장] 차량용 eMMC 고온 응답지연 공문
+                <button type="button" class="preset-pill-btn" onclick="applyIntakePreset('lge_dtv_inked')">
+                  <i data-lucide="file-text" style="width:12px; height:12px; color:#a78bfa;"></i> [LGE DTV] Inked NAND 블록 Read Timeout 공문
                 </button>
               </div>
 
