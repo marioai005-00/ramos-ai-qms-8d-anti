@@ -1877,3 +1877,14 @@
   .d4-inspect-img { max-height: 480px !important; }
   .d4-pdf-frame { height: 480px !important; }
 }
+
+/* AI Dual Engine Badges */
+.ai-engine-status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; }
+.ai-engine-status-badge.online { background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399; }
+.ai-engine-status-badge.offline { background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.25); color: #94a3b8; }
+.ai-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.ai-dot.online { background: #10b981; box-shadow: 0 0 8px #10b981; }
+.ai-dot.offline { background: #94a3b8; }
+.ai-badge-sub { padding: 1px 5px; border-radius: 3px; font-size: 0.65rem; font-weight: 800; font-family: 'Consolas', monospace; }
+.ai-badge-sub.groq { background: #ea580c; color: #ffffff; }
+.ai-badge-sub.gemini { background: #2563eb; color: #ffffff; }

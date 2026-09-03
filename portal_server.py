@@ -14,15 +14,144 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 
+import json
+import urllib.error
+
 PROJECT_ROOT = Path(__file__).resolve().parent
 HOST = "127.0.0.1"
 PORT_RANGE = range(8765, 8776)
 STATUS_PATH = "/__portal_status__"
+AI_STATUS_PATH = "/__api__/ai/status"
+AI_DISPATCH_PATH = "/__api__/ai/dispatch"
+
+
+def load_env() -> dict[str, str]:
+    env_file = PROJECT_ROOT / ".env"
+    env_vars: dict[str, str] = {}
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                env_vars[k.strip()] = v.strip()
+    return env_vars
+
+
+def call_groq(prompt: str, system_prompt: str = "", model: str = "openai/gpt-oss-20b") -> dict[str, object]:
+    env = load_env()
+    api_key = env.get("GROQ_API_KEY", "")
+    if not api_key:
+        return {"success": False, "error": "GROQ_API_KEY is not configured in .env"}
+
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": prompt})
+
+    payload = json.dumps({
+        "model": model,
+        "messages": messages,
+        "temperature": 0.2,
+        "max_tokens": 1024
+    }).encode("utf-8")
+
+    req = urllib.request.Request(
+        "https://api.groq.com/openai/v1/chat/completions",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RAMOS-QMS/1.0"
+        }
+    )
+    start_t = time.time()
+    try:
+        with urllib.request.urlopen(req, timeout=12) as res:
+            data = json.loads(res.read().decode("utf-8"))
+            content = data["choices"][0]["message"]["content"].strip()
+            return {
+                "success": True,
+                "engine": "groq",
+                "model": model,
+                "text": content,
+                "latencyMs": int((time.time() - start_t) * 1000)
+            }
+    except urllib.error.HTTPError as err:
+        return {"success": False, "engine": "groq", "error": f"Groq HTTP {err.code}"}
+    except Exception as err:
+        return {"success": False, "engine": "groq", "error": str(err)}
+
+
+def call_gemini(prompt: str, system_prompt: str = "", image_base64: str = "", model: str = "") -> dict[str, object]:
+    env = load_env()
+    api_key = env.get("GEMINI_API_KEY", "")
+    if not api_key:
+        return {"success": False, "error": "GEMINI_API_KEY is not configured in .env"}
+
+    parts: list[dict[str, object]] = []
+    if system_prompt:
+        parts.append({"text": f"[System Context]\n{system_prompt}\n"})
+    parts.append({"text": prompt})
+
+    if image_base64:
+        mime_type = "image/png"
+        raw_b64 = image_base64
+        if "data:" in image_base64 and ";base64," in image_base64:
+            header, raw_b64 = image_base64.split(";base64,", 1)
+            mime_type = header.replace("data:", "")
+        parts.append({
+            "inlineData": {
+                "mimeType": mime_type,
+                "data": raw_b64
+            }
+        })
+
+    payload = json.dumps({
+        "contents": [{"parts": parts}],
+        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 2048}
+    }).encode("utf-8")
+
+    candidate_models = [model] if model else ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-pro-latest"]
+    last_err = None
+
+    for m in candidate_models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent"
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={
+                "x-goog-api-key": api_key,
+                "Content-Type": "application/json",
+                "User-Agent": "RAMOS-QMS/1.0"
+            }
+        )
+        start_t = time.time()
+        try:
+            with urllib.request.urlopen(req, timeout=12) as res:
+                data = json.loads(res.read().decode("utf-8"))
+                text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                return {
+                    "success": True,
+                    "engine": "gemini",
+                    "model": m,
+                    "text": text,
+                    "latencyMs": int((time.time() - start_t) * 1000)
+                }
+        except urllib.error.HTTPError as err:
+            last_err = f"Gemini HTTP {err.code}"
+            continue
+        except Exception as err:
+            last_err = str(err)
+            continue
+
+    return {"success": False, "engine": "gemini", "error": last_err or "Unknown Gemini error"}
+
 
 
 class PortalHandler(SimpleHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802 - inherited HTTP handler API
-        if self.path.split("?", 1)[0] == STATUS_PATH:
+        clean_path = self.path.split("?", 1)[0]
+        if clean_path == STATUS_PATH:
             payload = str(PROJECT_ROOT).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
@@ -31,7 +160,75 @@ class PortalHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(payload)
             return
+
+        if clean_path == AI_STATUS_PATH:
+            env = load_env()
+            groq_ready = bool(env.get("GROQ_API_KEY"))
+            gemini_ready = bool(env.get("GEMINI_API_KEY"))
+            res_data = {
+                "status": "ok",
+                "dualEngine": True,
+                "groq": {"available": groq_ready, "recommendedFor": "Ultra-fast text, D2 5W2H, IS/IS NOT, 5-Why inference"},
+                "gemini": {"available": gemini_ready, "recommendedFor": "Multimodal vision, PDF/document parsing, deep FA inspection"},
+                "activeEngines": [e for e, ok in [("groq", groq_ready), ("gemini", gemini_ready)] if ok]
+            }
+            body = json.dumps(res_data).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
         super().do_GET()
+
+    def do_POST(self) -> None:  # noqa: N802
+        clean_path = self.path.split("?", 1)[0]
+        if clean_path == AI_DISPATCH_PATH:
+            content_len = int(self.headers.get("Content-Length", 0))
+            raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
+            try:
+                params = json.loads(raw_body)
+            except Exception:
+                params = {}
+
+            prompt = params.get("prompt", "").strip()
+            system_prompt = params.get("systemPrompt", "").strip()
+            task = params.get("task", "quick_draft")
+            engine_pref = params.get("engine", "auto")
+            image_b64 = params.get("imageBase64", "")
+
+            # Routing decision
+            result = None
+            if engine_pref == "gemini" or (engine_pref == "auto" and (image_b64 or task in ("vision", "multimodal", "deep_audit"))):
+                result = call_gemini(prompt, system_prompt, image_b64)
+                if not result.get("success") and not image_b64:
+                    # Fallback to groq if gemini fails and no image is involved
+                    fallback_result = call_groq(prompt, system_prompt)
+                    if fallback_result.get("success"):
+                        result = fallback_result
+                        result["fallbackFrom"] = "gemini"
+            else:
+                result = call_groq(prompt, system_prompt)
+                if not result.get("success"):
+                    # Fallback to gemini if groq fails
+                    fallback_result = call_gemini(prompt, system_prompt, image_b64)
+                    if fallback_result.get("success"):
+                        result = fallback_result
+                        result["fallbackFrom"] = "groq"
+
+            body = json.dumps(result).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        self.send_response(404)
+        self.end_headers()
 
     def end_headers(self) -> None:
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")

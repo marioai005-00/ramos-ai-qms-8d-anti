@@ -10,7 +10,13 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **D4 고객 Report 이미지·PDF 실측 Evidence 카드 및 라이트박스 고도화**
+  1. **Groq LPU + Google Gemini 듀얼 AI 엔진(Dual AI Engine) 아키텍처 연동 및 가동**
+     - 보안: 제공된 API Key를 Git 제외 로컬 `.env`에 안전 저장, 소스/커밋/문서 상 노출 차단.
+     - 로컬 백엔드 라우터(`portal_server.py`): 작업 성격에 맞춘 스마트 라우팅 및 장애 시 상호 자동 폴백 구축.
+       - **Groq LPU (`openai/gpt-oss-20b`)**: 초고속 저지연 추론 (~375ms), D2 IS/IS NOT 생성, 5-Why 가설 추론, 초동 대응 추천.
+       - **Google Gemini (`gemini-flash-lite-latest` / `gemini-pro-latest`)**: 멀티모달 시각 분석 (~1100ms), Physical FA 이미지/PDF 정밀 판독, 심층 감사.
+     - 프론트엔드 연동(`js/ai_engine.js`): 상단 헤더 활성 뱃지 표시, 서버 미가동 시 내장 Heuristic 모드로 100% Graceful Fallback.
+  2. **D4 고객 Report 이미지·PDF 실측 Evidence 카드 및 라이트박스 고도화**
      - D4에 첨부한 이미지를 실제 분석 Evidence(Engineering FA Artifact) 형태로 렌더링: 정밀 뷰어 캔버스, `IMAGE EVIDENCE` 배지, 파일 크기·등록자 메타정보, [🔍 원본 확대] 라이트박스 팝업, [💾 다운로드] 버튼, 하단 물리/전기 분석 실측 증거 라벨 추가.
      - D4에 첨부한 PDF를 공식 시험성적서(Official Technical Report PDF) 카드로 렌더링: `OFFICIAL PDF EVIDENCE` 배지, 600px 인라인 임베드 뷰어, [↗ 새 탭 전체화면] 열람, [💾 PDF 다운로드], 브라우저 뷰어 미지원 대비 안내 배너, 인쇄(@media print) 전용 요약 최적화.
      - D4 Evidence 작성 모달(`openD4EvidenceBuilder`)의 파일 목록에 이미지/PDF 즉시 [미리보기] 버튼 추가.
@@ -133,6 +139,31 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 10:48] Groq LPU 및 Google Gemini 멀티모달 Dual AI Engine 연동 및 무결성 검증
+* **Git 브랜치**: `antigravity/d4-evidence-preview`
+* **변경 파일**: `portal_server.py`, `js/ai_engine.js`, `index.html`, `css/styles.css`, `.env.example`, `WORK_HANDOFF.md`
+* **원인**: 사용자가 고속 추론용 `Groq API Key`와 멀티모달·심층 분석용 `Gemini API Key`를 제공하고, 두 엔진을 작업 특성에 맞춰 적정하게 상호 보완하여 활용할 수 있도록 시스템 업데이트를 요청함.
+* **수정 내용**:
+  1. **보안 가드레일 엄격 준수**:
+     - 제공된 실제 API Key는 Git 추적에서 제외된 로컬 전용 파일(`.env`)에 안전하게 저장(`GROQ_API_KEY`, `GEMINI_API_KEY`).
+     - 소스코드, 커밋 로그, 문서, Git 추적 파일에는 실제 비밀값을 일체 노출하지 않고 `.env.example`에만 템플릿 플레이스홀더 제공.
+  2. **Dual AI 백엔드 프록시 라우터 (`portal_server.py`)**:
+     - `/__api__/ai/status`: Groq 및 Gemini의 로컬 활성 상태 및 권장 작업 반환.
+     - `/__api__/ai/dispatch`: 작업 특성에 따른 지능형 자동 라우팅 및 폴백 구축:
+       - **Groq LPU (`openai/gpt-oss-20b`)**: 초고속 텍스트 생성, D2 5W2H 기반 IS/IS NOT 비교행 초안, 초동 조치 추천, 실시간 5-Why 원인 가설 추론 (실측 지연시간 ~375ms).
+       - **Google Gemini (`gemini-flash-lite-latest` / `gemini-pro-latest`)**: 이미지/PDF 멀티모달 분석, Physical FA 현미경/SEM 사진 정밀 판독, 공식 8D 리포트 종합 교정 (실측 지연시간 ~1100ms).
+       - 한쪽 엔진 일시 장애(503/404 등) 시 상호 자동 Fallback 및 Candidate 모델 자동 순회 처리.
+  3. **프론트엔드 연동 클라이언트 (`js/ai_engine.js`)**:
+     - `RamosDualAI` 글로벌 모듈 구축: 상태 확인, AI 쿼리 디스패치, 상단 헤더 활성 뱃지 자동 렌더링.
+     - 로컬 서버 미구동/오프라인 환경에서도 기존 내장 룰베이스/Heuristic 모드로 100% 안전하게 Graceful Fallback (화면 먹통/에러 원천 차단).
+  4. **UI & 스타일 최적화 (`index.html`, `css/styles.css`)**:
+     - 상단 헤더에 `DUAL AI ACTIVE (Groq ⚡ + Gemini 👁️)` 실시간 상태 인디케이터 배지 추가.
+* **검증 결과**:
+  - Python 로컬 서버 상에서 Groq API (`openai/gpt-oss-20b`, ~375ms) 및 Gemini API (`gemini-flash-lite-latest`, ~1100ms) 실제 호출 성공 검증 완료 (`SUCCESS`).
+  - Python 컴파일 문법 검사(`py_compile`) 및 JavaScript 구문 검사(`node -c`) ALL PASS.
+  - Git whitespace 검사(`git diff --check`) 오류 0건 통과.
+  - 비밀값 미노출 상태 재검증 통과.
 
 ### 🗓️ [2026-09-03 10:33] D4 고객 Report 이미지·PDF 실측 Evidence 카드 및 라이트박스 뷰어 구현
 * **Git 브랜치**: `antigravity/d4-evidence-preview`
