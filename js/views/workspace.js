@@ -591,7 +591,7 @@
       const rows = [
         ['고객 대응·최종 송부 승인', 'Champion', 'Quality Facilitator', 'Leader / 고객 대응', 'FA·공정·물류'],
         ['불량 분석 및 원인 입증', 'Leader', 'FA Lead', '공정 / 품질', 'Champion·물류'],
-        ['재고·출하·고객 봉쇄', 'Leader', 'Material Containment', '품질 / 고객 대응', 'Champion·FA'],
+        ['재고·출하·고객 봉쇄', 'GOC 센터장 (이은산 상무)', 'Material Containment (조철민/김혜원)', '품질 / 고객 대응 (영업·CS)', 'Champion · Leader'],
         ['8D 단계·Evidence 완결성', 'Champion', 'Quality Facilitator', '전 CFT', '고객 대응']
       ];
       return `
@@ -601,7 +601,7 @@
             <span class="quality-gate-state ${confirmed ? 'is-complete' : ''}">${confirmed ? 'RACI 확인 완료' : 'RACI 확인 필요'}</span>
           </div>
           <div class="raci-owner-strip">
-            <span>Champion <b>${memberName('champion')}</b></span><span>Leader <b>${memberName('leader')}</b></span><span>FA <b>${memberName('fa')}</b></span><span>물류 <b>${memberName('containment')}</b></span>
+            <span>Champion <b>${memberName('champion')}</b></span><span>Leader <b>${memberName('leader')}</b></span><span>FA <b>${memberName('fa')}</b></span><span>물류·봉쇄 <b>이은산 센터장_상무</b></span>
           </div>
           <div class="quality-table-wrap"><table class="custom-table compact-quality-table"><thead><tr><th>주요 업무</th><th>A</th><th>R</th><th>C</th><th>I</th></tr></thead><tbody>
             ${rows.map(row => `<tr>${row.map((cell, idx) => `<td class="${idx === 0 ? 'quality-task-cell' : ''}">${cell}</td>`).join('')}</tr>`).join('')}
@@ -2042,7 +2042,7 @@ function getLotPrefixAndSeq(lotStr = '') {
             <tbody>
               <tr><td style="font-weight:700;">고객 대응·최종 송부 승인</td><td style="text-align:center; font-weight:800; color:#0369a1;">Champion</td><td style="text-align:center; font-weight:800; color:#b91c1c;">Quality Facilitator</td><td style="text-align:center;">Leader / 고객 대응</td><td style="text-align:center; color:#64748b;">FA·공정·물류</td></tr>
               <tr><td style="font-weight:700;">불량 분석 및 원인 입증</td><td style="text-align:center; font-weight:800; color:#0369a1;">Leader</td><td style="text-align:center; font-weight:800; color:#b91c1c;">FA Lead</td><td style="text-align:center;">공정 / 품질</td><td style="text-align:center; color:#64748b;">Champion·물류</td></tr>
-              <tr><td style="font-weight:700;">재고·출하·고객 봉쇄</td><td style="text-align:center; font-weight:800; color:#0369a1;">Leader</td><td style="text-align:center; font-weight:800; color:#b91c1c;">Material Containment</td><td style="text-align:center;">품질 / 고객 대응</td><td style="text-align:center; color:#64748b;">Champion·FA</td></tr>
+              <tr><td style="font-weight:700;">재고·출하·고객 봉쇄</td><td style="text-align:center; font-weight:800; color:#0369a1;">GOC 센터장 (이은산 상무)</td><td style="text-align:center; font-weight:800; color:#b91c1c;">Material Containment (조철민/김혜원)</td><td style="text-align:center;">품질 / 고객 대응 (영업·CS)</td><td style="text-align:center; color:#64748b;">Champion · Leader</td></tr>
               <tr><td style="font-weight:700;">8D 단계·Evidence 완결성</td><td style="text-align:center; font-weight:800; color:#0369a1;">Champion</td><td style="text-align:center; font-weight:800; color:#b91c1c;">Quality Facilitator</td><td style="text-align:center;">전 CFT</td><td style="text-align:center; color:#64748b;">고객 대응</td></tr>
             </tbody>
           </table>

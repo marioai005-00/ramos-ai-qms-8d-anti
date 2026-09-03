@@ -10,7 +10,11 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **D1~D8 전 단계 통일 결재 파이프라인 및 D1 CFT 인원 자유 선택 완비**
+  1. **D1 RACI 매트릭스 재고·출하 봉쇄 책임자를 Leader에서 GOC 센터장(이은산 상무)으로 정정 반영**
+     - `재고·출하·고객 봉쇄`의 Accountable(A)을 `GOC 센터장 (이은산 상무)`로 변경.
+     - Responsible(R)은 `Material Containment (조철민/김혜원)`, Informed(I)는 `Champion · Leader`로 현실화.
+     - D1 본문 및 공식 레포트 검토 모달 표에 동시 반영 완료.
+  2. **D1~D8 전 단계 통일 결재 파이프라인 및 D1 CFT 인원 자유 선택 완비**
      - D1 브라우저 confirm 전면 폐기 ➔ 레포트 팝업 팍! ➔ 간사 기안 ➔ Leader ➔ Champion 순차 결재 ➔ [다음 단계 이동] 버튼으로 D8까지 일관 진행.
      - D1 테이블 담당자 열에 사내 주요 12인 선택 드롭다운 장착으로 인원 자유 변경 완비.
   2. **단계별 공식 검토 리포트 모달 시인성·가독성 1000% 극대화 (화이트 공문서 고대비 테마 개편)**
@@ -217,6 +221,25 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 17:18] D1 RACI 매트릭스 재고·출하 봉쇄 책임자를 Leader에서 GOC 센터장(이은산 상무)으로 정정 반영
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `js/views/workspace.js`, `index.html`, `WORK_HANDOFF.md`
+* **원인**: 마리오님의 현업 역할 분담 정정 지침("여기서 재고 관련된 출하 봉쇄는 리더가 하는 게 아니라!! GOC 센터장인 이은산 상무가 담당하는 것으로 변경해줘")에 따라, 개발실 리더가 맡고 있던 재고/출하 봉쇄 책임을 SCM/물류 총괄인 GOC 센터장(이은산 상무)으로 정정함.
+* **수정 내용**:
+  1. **D1 본문 RACI 패널 및 상단 스트립 정정 (`js/views/workspace.js`)**:
+     - `재고·출하·고객 봉쇄` 행의 Accountable (A)을 `Leader`에서 `GOC 센터장 (이은산 상무)`로 변경.
+     - Responsible (R): `Material Containment (조철민/김혜원)`로 명확화.
+     - Consulted (C): `품질 / 고객 대응 (영업·CS)`.
+     - Informed (I): `Champion · Leader` (개발 리더는 결과 보고 수신).
+     - 상단 요약 스트립의 물류 담당도 `이은산 센터장_상무`로 확정 표출.
+  2. **D1 공식 레포트 검토 모달 내 RACI 매트릭스 동기화**:
+     - 레포트 모달의 공문서 표에서도 동일하게 Accountable (A) = `GOC 센터장 (이은산 상무)`로 일치화.
+  3. **캐시 버스팅 승격 (`index.html`)**:
+     - `?v=20260903_v17`로 승격.
+* **검증 결과**:
+  - `node -c js/views/workspace.js` 구문 검사 오류 0건 통과.
+  - `git diff --check` 오류 0건 통과.
 
 ### 🗓️ [2026-09-03 17:08] D1~D8 전 단계 통일 결재 파이프라인 (레포트 팝업 ➔ 간사 기안 ➔ Leader ➔ Champion 결재 ➔ 다음 단계 이동) 및 D1 CFT 인원 자유 선택 완비
 * **Git 브랜치**: `antigravity/step01-intake-agent`
