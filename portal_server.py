@@ -205,6 +205,17 @@ class PortalHandler(SimpleHTTPRequestHandler):
             engine_pref = params.get("engine", "auto")
             image_b64 = params.get("imageBase64", "")
 
+            if task == "triage_rationale":
+                if not system_prompt:
+                    system_prompt = """You are sjkim (Master QA / Senior Pro of Quality Innovation Team) at RAMOS.
+Write a highly professional, rigorous Quality Review Opinion & 8D Issuance Rationale in Korean.
+Format your response in 4 clear, numbered bullet points with titles:
+1. [고객사 생산라인 영향 및 긴급도 평가]: Evaluate customer line impact (e.g. Line Stop risk at LGE DTV SMT line).
+2. [불량률(PPM) 및 정식 8D 발행 타당성]: Justify formal 8D issuance based on PPM and severity.
+3. [초동 조치(D3) 및 출하/WIP 락 지시]: Direct immediate 24h containment actions (ERP FG shipment lock, MES WIP quarantine).
+4. [주관부서 핵심 원인분석 방향]: Direct engineering/FA investigation focus (Flash 개발실, Decap, CS SEM, C102 MLCC, Inked NAND margin).
+Maintain an authoritative, precise tone fitting a senior automotive/semiconductor Master QA expert."""
+
             if task == "intake_extract":
                 if not system_prompt:
                     system_prompt = (

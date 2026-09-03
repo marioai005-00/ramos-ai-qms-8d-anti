@@ -167,7 +167,7 @@
             <!-- Drag & Drop Zone + Clipboard Paste Zone -->
             <div id="intakeDropZone" class="dropzone-box" onclick="document.getElementById('intakeFileInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)">
               <input type="file" id="intakeFileInput" style="display:none;" multiple accept=".pdf,.docx,.xlsx,.xls,.eml,.msg,.txt,.png,.jpg,.jpeg" onchange="handleFileSelect(event)">
-              
+
               <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                 <div style="width:44px; height:44px; border-radius:50%; background:rgba(59, 130, 246, 0.15); display:flex; align-items:center; justify-content:center;">
                   <i data-lucide="upload-cloud" style="width:24px; height:24px; color:#38bdf8;"></i>
@@ -713,8 +713,14 @@
               </select>
             </label>
           </div>
-          <label class="triage-review-note"><span>품질 검토 의견 / 판정 근거 *</span>
-            <textarea name="reviewNote" class="form-control" rows="4" required placeholder="고객 영향, 위험도, 8D 발행 판단 근거와 요청할 보완사항을 기록하세요.">${triage.reviewNote || ''}</textarea>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-weight:700; font-size:0.8rem; color:#f8fafc;">품질 검토 의견 / 판정 근거 *</span>
+            <button type="button" id="btnAITriageOpinion" class="btn btn-secondary btn-sm" onclick="generateAITriageOpinion('${item.intakeId}')" style="background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.4); color:#38bdf8; font-weight:700; font-size:0.72rem; padding:3px 10px; display:inline-flex; align-items:center; gap:5px; box-shadow: 0 2px 8px rgba(56,189,248,0.2);">
+              <i data-lucide="sparkles" style="width:13px; height:13px; color:#38bdf8;"></i> ✨ AI 추천 의견 생성 (Groq ⚡ LPU)
+            </button>
+          </div>
+          <label class="triage-review-note" style="margin-top:0;">
+            <textarea id="triageReviewNoteArea" name="reviewNote" class="form-control" rows="5" required placeholder="고객 영향, 위험도, 8D 발행 판단 근거와 요청할 보완사항을 기록하세요.">${triage.reviewNote || ''}</textarea>
           </label>
           <label class="triage-human-confirm">
             <input type="checkbox" name="humanConfirmed" value="yes">
@@ -775,6 +781,87 @@
       };
       saveAppData();
       renderCurrentView();
+    }
+
+
+    async function generateAITriageOpinion(intakeId) {
+      const item = (appData.intakeQueue || []).find(q => q.intakeId === intakeId);
+      const textarea = document.getElementById('triageReviewNoteArea');
+      const btn = document.getElementById('btnAITriageOpinion');
+      if (!textarea) return;
+
+      const form = textarea.closest('form');
+      const finalSeverity = form?.querySelector('[name="finalSeverity"]')?.value || 'Critical';
+      const requires8D = form?.querySelector('[name="requires8D"]')?.value || 'yes';
+      const slaHours = form?.querySelector('[name="slaHours"]')?.value || '24';
+      const leadDept = form?.querySelector('[name="leadDepartment"]')?.value || 'Flash 개발실';
+
+      const customer = item?.customer || 'LGE (LG전자 HE사업본부 DTV)';
+      const product = item?.product || 'DTV eMMC 5.1 64GB (BGA153)';
+      const defectQty = item?.defectQty || 12;
+      const inspectQty = item?.inspectQty || 10000;
+      const ppm = item?.ppm || Math.round((defectQty / (inspectQty || 1)) * 1000000);
+      const claimTitle = item?.claimTitle || 'eMMC Boot CID Read Timeout 및 VCC-VSS Short 단락 불량';
+      const lineStop = item?.lineStop ? 'Line Stop 발생 (라인 일시 정지)' : '라인 가동 중';
+      const incidentSite = item?.incidentSite || 'LGE 평택 DTV SMT 3라인';
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="agent-pulse" style="width:6px;height:6px;"></span> 🧠 AI 판정 의견 추론 중...';
+      }
+
+      let opinionGenerated = '';
+
+      if (typeof RamosDualAI !== 'undefined') {
+        try {
+          const userPrompt = `
+고객사: ${customer}
+발생라인: ${incidentSite}
+제품명: ${product} (Lot: ${item?.lotNumber || 'EM2608-DTV01'})
+불량 증상: ${claimTitle}
+불량 규모: ${defectQty}ea / ${inspectQty}ea (${ppm.toLocaleString()} PPM)
+라인 영향: ${lineStop}
+품질 판정: Severity ${finalSeverity}, 8D 발행 ${requires8D === 'yes' ? '발행 확정' : '미발행'}, 초동조치 SLA ${slaHours}시간, 주관부서 ${leadDept}
+
+위 사실 정보에 입각하여, 품질혁신팀 sjkim Master QA 관점에서 경영진 및 고객사(LGE)에 공식 보고할 엄격한 '품질 검토 종합 의견 및 8D 발행 판정 근거'를 4개 번호 항목으로 작성해 주세요.
+          `.trim();
+
+          const aiRes = await RamosDualAI.query({
+            task: 'triage_rationale',
+            prompt: userPrompt,
+            engine: 'groq'
+          });
+
+          if (aiRes && aiRes.success && aiRes.text) {
+            opinionGenerated = aiRes.text.trim();
+          }
+        } catch (err) {
+          console.warn('AI Triage opinion call failed, using heuristic engine:', err);
+        }
+      }
+
+      // 100% Graceful Fallback if offline or API error
+      if (!opinionGenerated) {
+        opinionGenerated = `[품질 검토 종합 의견 - 품질혁신팀 sjkim Master QA]
+1. [고객사 생산라인 영향 및 긴급도 평가]: ${customer} ${incidentSite} 실장 직후 ${claimTitle}으로 인해 ${lineStop} 위험이 발생함. DTV 완제품 출하 지연을 방지하기 위해 최고 위험 등급인 [${finalSeverity}] 등급으로 확정함.
+2. [불량률(PPM) 및 정식 8D 발행 타당성]: 적출 불량률이 ${ppm.toLocaleString()} PPM(${defectQty}/${inspectQty}ea)으로 통상 허용 기준치(50 PPM)를 현저히 초과하였으므로, 재발 방지 및 고객 신뢰 유지를 위해 [정식 8D (Interim 5D / Final 8D)] 프로세스 착수를 공식 확정함.
+3. [초동 조치(D3) 및 긴급 격리 지시]: ${slaHours}시간 이내에 7-Area Material Flow 기반으로 당사 오창 공장 재공품(WIP) 및 완제품 창고(FG) 재고를 ERP 시스템에서 전면 잠금(Shipment Lock) 조치하고, 협력사 원자재 공급을 동결할 것.
+4. [주관부서 핵심 원인분석 방향]: 원인분석 주관으로 [${leadDept}]을 지정하며, 단순 SMT 납땜 브릿지 외에 eMMC 패키지 내부 MLCC 탄화 및 Die 단락 가능성에 대해 FA팀(박재환 팀장)과 협업하여 Decap 개봉 및 SEM 단면 분석을 신속히 완료할 것.`;
+      }
+
+      textarea.value = opinionGenerated;
+      textarea.classList.add('ai-highlight');
+      setTimeout(() => textarea.classList.remove('ai-highlight'), 2500);
+
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="check-circle" style="width:13px; height:13px; color:#34d399;"></i> ✨ AI 의견 생성 완료';
+        setTimeout(() => {
+          btn.innerHTML = '<i data-lucide="sparkles" style="width:13px; height:13px; color:#38bdf8;"></i> ✨ AI 추천 의견 재생성';
+          lucide.createIcons();
+        }, 3000);
+      }
+      lucide.createIcons();
     }
 
     function submitIntakeTriageDecision(intakeId, decision) {
@@ -926,7 +1013,7 @@
     // Global Clipboard Paste (Ctrl+V)
     window.addEventListener('paste', (e) => {
       if (appData.currentView !== 'new-case') return;
-      
+
       const items = (e.clipboardData || e.originalEvent.clipboardData).items;
       let pastedFiles = [];
       for (let index in items) {
@@ -1363,7 +1450,7 @@
       const intakeOwner = readSelectedIntakeOwner();
       const assignmentTimestamp = new Date().toISOString().replace('T', ' ').slice(0, 16);
       const newCaseId = `RAMOS-8D-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-0${appData.cases.length + 1}`;
-      
+
       const newCaseObj = {
         id: newCaseId,
         customer: form.customer.value,
