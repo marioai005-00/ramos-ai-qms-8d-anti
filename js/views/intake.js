@@ -59,8 +59,8 @@
     const INTAKE_OWNER_CATALOG = [
       { id: 'sourcing-lead', name: 'John_Woo_우준수', position: '팀장_이사', dept: '전략소싱팀', email: 'johnwoo@ramostek.com', customerKeywords: [] },
       { id: 'sourcing-kbj', name: '강병주', position: 'Pro', dept: '전략소싱팀', email: 'kbj8420@ramostek.com', customerKeywords: [] },
-      { id: 'sourcing-shnam', name: '남서현', position: 'Pro', dept: '전략소싱팀', email: 'shnam1228@ramostek.com', customerKeywords: [] },
-      { id: 'sourcing-lhy', name: '이하영', position: 'Pro', dept: '전략소싱팀', email: 'lhyduddlgk@ramostek.com', customerKeywords: [] },
+      { id: 'sourcing-shnam', name: '남서현 (LGE eMMC 영업)', position: 'Pro', dept: '전략소싱팀', email: 'shnam1228@ramostek.com', customerKeywords: ['lge', 'lg전자', 'emmc 영업', '영업'], roleTag: 'LGE eMMC 영업 주관' },
+      { id: 'sourcing-lhy', name: '이하영 (LGE eMMC CS)', position: 'Pro', dept: '전략소싱팀', email: 'lhyduddlgk@ramostek.com', customerKeywords: ['lge', 'lg전자', 'emmc cs', 'cs', '클레임'], roleTag: 'LGE eMMC CS 주관' },
       { id: 'sales-lge', name: 'Sahong_Kim_김사홍', position: '팀장_P.Pro', dept: '영업팀', email: 'shk@ramostek.com', customerKeywords: ['lge', 'lg전자'] },
       { id: 'sales-samsung', name: 'Aria_김애정', position: 'Pro', dept: '영업팀', email: 'anasta@ramostek.com', customerKeywords: ['samsung', '삼성전자'] },
       { id: 'sales-hynix', name: 'Jinyi Ahn_안진의', position: 'Pro', dept: '영업팀', email: 'jinyi711@ramostek.com', customerKeywords: ['sk hynix', 'sk하이닉스', '하이닉스'] },
@@ -103,14 +103,23 @@
       return '';
     }
 
-    function getRecommendedIntakeOwner(customer = '') {
+    function getRecommendedIntakeOwner(customer = '', productOrContext = '') {
       const registrar = getIntakeRegistrar();
       const registrarAsOwner = INTAKE_OWNER_CATALOG.find(owner => owner.email === registrar.email);
       if (hasIntakeRegistrationAuthority(registrar) && registrarAsOwner) return registrarAsOwner;
 
-      const normalizedCustomer = String(customer).toLowerCase();
+      const normalized = `${customer} ${productOrContext}`.toLowerCase();
+      // Special routing for LGE eMMC: 전략소싱팀 이하영 Pro (CS) 또는 남서현 Pro (영업)
+      if (normalized.includes('lge') || normalized.includes('lg전자')) {
+        if (normalized.includes('영업') || normalized.includes('sales') || normalized.includes('단가') || normalized.includes('계약')) {
+          return INTAKE_OWNER_CATALOG.find(owner => owner.id === 'sourcing-shnam') || INTAKE_OWNER_CATALOG.find(owner => owner.id === 'sourcing-lhy');
+        }
+        // 기본적으로 LGE 품질 불량/클레임 접수는 전략소싱팀 이하영 Pro (LGE eMMC CS 담당) 우선 배정
+        return INTAKE_OWNER_CATALOG.find(owner => owner.id === 'sourcing-lhy') || INTAKE_OWNER_CATALOG.find(owner => owner.id === 'sourcing-shnam');
+      }
+
       return INTAKE_OWNER_CATALOG.find(owner =>
-        owner.customerKeywords.some(keyword => normalizedCustomer.includes(keyword))
+        owner.customerKeywords.some(keyword => normalized.includes(keyword))
       ) || INTAKE_OWNER_CATALOG.find(owner => owner.id === 'sales-general');
     }
 

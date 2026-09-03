@@ -10,7 +10,10 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **임직원 R&R 및 전문 스킬 관리 체계 구축 (Excel 템플릿 & 웹 UI 양방향 동기화)**
+  1. **전략소싱팀 LGE eMMC 현업 R&R 반영 및 AI 자동 라우팅 정밀 튜닝**
+     - 전략소싱팀 남서현 Pro(영업 담당) 및 이하영 Pro(CS 담당) R&R 엑셀/웹 스킬 DB 등록.
+     - STEP 01에서 LGE 부적합 인입 시 전략소싱팀 이하영 Pro(CS 주관) / 남서현 Pro(영업)로 1순위 자동 라우팅 연동.
+  2. **임직원 R&R 및 전문 스킬 관리 체계 구축 (Excel 템플릿 & 웹 UI 양방향 동기화)**
      - 엑셀 방식: 62명 표준 템플릿(`input/RAmos_조직도_업무스킬_양식.xlsx`) 제공, 엑셀 수정 후 브라우저 일괄 업로드 지원.
      - 웹 UI 방식: [RAmos 조직도] 탭에서 직원을 클릭하여 `담당 업무(R&R)`, `주력 제품군`, `핵심 스킬`을 직접 입력/저장하는 편집 틀 구축.
      - 양방향 동기화: 웹에서 입력한 정보를 `[📥 엑셀 내보내기]`로 즉시 다운로드하거나, 엑셀을 `[📤 엑셀 가져오기]`로 일괄 덮어쓰기 지원.
@@ -150,6 +153,22 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 11:10] 전략소싱팀 LGE eMMC 현업 R&R 반영 (남서현 Pro 영업 / 이하영 Pro CS) 및 AI 자동 라우팅 연동
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `input/RAmos_조직도_업무스킬_양식.xlsx`, `js/org_tree.js`, `js/views/intake.js`, `WORK_HANDOFF.md`
+* **원인**: 마리오님의 현업 R&R 공유("우리는 전략소싱팀에서 LGE eMMC 관련 영업 및 CS를 담당하고있고, 영업은 남서현 Pro, CS는 이하영 Pro가 하고있어")에 따라, 실제 조직 체계에 맞게 R&R 정보를 등록하고 LGE 클레임 인입 시 전략소싱팀 담당자로 자동 라우팅되도록 시스템을 정밀 튜닝함.
+* **수정 내용**:
+  1. **엑셀 템플릿 및 기본 스킬 DB 반영**:
+     - `남서현 Pro` (`shnam1228@ramostek.com`): 전략소싱팀 LGE eMMC 영업 주관, 고객사 소통, 공급 계약 관리, eMMC 5.1/Flash.
+     - `이하영 Pro` (`lhyduddlgk@ramostek.com`): 전략소싱팀 LGE eMMC CS 주관, 부적합 클레임 1차 접수 및 소통, eMMC 5.1/Flash.
+     - `input/RAmos_조직도_업무스킬_양식.xlsx` 및 `js/org_tree.js`의 `DEFAULT_ORG_SKILLS`에 동시 반영.
+  2. **접수 카탈로그 및 AI 라우팅 업데이트 (`js/views/intake.js`)**:
+     - `INTAKE_OWNER_CATALOG`의 남서현 Pro, 이하영 Pro에 LGE eMMC 영업/CS 역할 태그 부여.
+     - `getRecommendedIntakeOwner` 함수를 확장하여 LGE (LG전자) 부적합 인입 시 기본 품질 클레임 접수 주관자로 전략소싱팀 **이하영 Pro (CS)**를 1순위로 자동 매핑하고, 영업/계약 키워드 감지 시 **남서현 Pro (영업)**를 자동 배정하도록 개선.
+* **검증 결과**:
+  - `node -c js/org_tree.js` 및 `node -c js/views/intake.js` 구문 검사 오류 0건 통과.
+  - Git whitespace 무결성(`git diff --check`) 통과.
 
 ### 🗓️ [2026-09-03 11:05] 임직원 R&R 및 전문 스킬 관리 체계 구축 (Excel 템플릿 & 웹 UI 양방향 동기화)
 * **Git 브랜치**: `antigravity/step01-intake-agent`
