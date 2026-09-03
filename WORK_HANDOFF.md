@@ -10,7 +10,13 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **Groq LPU + Google Gemini 듀얼 AI 엔진(Dual AI Engine) 아키텍처 연동 및 가동**
+  1. **STEP 01 부적합 접수: Intake Triage Agent 에이전틱 AI 고도화**
+     - 실제 Gemini 👁️ Multimodal Vision(이미지/PDF) + Groq ⚡ LPU 기반 14개 품질 메타데이터 실데이터 추출 파이프라인 가동.
+     - 62명 전사 조직도 DB 자율 스캔을 통한 고객사별 영업/품질 담당자 자동 라우팅.
+     - 화면 상에 `🤖 INTAKE TRIAGE AGENT` 실시간 추론 콘솔 및 단계별 로그(Perception ➔ Vision ➔ Reasoning ➔ Action) 시각화.
+     - 폼 자동 입력 시 시각적 하이라이트 애니메이션 및 내장 Heuristic 모드로의 100% 안전 폴백(Graceful Degradation).
+     - Antigravity 작업 브랜치: `antigravity/step01-intake-agent`.
+  2. **Groq LPU + Google Gemini 듀얼 AI 엔진(Dual AI Engine) 아키텍처 연동 및 가동**
      - 보안: 제공된 API Key를 Git 제외 로컬 `.env`에 안전 저장, 소스/커밋/문서 상 노출 차단.
      - 로컬 백엔드 라우터(`portal_server.py`): 작업 성격에 맞춘 스마트 라우팅 및 장애 시 상호 자동 폴백 구축.
        - **Groq LPU (`openai/gpt-oss-20b`)**: 초고속 저지연 추론 (~375ms), D2 IS/IS NOT 생성, 5-Why 가설 추론, 초동 대응 추천.
@@ -139,6 +145,32 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 10:56] STEP 01 부적합 접수 Intake Triage Agent 에이전틱 AI 고도화
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `portal_server.py`, `js/views/intake.js`, `css/styles.css`, `WORK_HANDOFF.md`
+* **원인**: 사용자의 요청("일단 각 단계별로 부적합 접수 부터 다시 단계별로 만들어보자") 및 AI 경진대회 기준에 맞춰, 단순 모의 버튼 수준이었던 접수 화면을 실제 Perception ➔ Vision 파싱 ➔ 조직도 62명 자율 라우팅 ➔ 실시간 추론 시각화가 결합된 완전한 **Intake Triage Agent**로 업그레이드함.
+* **수정 내용**:
+  1. **Dual AI Dispatcher 접수 특화 스키마 (`portal_server.py`)**:
+     - `task === 'intake_extract'` 전용 시스템 프롬프트 및 클린 JSON 파서 구현.
+     - 고객 불량 메일/공문 이미지 또는 텍스트에서 14개 핵심 품질 메타데이터(고객사, 담당자, 이메일, 제품명, Part No, LOT No, 불량수량, 검사수량, 증상 상세, 라인스탑, 안전리스크 등)를 구조화하여 반환.
+  2. **파일 멀티모달 Base64 리더 (`js/views/intake.js`)**:
+     - `processIncomingFiles`에서 드래그앤드롭 또는 파일 선택 시 이미지/PDF의 Base64 데이터를 비동기 `FileReader`로 실시간 추출하여 AI 전송 준비.
+  3. **Intake Triage Agent 실시간 추론 콘솔 (`intakeAgentConsole`)**:
+     - `AI 스마트 자동 추출 & 폼 채우기` 클릭 시 터미널 형태의 에이전트 추론 박스가 나타나며 실시간 단계별 로그 출력:
+       - `1️⃣ [PERCEPTION]` 첨부 문서/이미지 멀티모달 스캔
+       - `2️⃣ [VISION EXTRACTION]` Gemini 👁️ 멀티모달 비전 모델로 14개 품질 필드 분석
+       - `3️⃣ [ROUTING REASONING]` Groq ⚡ LPU가 RAmos 전사 조직도 DB(62명)와 대조하여 최적 담당자 매핑
+       - `4️⃣ [ACTION DISPATCH]` 폼 자동 입력 및 시각적 하이라이트 애니메이션 적용, 고객 대응 주관자 배정 완료
+  4. **100% Graceful Fallback**:
+     - 로컬 서버 미구동, 네트워크 지연 또는 API 미응답 시 기존 내장 Heuristic 지식 베이스로 자동 폴백하여 화면 중단 원천 방지.
+  5. **디자인 스타일링 (`css/styles.css`)**:
+     - `.agent-reasoning-console`, `.agent-pulse`, `.agent-log-line`, `.ai-highlight` 등 정밀 엔터프라이즈 스타일 추가.
+* **검증 결과**:
+  - Python 로컬 서버 테스트에서 고객 클레임 텍스트 입력 시 Groq/Gemini를 통한 14개 품질 필드 JSON 정상 추출 확인 (`PASS`).
+  - Python 컴파일(`py_compile`) 및 JavaScript 문법 검사(`node -c`) 오류 0건 통과.
+  - Git whitespace 무결성(`git diff --check`) 오류 0건 통과.
+  - 조직도 62명 연동 및 영업팀/전략소싱팀 접수 권한 원본 100% 보존 확인.
 
 ### 🗓️ [2026-09-03 10:48] Groq LPU 및 Google Gemini 멀티모달 Dual AI Engine 연동 및 무결성 검증
 * **Git 브랜치**: `antigravity/d4-evidence-preview`

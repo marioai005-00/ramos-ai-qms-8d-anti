@@ -1888,3 +1888,100 @@
 .ai-badge-sub { padding: 1px 5px; border-radius: 3px; font-size: 0.65rem; font-weight: 800; font-family: 'Consolas', monospace; }
 .ai-badge-sub.groq { background: #ea580c; color: #ffffff; }
 .ai-badge-sub.gemini { background: #2563eb; color: #ffffff; }
+
+/* Agent Reasoning Console (Live Agentic AI Visualization) */
+.agent-reasoning-console {
+  background: #090d16;
+  border: 1px solid #1e293b;
+  border-left: 3px solid #38bdf8;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-family: 'Consolas', 'Courier New', monospace;
+}
+.agent-console-header {
+  background: #0f172a;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #1e293b;
+}
+.agent-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8;
+  animation: agentPulse 1.5s infinite;
+}
+@keyframes agentPulse {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 14px #38bdf8; }
+  100% { transform: scale(0.9); opacity: 0.7; }
+}
+.agent-status-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+.agent-status-badge.running {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+.agent-status-badge.completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+.agent-console-body {
+  padding: 10px 14px;
+  max-height: 160px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+.agent-log-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: #cbd5e1;
+}
+.agent-log-line .log-time {
+  color: #64748b;
+  font-size: 0.68rem;
+  flex-shrink: 0;
+}
+.agent-log-line .log-tag {
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.agent-log-line .log-tag.start { background: #334155; color: #94a3b8; }
+.agent-log-line .log-tag.vision { background: #1e3a8a; color: #93c5fd; }
+.agent-log-line .log-tag.dispatch { background: #0369a1; color: #7dd3fc; }
+.agent-log-line .log-tag.ai_exec { background: #4338ca; color: #c7d2fe; }
+.agent-log-line .log-tag.success { background: #065f46; color: #6ee7b7; }
+.agent-log-line .log-tag.insight { background: #701a75; color: #f0abfc; }
+.agent-log-line .log-tag.routing { background: #9a3412; color: #fdba74; }
+.agent-log-line .log-tag.action { background: #15803d; color: #86efac; }
+.agent-log-line .log-tag.warn { background: #854d0e; color: #fde047; }
+.agent-log-line .log-tag.fallback { background: #475569; color: #cbd5e1; }
+
+/* AI Autofill highlight effect */
+.ai-highlight {
+  animation: fieldHighlight 2s ease-out;
+}
+@keyframes fieldHighlight {
+  0% { background-color: rgba(56, 189, 248, 0.25); border-color: #38bdf8; }
+  100% { background-color: transparent; }
+}

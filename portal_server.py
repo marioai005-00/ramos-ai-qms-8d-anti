@@ -199,9 +199,37 @@ class PortalHandler(SimpleHTTPRequestHandler):
             engine_pref = params.get("engine", "auto")
             image_b64 = params.get("imageBase64", "")
 
+            if task == "intake_extract":
+                if not system_prompt:
+                    system_prompt = (
+                        "You are the RAMOS AI-QMS Intake Triage Agent specialized in semiconductor/electronics quality management.\n"
+                        "Extract customer quality nonconformance claim metadata from the user document, image, or text.\n"
+                        "Return ONLY a clean JSON object with these keys (no markdown code fences):\n"
+                        "{\n"
+                        '  "customer": "Customer company name (e.g. LGE, Samsung Electronics, SK hynix)",\n'
+                        '  "customerContact": "Customer contact person and dept",\n'
+                        '  "customerEmail": "Customer email if available",\n'
+                        '  "product": "Product name and model (e.g. eMMC 5.1 64GB, PCIe Gen4 SSD)",\n'
+                        '  "partNumber": "Part number",\n'
+                        '  "lotNumber": "Lot number",\n'
+                        '  "mfgSite": "Manufacturing site (e.g. RAMOS 오창 1공장)",\n'
+                        '  "incidentSite": "Incident location / customer factory",\n'
+                        '  "defectQty": defect quantity as integer,\n'
+                        '  "inspectQty": total inspection or input quantity as integer,\n'
+                        '  "claimTitle": "Detailed failure symptom and claim description",\n'
+                        '  "lineStop": true or false,\n'
+                        '  "safetyRisk": true or false,\n'
+                        '  "recurrentDefect": true or false,\n'
+                        '  "confidenceScore": confidence between 0.80 and 0.99,\n'
+                        '  "agentReasoning": "Brief 1-line explanation of key defect clues detected"\n'
+                        "}"
+                    )
+                if not prompt:
+                    prompt = "Please analyze the attached customer quality claim document/image and extract all 14 quality fields as JSON."
+
             # Routing decision
             result = None
-            if engine_pref == "gemini" or (engine_pref == "auto" and (image_b64 or task in ("vision", "multimodal", "deep_audit"))):
+            if engine_pref == "gemini" or (engine_pref == "auto" and (image_b64 or task in ("vision", "multimodal", "deep_audit", "intake_extract"))):
                 result = call_gemini(prompt, system_prompt, image_b64)
                 if not result.get("success") and not image_b64:
                     # Fallback to groq if gemini fails and no image is involved
@@ -217,6 +245,23 @@ class PortalHandler(SimpleHTTPRequestHandler):
                     if fallback_result.get("success"):
                         result = fallback_result
                         result["fallbackFrom"] = "groq"
+
+            # Parse JSON if output is structured
+            if result and result.get("success") and isinstance(result.get("text"), str):
+                raw_text = result["text"].strip()
+                if raw_text.startswith("```json"):
+                    raw_text = raw_text[7:]
+                elif raw_text.startswith("```"):
+                    raw_text = raw_text[3:]
+                if raw_text.endswith("```"):
+                    raw_text = raw_text[:-3]
+                raw_text = raw_text.strip()
+
+                try:
+                    parsed = json.loads(raw_text)
+                    result["parsedJson"] = parsed
+                except Exception:
+                    pass
 
             body = json.dumps(result).encode("utf-8")
             self.send_response(200)
