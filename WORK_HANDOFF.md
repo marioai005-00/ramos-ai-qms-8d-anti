@@ -127,6 +127,7 @@
 ## 📋 세션별 인수인계 이력 (Handoff History)
 
 ### 🗓️ [2026-09-03 10:08] WORK_HANDOFF 프로젝트 폴더 독립 배치
+* **GitHub**: `main` / `4f0834a4d0ada536f9f6ff998cb5a48c773169fa`
 * **이전 경로**: `G:\내 드라이브\AI_Place\Work\WORK_HANDOFF.md`
 * **현재 경로**: `G:\내 드라이브\AI_Place\Work\11_AI_Customer_Nonconformance_8D_System\WORK_HANDOFF.md`
 * **원인**: 여러 프로젝트의 빈번한 수정 이력을 마스터 폴더의 단일 파일에 기록하면 프로젝트별 상태와 변경 이력이 섞일 수 있음.
