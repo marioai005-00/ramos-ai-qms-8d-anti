@@ -10,7 +10,11 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **D1 RACI 매트릭스 재고·출하 봉쇄 책임자를 Leader에서 GOC 센터장(이은산 상무)으로 정정 반영**
+  1. **D1 Action 실행 주관(외주 조립처: 공아름 그룹장, CTST 라인: 조철민 그룹장) CFT 전격 탑재 & V6 승격**
+     - 외주(조립처) 물량 관리 ➔ `공아름 그룹장_P.Pro (계획운영그룹)`
+     - CTST 라인·재공 관리 ➔ `조철민 그룹장_P.Pro (자원운영그룹)`
+     - AI CFT 추천 룰 및 마스터 기본 팀에 전격 배속, STORAGE_KEY V6 승격.
+  2. **D1 RACI 매트릭스 재고·출하 봉쇄 책임자를 Leader에서 GOC 센터장(이은산 상무)으로 정정 반영**
      - `재고·출하·고객 봉쇄`의 Accountable(A)을 `GOC 센터장 (이은산 상무)`로 변경.
      - Responsible(R)은 `Material Containment (조철민/김혜원)`, Informed(I)는 `Champion · Leader`로 현실화.
      - D1 본문 및 공식 레포트 검토 모달 표에 동시 반영 완료.
@@ -221,6 +225,25 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 17:23] D1 Action 실행 주관(외주 조립처 관리: 공아름 그룹장, CTST 라인 관리: 조철민 그룹장) CFT 전격 탑재 & STORAGE_KEY V6 승격
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `js/data.js`, `js/org_tree.js`, `index.html`, `WORK_HANDOFF.md`
+* **원인**: 마리오님의 현장 SCM Action 및 물량 통제 실무자 배속 지침("D1에서 인원 추천해 줄 때 Action을 해야 하는 사람들이 있어야지! 외주(조립처) 관리는 공아름 그룹장, CTST Line 관리는 조철민 그룹장 넣어줘! 그렇게 물량 관리 하는 사람들도 있어야지!")에 따라, 연구소/품질 위주 구성을 탈피하고 실제 물량 락/공정 락을 집행하는 GOC 그룹장 2인을 CFT 핵심 멤버로 전격 탑재함.
+* **수정 내용**:
+  1. **AI CFT 추천 엔진(`CFT_ROLE_RULES` & `getAICFTRecommendations`) 룰 확장 (`js/org_tree.js`)**:
+     - `외주(조립처) 물량 관리`: **공아름 그룹장_P.Pro (계획운영그룹)** - 외주 조립/패키징 공정 실시간 작업 중단 및 외주 물량 통제.
+     - `CTST 라인·재공 관리`: **조철민 그룹장_P.Pro (자원운영그룹)** - CTST 라인 MES 재공(WIP) 및 RAK4/5 창고 출하 잠금(Hold) 실행.
+     - `[AI 추천 적용]` 클릭 시 위 두 분이 자동으로 역할에 꽂히도록 규칙 탑재.
+  2. **마스터 케이스 기본 팀 8인 체제 승격 및 V6 승격 (`js/data.js`)**:
+     - `INITIAL_CASES[0].team`에 공아름 그룹장과 조철민 그룹장을 기본 팀원으로 공식 배속.
+     - `STORAGE_KEY = 'AI_QMS_8D_DATA_V6_REAL_SCM_ACTION'`으로 승격하여 브라우저 로컬 캐시 즉시 자동 갱신.
+     - `window.resetToReal16GBData()`에 V6 정리 루틴 추가.
+  3. **캐시 버스팅 승격 (`index.html`)**:
+     - `?v=20260903_v18`로 승격.
+* **검증 결과**:
+  - `node -c js/data.js`, `node -c js/org_tree.js` 구문 검사 오류 0건 통과.
+  - `git diff --check` 오류 0건 통과.
 
 ### 🗓️ [2026-09-03 17:18] D1 RACI 매트릭스 재고·출하 봉쇄 책임자를 Leader에서 GOC 센터장(이은산 상무)으로 정정 반영
 * **Git 브랜치**: `antigravity/step01-intake-agent`

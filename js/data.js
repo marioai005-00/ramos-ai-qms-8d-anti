@@ -2,7 +2,7 @@
     /* MASTER DATA STORE & BENCHMARK CASES (PHILOSOPHY ALIGNED)                   */
     /* ========================================================================= */
     // V4 strictly enforces LGE DTV eMMC B2B dedicated benchmark cases.
-    const STORAGE_KEY = 'AI_QMS_8D_DATA_V5_REAL_16GB';
+    const STORAGE_KEY = 'AI_QMS_8D_DATA_V6_REAL_SCM_ACTION';
 
     const INITIAL_CASES = [
       {
@@ -37,9 +37,12 @@
         // D1: Cross-Functional Team
         team: [
           { role: '8D Champion', name: '황승안 팀장_상무', dept: '품질혁신팀', contact: 'sahwang@ramostek.com', status: 'Active' },
-          { role: '8D Leader (연구소 주관)', name: '김현수 실장_상무', dept: 'Flash 개발실', contact: 'hskim@ramostek.com', status: 'Active' },
+          { role: '8D Leader (연구소/개발 주관)', name: '김현수 실장_상무', dept: 'Flash 개발실', contact: 'hskim@ramostek.com', status: 'Active' },
           { role: 'Technical / FA Lead', name: '박재환 팀장_S.Pro', dept: 'Flash 개발2팀 (FA신뢰성)', contact: 'jhpark@ramostek.com', status: 'Active' },
+          { role: 'Process Engineer (공정기술)', name: '이성우 팀장_P.Pro', dept: 'Flash 개발3팀', contact: 'fog1007@ramostek.com', status: 'Active' },
           { role: 'Material Containment Lead', name: '이은산 센터장_상무', dept: '제조기획센터', contact: 'eunsan.lee@ramostek.com', status: 'Active' },
+          { role: '외주(조립처) 물량 관리', name: '공아름 그룹장_P.Pro', dept: '계획운영그룹', contact: 'loveskr@ramostek.com', status: 'Active' },
+          { role: 'CTST 라인·재공 관리', name: '조철민 그룹장_P.Pro', dept: '자원운영그룹', contact: 'nrjcm@ramostek.com', status: 'Active' },
           { role: '8D Quality Facilitator / 실무', name: '김성중 S.Pro', dept: '품질혁신팀', contact: 'sjkim@ramostek.com', status: 'Active' }
         ],
 
@@ -1315,6 +1318,7 @@
     window.resetToReal16GBData = function() {
       localStorage.removeItem('AI_QMS_8D_DATA_V4');
       localStorage.removeItem('AI_QMS_8D_DATA_V5_REAL_16GB');
+      localStorage.removeItem('AI_QMS_8D_DATA_V6_REAL_SCM_ACTION');
       localStorage.removeItem('AI_QMS_8D_DATA_V3');
       location.reload();
     };

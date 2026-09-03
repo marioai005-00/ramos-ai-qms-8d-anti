@@ -402,6 +402,8 @@
       { key: 'fa', role: 'Technical / FA Lead', matches: role => role.includes('Technical') || role.includes('FA') },
       { key: 'process', role: 'Process Engineer (공정기술)', matches: role => role.includes('Process Engineer') || role.includes('공정기술') },
       { key: 'containment', role: 'Material Containment Lead', matches: role => role.includes('Containment') || role.includes('Logistics') || role.includes('물류') },
+      { key: 'osat', role: '외주(조립처) 물량 관리', matches: role => role.includes('외주') || role.includes('조립처') || role.includes('OSAT') },
+      { key: 'ctst', role: 'CTST 라인·재공 관리', matches: role => role.includes('CTST') || role.includes('Line Control') || role.includes('재공') },
       { key: 'facilitator', role: '8D Quality Facilitator / 실무', matches: role => role.includes('Quality Facilitator') || role.includes('품질 실무') }
     ];
 
@@ -445,7 +447,9 @@
         pick(isDram ? 'chpark@ramostek.com' : isFlash ? 'hskim@ramostek.com' : 'gh8229@ramostek.com', '8D Leader (연구소/개발 주관)', `${family} 제품군과 Triage 주관부서 기준 개발 책임자`, 'leader'),
         pick(isDram ? 'satiou@ramostek.com' : 'jhpark@ramostek.com', 'Technical / FA Lead', `${family} 불량 분석·물리/전기적 원인 규명 역량 기준`, 'fa'),
         pick(isDram ? 'hope@ramostek.com' : 'fog1007@ramostek.com', 'Process Engineer (공정기술)', `${family} 설계·공정 상관성 및 재현 조건 분석 기준`, 'process'),
-        pick(isUrgent ? 'eunsan.lee@ramostek.com' : 'nrjcm@ramostek.com', 'Material Containment Lead', isUrgent ? 'Line Stop/Critical 위험으로 센터 단위 긴급 봉쇄 필요' : '자재·재고·출하 흐름 통제 필요', 'containment'),
+        pick('eunsan.lee@ramostek.com', 'Material Containment Lead', 'Line Stop/Critical 위험에 따른 전사 SCM·물류·창고 총괄 지휘', 'containment'),
+        pick('loveskr@ramostek.com', '외주(조립처) 물량 관리', '외주 가공처(조립처/패키징) 실시간 생산 작업 중단 및 외주 가공 물량 통제 실행', 'osat'),
+        pick('nrjcm@ramostek.com', 'CTST 라인·재공 관리', 'CTST 라인 MES 재공(WIP) 및 RAK4/5 창고 완제품 출하 잠금(Hold) 실행', 'ctst'),
         pick('sjkim@ramostek.com', '8D Quality Facilitator / 실무', '품질 Triage 승인자 및 8D 절차·Evidence 완결성 관리', 'facilitator')
       ].filter(Boolean);
     }
