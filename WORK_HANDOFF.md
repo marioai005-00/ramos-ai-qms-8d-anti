@@ -6,7 +6,7 @@
 
 ## 📌 현재 활성 프로젝트 상태 (Latest Active Status)
 
-* **최근 업데이트 일시**: `2026-09-03 10:08 (KST)`
+* **최근 업데이트 일시**: `2026-09-03 10:22 (KST)`
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System`
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
@@ -125,6 +125,21 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 10:22] Antigravity 전용 Private GitHub 저장소 복제
+* **원본 저장소**: `https://github.com/marioai005-00/ramos-ai-qms-8d`
+* **Antigravity 저장소**: `https://github.com/marioai005-00/ramos-ai-qms-8d-anti`
+* **복제 기준점**: `main` / `ed646d18f190b4af28b15bc1353d43ea6261cd34`
+* **수정 내용**:
+  1. 사용자가 빈 Private 저장소 `ramos-ai-qms-8d-anti`를 생성.
+  2. 원본 로컬 저장소의 전체 `main` 커밋 이력을 Antigravity 저장소로 Push.
+  3. 로컬 브랜치는 `main` 1개, 태그는 0개임을 확인하고 전체 브랜치·태그 Push 수행.
+  4. 원본과 Antigravity 저장소의 `refs/heads/main` 커밋이 동일한지 대조.
+  5. 기존 로컬 `origin`은 원본 `ramos-ai-qms-8d`를 계속 가리키도록 유지하여 잘못된 저장소 Push 방지.
+* **운영 원칙**:
+  - Antigravity는 `ramos-ai-qms-8d-anti`에서만 작업하고 원본 저장소에는 직접 Push하지 않는다.
+  - Antigravity 작업은 별도 브랜치에서 수행하고 검증된 변경만 원본에 선별 반영한다.
+  - 두 저장소 모두 Private 상태를 유지하며 `.env`와 비밀값은 커밋하지 않는다.
 
 ### 🗓️ [2026-09-03 10:08] WORK_HANDOFF 프로젝트 폴더 독립 배치
 * **GitHub**: `main` / `4f0834a4d0ada536f9f6ff998cb5a48c773169fa`
