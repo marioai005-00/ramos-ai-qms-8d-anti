@@ -826,6 +826,147 @@
       border-radius: 4px;
     }
 
+
+    /* Stage Review Report & 3-Step Sign-Off Modal Styles */
+    .stage-modal-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(3, 7, 18, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .stage-report-modal {
+      background: #0f172a;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 960px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 20px rgba(59, 130, 246, 0.25);
+      overflow: hidden;
+    }
+    .stage-report-header {
+      padding: 16px 24px;
+      background: #1e293b;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .stage-report-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+      background: #0b1120;
+    }
+    .stage-report-footer {
+      padding: 14px 24px;
+      background: #1e293b;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    /* 3-Step Sign-Off Box */
+    .signoff-box-wrap {
+      display: flex;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .signoff-cell {
+      flex: 1;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      text-align: center;
+      position: relative;
+    }
+    .signoff-cell:last-child {
+      border-right: none;
+    }
+    .signoff-role-title {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .signoff-person-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 4px;
+    }
+    .signoff-stamp {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      margin-top: 6px;
+    }
+    .signoff-stamp.approved {
+      border: 2px solid #10b981;
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.12);
+      transform: rotate(-3deg);
+    }
+    .signoff-stamp.waiting {
+      border: 1px dashed #f59e0b;
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.08);
+    }
+    .signoff-stamp.draft {
+      border: 1px dashed #64748b;
+      color: #94a3b8;
+      background: rgba(100, 116, 139, 0.08);
+    }
+    .report-paper {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .report-title-strip {
+      text-align: center;
+      border-bottom: 2px solid rgba(59, 130, 246, 0.5);
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+    }
+    .report-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 0.75rem;
+    }
+    .report-section-h4 {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #38bdf8;
+      margin: 16px 0 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     /* 5-Why Interactive Tree */
     .why-tree {
       display: flex;

@@ -541,8 +541,8 @@
     function canEnterQualityStage(c, stage) {
       if (!c?.sourceIntakeId) return { allowed: true };
       if (stage === 'D2' && !isD1StageComplete(c)) return { allowed: false, message: 'D1 CFT 역할과 RACI를 사람이 확정해야 D2를 시작할 수 있습니다.' };
-      if (stage === 'D3' && !isD2StageComplete(c)) return { allowed: false, message: 'D2 5W2H·IS/IS NOT 문제 정의를 승인해야 D3를 시작할 수 있습니다.' };
-      if (['D4','D5','D6','D7','D8'].includes(stage) && !isD3StageComplete(c)) return { allowed: false, message: 'D3 봉쇄 범위와 효과성을 승인해야 원인분석 단계로 이동할 수 있습니다.' };
+      if (stage === 'D3' && !isD2StageComplete(c)) return { allowed: false, message: 'D2 문제 정의에 대해 8D Leader(김현수 상무)와 Champion(황승안 상무)의 최종 결재 승인이 완료되어야 D3를 시작할 수 있습니다.' };
+      if (['D4','D5','D6','D7','D8'].includes(stage) && !isD3StageComplete(c)) return { allowed: false, message: 'D3 긴급 봉쇄조치에 대해 8D Leader(김현수 상무)와 Champion(황승안 상무)의 최종 결재 승인이 완료되어야 D4 원인분석으로 이동할 수 있습니다.' };
       if (['D5','D6','D7','D8'].includes(stage) && !isD4StageComplete(c)) return { allowed: false, message: 'D4 발생·유출·시스템 근본원인을 Evidence로 승인해야 영구대책 단계로 이동할 수 있습니다.' };
       return { allowed: true };
     }
@@ -923,9 +923,10 @@
       if (d2.isIsNot.some(row => row.verificationStatus !== 'Verified')) { alert('각 IS / IS NOT 행의 비발생 비교대상과 차이를 실제 데이터로 확인한 뒤 [사실 확인]에 체크해 주세요.'); return; }
       if (!(c.evidenceList || []).length) { alert('문제 정의를 뒷받침할 고객 원본 또는 측정 Evidence가 필요합니다.'); return; }
       if (!form?.elements.humanConfirmed?.checked) { alert('[사실 검토 완료]에 체크해 주세요.'); return; }
-      d2.approval = { status:'Approved', humanConfirmed:true, approvedAt:new Date().toISOString().replace('T',' ').slice(0,16), approvedBy:{name:CURRENT_USER.name,dept:CURRENT_USER.dept,email:CURRENT_USER.email} };
-      c.currentStage = 'D2';
-      saveAppData(); alert('D2 문제 정의가 승인되었습니다. D3 긴급 봉쇄조치를 시작할 수 있습니다.'); renderCurrentView();
+      // Validate and immediately open Official Stage Review Report Modal
+      d2.approval = { ...(d2.approval || {}), humanConfirmed: true };
+      saveAppData();
+      openStageReviewModal('D2');
     }
 
     function ensureD3Structure(c) {
@@ -1591,9 +1592,9 @@ function getLotPrefixAndSeq(lotStr = '') {
       if (d3.materialFlow.length !== 7 || d3.materialFlow.some(row => !row.area || !row.lot || row.status === '미확인' || !row.evidence || row.holdQty > row.totalQty || row.screenQty > row.totalQty)) { alert('7개 Material Flow 영역의 수량·상태·Evidence를 확인해 주세요. Hold/선별 수량은 총수량을 초과할 수 없습니다.'); return; }
       if (!d3.actions.length || d3.actions.some(row => !row.target || !row.action || !row.owner || !row.due || row.status !== 'Completed' || !row.result)) { alert('봉쇄조치를 한 개 이상 등록하고 담당자·기한·완료상태·결과 Evidence를 완성해 주세요.'); return; }
       if (['noAdditionalClaim','lineStable','stockReconciled'].some(key => d3.effectiveness[key] !== 'yes') || !d3.effectiveness.verificationEvidence || !d3.effectivenessStatement) { alert('봉쇄 효과성 3개 항목과 검증 Evidence·결론을 모두 충족해 주세요.'); return; }
-      if (!form?.elements.humanConfirmed?.checked) { alert('[봉쇄 검토 완료]에 체크해 주세요.'); return; }
-      d3.approval={status:'Approved',humanConfirmed:true,approvedAt:new Date().toISOString().replace('T',' ').slice(0,16),approvedBy:{name:CURRENT_USER.name,dept:CURRENT_USER.dept,email:CURRENT_USER.email}};
-      c.currentStage='D3'; saveAppData(); alert('D3 긴급 봉쇄조치가 승인되었습니다. D4 원인분석을 시작할 수 있습니다.'); renderCurrentView();
+      d3.approval = { ...(d3.approval || {}), humanConfirmed: true };
+      saveAppData();
+      openStageReviewModal('D3');
     }
 
     const D4_CORE_TOOL_IDS = ['timeline','process-flow','change-point','fishbone','five-why'];
@@ -1829,4 +1830,329 @@ function getLotPrefixAndSeq(lotStr = '') {
           </div>
         </div>
       `).join('');
+    }
+
+
+    /* ========================================================================= */
+    /* STAGE REVIEW REPORT & MULTI-STEP SIGN-OFF WORKFLOW (Leader & Champion)   */
+    /* ========================================================================= */
+
+    function getStageSignOffData(c, stageKey) {
+      c.signOffHistory = c.signOffHistory || {};
+      c.signOffHistory[stageKey] = c.signOffHistory[stageKey] || {
+        status: 'Draft', // Draft -> Submitted -> LeaderApproved -> Approved
+        drafter: null,
+        leader: null,
+        champion: null
+      };
+      return c.signOffHistory[stageKey];
+    }
+
+    function openStageReviewModal(stageKey) {
+      const c = getActiveCase();
+      if (!c) return;
+
+      const signOff = getStageSignOffData(c, stageKey);
+      const backdrop = document.createElement('div');
+      backdrop.id = 'stageReviewModalBackdrop';
+      backdrop.className = 'stage-modal-backdrop';
+
+      backdrop.innerHTML = `
+        <div class="stage-report-modal">
+          <div class="stage-report-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <i data-lucide="file-check-2" style="width:20px;height:20px;color:#38bdf8;"></i>
+              <strong style="color:#f8fafc; font-size:0.95rem;">공식 8D 중간 검토 리포트 & 승인 결재 (${stageKey} 단계)</strong>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="closeStageReviewModal()" style="padding:4px 8px;">✕ 닫기</button>
+          </div>
+
+          <div class="stage-report-body">
+            <!-- Sign-Off 3-Step Approval Box -->
+            <div class="signoff-box-wrap">
+              <div class="signoff-cell">
+                <div class="signoff-role-title">1. 작성 기안 (Drafter)</div>
+                <div class="signoff-person-name">${signOff.drafter ? signOff.drafter.name : (CURRENT_USER.name || '김성중 S.Pro')}</div>
+                <div style="font-size:0.68rem; color:#94a3b8;">${signOff.drafter ? signOff.drafter.dept : (CURRENT_USER.dept || '품질혁신팀')}</div>
+                ${signOff.drafter ? `
+                  <div class="signoff-stamp approved">✍️ 기안 완료<br><small style="font-size:0.6rem;">${signOff.drafter.signedAt}</small></div>
+                ` : `
+                  <div class="signoff-stamp draft">작성 중</div>
+                `}
+              </div>
+
+              <div class="signoff-cell" style="background:${signOff.status === 'Submitted' ? 'rgba(59,130,246,0.06)' : 'transparent'};">
+                <div class="signoff-role-title">2. 8D Leader 검토</div>
+                <div class="signoff-person-name">김현수 실장_상무</div>
+                <div style="font-size:0.68rem; color:#94a3b8;">Flash 개발실 (기술 주관)</div>
+                ${signOff.leader ? `
+                  <div class="signoff-stamp approved">✔️ 검토 완료<br><small style="font-size:0.6rem;">${signOff.leader.signedAt}</small></div>
+                ` : signOff.status === 'Submitted' ? `
+                  <div class="signoff-stamp waiting">🟡 Leader 서명 대기</div>
+                ` : `
+                  <div class="signoff-stamp draft">대기</div>
+                `}
+              </div>
+
+              <div class="signoff-cell" style="background:${signOff.status === 'LeaderApproved' ? 'rgba(16,185,129,0.06)' : 'transparent'};">
+                <div class="signoff-role-title">3. 8D Champion 최종 승인</div>
+                <div class="signoff-person-name">황승안 팀장_상무</div>
+                <div style="font-size:0.68rem; color:#94a3b8;">품질혁신팀 (품질 총괄)</div>
+                ${signOff.champion ? `
+                  <div class="signoff-stamp approved">🏆 최종 승인 완료<br><small style="font-size:0.6rem;">${signOff.champion.signedAt}</small></div>
+                ` : signOff.status === 'LeaderApproved' ? `
+                  <div class="signoff-stamp waiting">🟡 Champion 서명 대기</div>
+                ` : `
+                  <div class="signoff-stamp draft">대기</div>
+                `}
+              </div>
+            </div>
+
+            <!-- Official 8D Document Report Canvas -->
+            <div class="report-paper">
+              <div class="report-title-strip">
+                <span style="font-size:0.7rem; letter-spacing:1px; color:#38bdf8; font-weight:800;">RAMOS TECHNOLOGY · OFFICIAL 8D REPORT</span>
+                <h3 style="margin:4px 0; color:#f8fafc; font-size:1.15rem;">[${stageKey}] ${getStageTitleText(stageKey)} 공식 검토서</h3>
+                <div style="font-size:0.72rem; color:#94a3b8;">문서번호: 8D-REP-${c.id}-${stageKey} | 고객사: ${c.customer}</div>
+              </div>
+
+              <div class="report-meta-grid">
+                <div><span style="color:#64748b;">고객사:</span> <b>${c.customer}</b></div>
+                <div><span style="color:#64748b;">제품명:</span> <b>${c.product}</b></div>
+                <div><span style="color:#64748b;">고객 P/N:</span> <b class="num-mono">${c.partNumber}</b></div>
+                <div><span style="color:#64748b;">불량 Lot:</span> <b class="num-mono">${c.lotNumber}</b></div>
+                <div><span style="color:#64748b;">발생 라인:</span> <b>${c.incidentSite}</b></div>
+                <div><span style="color:#64748b;">불량 규모:</span> <b>${c.defectQty}ea / ${c.inspectQty}ea (${c.ppm} PPM)</b></div>
+                <div><span style="color:#64748b;">라인 스톱:</span> <b style="color:${c.lineStop ? '#f87171' : '#34d399'};">${c.lineStop ? 'YES (Critical)' : 'NO'}</b></div>
+                <div><span style="color:#64748b;">사내 코드:</span> <b class="num-mono">${c.internalPartNumber || 'MMACGD8J0F-HZRAF1-LPAGA00'}</b></div>
+              </div>
+
+              ${renderStageReportSpecificContent(c, stageKey)}
+            </div>
+          </div>
+
+          <div class="stage-report-footer">
+            <div style="font-size:0.75rem; color:#94a3b8;">
+              <i data-lucide="shield-alert" style="width:13px;height:13px;color:#f59e0b;display:inline-block;vertical-align:middle;"></i>
+              8D Leader(김현수 상무)와 Champion(황승안 상무)의 최종 결재가 완료되어야 다음 단계가 공식 해금됩니다.
+            </div>
+
+            <div class="inline-action-group">
+              ${renderStageSignOffActionButtons(c, stageKey, signOff)}
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(backdrop);
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeStageReviewModal() {
+      const backdrop = document.getElementById('stageReviewModalBackdrop');
+      if (backdrop) backdrop.remove();
+    }
+
+    function getStageTitleText(stageKey) {
+      const map = {
+        'D1': 'D1. CFT 팀 구성 및 RACI',
+        'D2': 'D2. 5W2H 사실 종합 & IS/IS NOT 문제 정의',
+        'D3': 'D3. 7-Area 재고 격리 및 긴급 봉쇄조치(ICA)',
+        'D4': 'D4. 근본원인 규명 및 FA 가설 검증'
+      };
+      return map[stageKey] || stageKey;
+    }
+
+    function renderStageReportSpecificContent(c, stageKey) {
+      if (stageKey === 'D2') {
+        const d2 = c.d2 || {};
+        return `
+          <div class="report-section-h4"><i data-lucide="check-square" style="width:14px;height:14px;"></i> IATF 16949 표준 문제 정의문 (Fact Synthesis)</div>
+          <div style="background:rgba(59,130,246,0.08); border-left:3px solid #3b82f6; padding:12px 14px; border-radius:4px; font-size:0.82rem; color:#e2e8f0; line-height:1.6; margin-bottom:14px;">
+            ${d2.problemStatement || '문제 정의문이 작성되지 않았습니다.'}
+          </div>
+
+          <div class="report-section-h4"><i data-lucide="table" style="width:14px;height:14px;"></i> Kepner-Tregoe IS / IS NOT 문제의 경계 비교 매트릭스 (${d2.isIsNot?.length || 0}개 차원)</div>
+          <table class="custom-table" style="font-size:0.72rem; margin-bottom:14px;">
+            <thead>
+              <tr>
+                <th>구분</th>
+                <th>IS (발생함)</th>
+                <th>IS NOT (발생 안함)</th>
+                <th>차이 / 특이점</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(d2.isIsNot || []).map(r => `
+                <tr>
+                  <td style="font-weight:700; color:#38bdf8;">${escapeWorkspaceValue(r.factor)}</td>
+                  <td style="color:#f8fafc;">${escapeWorkspaceValue(r.is)}</td>
+                  <td style="color:#94a3b8;">${escapeWorkspaceValue(r.isNot)}</td>
+                  <td style="color:#fbbf24;">${escapeWorkspaceValue(r.difference)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+
+      if (stageKey === 'D3') {
+        const d3 = c.d3 || {};
+        return `
+          <div class="report-section-h4"><i data-lucide="radar" style="width:14px;height:14px;"></i> 7-Area 재고 격리 및 영향 범위 요약</div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:14px;">
+            <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:6px;">
+              <span style="font-size:0.68rem; color:#94a3b8;">RAK4 완제품 재고</span>
+              <div style="font-size:1rem; font-weight:800; color:#38bdf8;">${Number(d3.inventorySources?.erp?.RAK4?.currentQty || 1675).toLocaleString()}ea (Hold 100%)</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:6px;">
+              <span style="font-size:0.68rem; color:#94a3b8;">CTST MES 라인 재공</span>
+              <div style="font-size:1rem; font-weight:800; color:#fbbf24;">${Number(d3.inventorySources?.mes?.processStocks?.reduce((s,r)=>s+Number(r.currentQty||0),0) || 1608).toLocaleString()}ea (Hold)</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:6px;">
+              <span style="font-size:0.68rem; color:#94a3b8;">인접 LOT 확대 대상</span>
+              <div style="font-size:0.8rem; font-weight:700; color:#34d399;">${d3.lotScope?.adjacentLots || '0QH321200A03, A05'}</div>
+            </div>
+          </div>
+
+          <div class="report-section-h4"><i data-lucide="shield-check" style="width:14px;height:14px;"></i> 긴급 봉쇄 조치 (ICA 실행 내역)</div>
+          <table class="custom-table" style="font-size:0.72rem;">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>대상</th>
+                <th>구체적 조치 내용</th>
+                <th>담당자</th>
+                <th>상태</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(d3.actions || []).map(a => `
+                <tr>
+                  <td class="num-mono">${a.id}</td>
+                  <td style="font-weight:700; color:#38bdf8;">${escapeWorkspaceValue(a.target)}</td>
+                  <td>${escapeWorkspaceValue(a.action)}</td>
+                  <td style="color:#f8fafc; font-weight:600;">${escapeWorkspaceValue(a.owner)}</td>
+                  <td><span class="badge-pill badge-ok">${a.status}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+
+      return `<div style="padding:20px; color:#94a3b8; text-align:center;">해당 단계 내용 요약 준비 중</div>`;
+    }
+
+    function renderStageSignOffActionButtons(c, stageKey, signOff) {
+      const nowStr = new Date().toISOString().replace('T',' ').slice(0,16);
+
+      // 1. Initial State: Drafter needs to submit
+      if (signOff.status === 'Draft' || !signOff.drafter) {
+        return `
+          <button type="button" class="btn btn-primary" onclick="executeStageSignOff('${stageKey}', 'drafter')">
+            <i data-lucide="send" style="width:14px;height:14px;"></i> ✍️ 기안 상신 (Leader 검토 요청)
+          </button>
+        `;
+      }
+
+      // 2. Submitted: Leader needs to approve (or quick test sign)
+      if (signOff.status === 'Submitted') {
+        return `
+          <button type="button" class="btn btn-secondary" onclick="executeStageSignOff('${stageKey}', 'leader')" style="border-color:#38bdf8; color:#38bdf8;">
+            <i data-lucide="check" style="width:14px;height:14px;"></i> 👑 [김현수 실장_상무] Leader 검토 승인
+          </button>
+          <span style="font-size:0.72rem; color:#fbbf24;">(Champion 결재 대기 중)</span>
+        `;
+      }
+
+      // 3. LeaderApproved: Champion needs to give final sign-off
+      if (signOff.status === 'LeaderApproved') {
+        return `
+          <button type="button" class="btn btn-primary" onclick="executeStageSignOff('${stageKey}', 'champion')" style="background:#10b981; border-color:#10b981;">
+            <i data-lucide="award" style="width:14px;height:14px;"></i> 🏛️ [황승안 팀장_상무] Champion 최종 승인
+          </button>
+        `;
+      }
+
+      // 4. Fully Approved
+      return `
+        <span class="badge-pill badge-ok" style="font-size:0.82rem; padding:6px 14px;">
+          <i data-lucide="check-circle" style="width:14px;height:14px;"></i> 🟢 최종 승인 완료 (다음 단계 해금됨)
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeStageReviewModal()">닫기</button>
+      `;
+    }
+
+    function executeStageSignOff(stageKey, role) {
+      const c = getActiveCase();
+      if (!c) return;
+
+      const signOff = getStageSignOffData(c, stageKey);
+      const nowStr = new Date().toISOString().replace('T',' ').slice(0,16);
+
+      if (role === 'drafter') {
+        signOff.drafter = {
+          name: CURRENT_USER.name || '김성중 S.Pro',
+          dept: CURRENT_USER.dept || '품질혁신팀',
+          email: CURRENT_USER.email || 'sjkim@ramostek.com',
+          signedAt: nowStr
+        };
+        signOff.status = 'Submitted';
+        saveAppData();
+        alert(`[${stageKey}] 기안이 상신되었습니다! 8D Leader(김현수 상무)의 검토 결재를 진행해 주세요.`);
+        openStageReviewModal(stageKey);
+        renderCurrentView();
+        return;
+      }
+
+      if (role === 'leader') {
+        signOff.leader = {
+          name: '김현수 실장_상무',
+          dept: 'Flash 개발실',
+          email: 'hskim@ramostek.com',
+          signedAt: nowStr
+        };
+        signOff.status = 'LeaderApproved';
+        saveAppData();
+        alert(`[${stageKey}] 8D Leader(김현수 상무) 검토 승인이 완료되었습니다! 8D Champion(황승안 상무)의 최종 결재를 진행해 주세요.`);
+        openStageReviewModal(stageKey);
+        renderCurrentView();
+        return;
+      }
+
+      if (role === 'champion') {
+        signOff.champion = {
+          name: '황승안 팀장_상무',
+          dept: '품질혁신팀',
+          email: 'sahwang@ramostek.com',
+          signedAt: nowStr
+        };
+        signOff.status = 'Approved';
+
+        // Mark actual stage as approved
+        if (stageKey === 'D2') {
+          c.d2.approval = {
+            status: 'Approved',
+            humanConfirmed: true,
+            approvedAt: nowStr,
+            approvedBy: signOff.champion
+          };
+          c.currentStage = 'D2';
+        } else if (stageKey === 'D3') {
+          c.d3.approval = {
+            status: 'Approved',
+            humanConfirmed: true,
+            approvedAt: nowStr,
+            approvedBy: signOff.champion
+          };
+          c.currentStage = 'D3';
+        }
+
+        saveAppData();
+        alert(`🎉 [${stageKey}] 8D Champion(황승안 상무) 최종 결재가 완료되었습니다!
+이제 다음 8D 단계가 공식 해금(Unlock)되어 이동할 수 있습니다.`);
+        closeStageReviewModal();
+        renderCurrentView();
+      }
     }

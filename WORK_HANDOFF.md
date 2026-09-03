@@ -10,7 +10,11 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **실제 Fabless SCM 거버넌스 기반 D3 긴급 봉쇄조치(ICA) AI 자동 수립 엔진 구축**
+  1. **8D 단계별 공식 리포트 프리뷰 모달 및 3-Step 전자결재(기안 ➔ Leader ➔ Champion 승인) 게이트키퍼 완비**
+     - 각 단계 하단 `[승인]` 버튼 클릭 시 공식 리포트 검토 모달 자동 팝업.
+     - 3단계 전자결재선(기안: 김성중 S.Pro / 검토: 김현수 상무 / 승인: 황승안 상무) 구축.
+     - Leader & Champion 양자 결재 완료 전까지 다음 8D 단계 진입 차단 게이트키퍼 적용.
+  2. **실제 Fabless SCM 거버넌스 기반 D3 긴급 봉쇄조치(ICA) AI 자동 수립 엔진 구축**
      - 가상의 제조라인 배제: RAK4/5 창고 & CTST 공정 ➔ `조철민 그룹장 (자원운영그룹)`, TechL 외주 라인스톱 ➔ `김혜원 Pro (외주운영그룹)` 매핑.
      - 영업/CS 배속: In-Transit 물류 회차 ➔ `남서현 Pro`, LGE 라인 투입중지 공문 ➔ `이하영 Pro`, 현장 선별 ➔ `박재환 팀장`.
      - D3 테이블에 `[✨ AI 봉쇄 플랜 자동 수립]` 버튼 장착 및 Groq API 연동 완료.
@@ -206,6 +210,27 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 16:58] 8D 단계별 공식 리포트 프리뷰 모달 및 3-Step 전자결재(기안 ➔ Leader ➔ Champion 승인) 게이트키퍼 완비
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `css/styles.css`, `js/views/workspace.js`, `index.html`, `WORK_HANDOFF.md`
+* **원인**: 마리오님의 결재 및 품질 문서 검토 워크플로우 지침("단계 끝에서 승인 버튼 누르면 레포트가 뜨게 하고, 그 레포트로 실제 내용을 확인한 뒤 승인할 수 있도록 해줘! 그리고 내가 승인 누르면 챔피언과 리더가 확인해줘야 다음 단계로 넘어갈 수 있도록!")에 따라, 단순 즉시 승인 알림 방식을 전면 폐기하고 IATF 16949 표준 단계별 공식 레포트 검토 모달 및 3단 전자결재 게이트키퍼를 구현함.
+* **수정 내용**:
+  1. **단계별 공식 리포트 프리뷰 모달 (`openStageReviewModal`) 탑재**:
+     - `[D2 문제 정의 승인]`, `[D3 봉쇄 승인]` 등 승인 버튼 클릭 시 유효성 검증 후 공식 레포트 모달 자동 팝업.
+     - 메타데이터 헤더, 5W2H 사실 테이블, IS/IS NOT 8대 경계 비교 매트릭스, IATF 16949 표준 문제 정의문, 7-Area 재고 격리 현황 및 5대 긴급 봉쇄 조치 내역을 공문서 스타일로 렌더링.
+  2. **3단계 전자 결재 서명란 (3-Step Sign-Off Box) 구축**:
+     - **1단계: 작성 기안 (Drafter)**: 작성자(김성중 S.Pro / 마리오님)가 `[✍️ 기안 상신]` 클릭 시 기안 완료 도장 생성 ➔ `Submitted` 상태 전환.
+     - **2단계: 8D Leader 검토**: Flash 개발실 김현수 실장_상무가 내용 검토 후 `[✔️ Leader 검토 승인]` 클릭 ➔ `LeaderApproved` 상태 전환.
+     - **3단계: 8D Champion 최종 승인**: 품질혁신팀 황승안 팀장_상무가 `[🏆 Champion 최종 승인]` 클릭 시 비로소 단계가 `Approved`로 최종 확정!
+  3. **엄격한 다음 단계 품질 게이트(Quality Gatekeeper) 해금 제어**:
+     - Leader(김현수 상무)와 Champion(황승안 상무)의 최종 결재가 완료되지 않은 상태에서 다음 단계를 클릭하면 *"8D Leader(김현수 상무)와 Champion(황승안 상무)의 최종 결재 승인이 완료되어야 다음 단계를 시작할 수 있습니다."* 안내와 함께 진입 차단.
+  4. **전용 CSS 스타일 및 캐시 버스팅 승격**:
+     - `stage-report-modal`, `signoff-box-wrap`, `signoff-stamp approved/waiting/draft` 등 엔터프라이즈 전자결재 스타일링 추가.
+     - `index.html` 캐시 파라미터 `?v=20260903_v14` 승격.
+* **검증 결과**:
+  - `node -c js/views/workspace.js` 구문 검사 오류 0건 통과.
+  - `git diff --check` 공백 오류 0건 통과.
 
 ### 🗓️ [2026-09-03 16:53] 실제 Fabless SCM 거버넌스(GOC 조철민 그룹장, 김혜원 Pro, 남서현 Pro, 이하영 Pro) 기반 D3 긴급 봉쇄조치(ICA) AI 자동 수립 엔진 구축
 * **Git 브랜치**: `antigravity/step01-intake-agent`
