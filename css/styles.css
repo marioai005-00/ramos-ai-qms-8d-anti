@@ -11,7 +11,7 @@
       --text-primary: #f8fafc;
       --text-secondary: #94a3b8;
       --text-muted: #64748b;
-      
+
       --accent: #3b82f6;
       --accent-hover: #2563eb;
       --accent-glow: rgba(59, 130, 246, 0.2);
@@ -709,6 +709,84 @@
     .stage-step-sub {
       font-size: 0.68rem;
       color: var(--text-muted);
+    }
+
+
+    /* D-Stage Progress Bar - Traffic Light Visual Status Styling */
+    .stage-step.stage-status-completed {
+      background: rgba(34, 197, 94, 0.08) !important;
+      border-color: rgba(34, 197, 94, 0.45) !important;
+    }
+    .stage-step.stage-status-completed .stage-step-title {
+      color: #4ade80 !important;
+    }
+
+    .stage-step.stage-status-in-progress {
+      background: rgba(245, 158, 11, 0.14) !important;
+      border-color: #f59e0b !important;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+    }
+    .stage-step.stage-status-in-progress .stage-step-title {
+      color: #fbbf24 !important;
+    }
+
+    .stage-step.stage-status-revision {
+      background: rgba(239, 68, 68, 0.18) !important;
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+    }
+    .stage-step.stage-status-revision .stage-step-title {
+      color: #f87171 !important;
+    }
+
+    .stage-step.stage-status-pending {
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.07);
+      opacity: 0.7;
+    }
+    .stage-step.stage-status-pending:hover {
+      opacity: 1;
+    }
+
+    .stage-step.active {
+      box-shadow: 0 0 0 2px #38bdf8, 0 4px 14px rgba(56, 189, 248, 0.3) !important;
+    }
+
+    .stage-status-badge {
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 1px 6px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      letter-spacing: -0.01em;
+    }
+    .badge-status-completed {
+      background: rgba(34, 197, 94, 0.2);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+    }
+    .badge-status-in-progress {
+      background: rgba(245, 158, 11, 0.25);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.5);
+    }
+    .badge-status-revision {
+      background: rgba(239, 68, 68, 0.25);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      animation: pulse-revision 2s infinite ease-in-out;
+    }
+    .badge-status-pending {
+      background: rgba(148, 163, 184, 0.15);
+      color: #94a3b8;
+      border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+
+    @keyframes pulse-revision {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
     }
 
     /* 5-Why Interactive Tree */

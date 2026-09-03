@@ -1,45 +1,155 @@
-/* VIEW 3: 8D WORKSPACE (3-PANE LAYOUT PER STAGE)                            */
+/* ========================================================================= */
+    /* D-STAGE TRAFFIC LIGHT STATUS RESOLVER                                     */
+    /* (Completed: Green, In-Progress: Yellow, Needs Revision: Red, Pending: Gray)*/
     /* ========================================================================= */
+    function getStageStatusInfo(c, stageKey) {
+      if (!c) return { status: 'pending', label: '대기', icon: '⚪', badgeClass: 'badge-status-pending' };
+
+      // Overview
+      if (stageKey === 'overview') {
+        if (c.status === 'Closed') {
+          return { status: 'completed', label: '종결', icon: '🟢', badgeClass: 'badge-status-completed' };
+        }
+        return { status: 'in-progress', label: '진행중', icon: '🟡', badgeClass: 'badge-status-in-progress' };
+      }
+
+      // D1. Team
+      if (stageKey === 'D1') {
+        if (typeof isD1StageComplete === 'function' && isD1StageComplete(c)) {
+          return { status: 'completed', label: '완료', icon: '🟢', badgeClass: 'badge-status-completed' };
+        }
+        if (c.cftRecommendation?.status === 'Rejected' || (c.team && c.team.length < 4 && c.currentStage !== 'D1')) {
+          return { status: 'revision', label: '보완필요', icon: '🔴', badgeClass: 'badge-status-revision' };
+        }
+        if (c.currentStage === 'D1' || !c.currentStage) {
+          return { status: 'in-progress', label: '진행중', icon: '🟡', badgeClass: 'badge-status-in-progress' };
+        }
+        return { status: 'pending', label: '대기', icon: '⚪', badgeClass: 'badge-status-pending' };
+      }
+
+      // D2. Problem
+      if (stageKey === 'D2') {
+        if (typeof isD2StageComplete === 'function' && isD2StageComplete(c)) {
+          return { status: 'completed', label: '완료', icon: '🟢', badgeClass: 'badge-status-completed' };
+        }
+        if (c.d2?.approval?.status === 'Rejected' || c.d2?.approval?.status === 'Revision Requested') {
+          return { status: 'revision', label: '보완필요', icon: '🔴', badgeClass: 'badge-status-revision' };
+        }
+        if (c.currentStage === 'D2') {
+          return { status: 'in-progress', label: '진행중', icon: '🟡', badgeClass: 'badge-status-in-progress' };
+        }
+        if (['D3', 'D4', 'D5', 'D6', 'D7', 'D8'].includes(c.currentStage)) {
+          return { status: 'revision', label: '보완필요', icon: '🔴', badgeClass: 'badge-status-revision' };
+        }
+        return { status: 'pending', label: '대기', icon: '⚪', badgeClass: 'badge-status-pending' };
+      }
+
+      // D3. Contain
+      if (stageKey === 'D3') {
+        if (typeof isD3StageComplete === 'function' && isD3StageComplete(c)) {
+          return { status: 'completed', label: '완료', icon: '🟢', badgeClass: 'badge-status-completed' };
+        }
+        if (c.d3?.approval?.status === 'Rejected' || c.d3?.approval?.status === 'Revision Requested') {
+          return { status: 'revision', label: '보완필요', icon: '🔴', badgeClass: 'badge-status-revision' };
+        }
+        if (c.currentStage === 'D3') {
+          return { status: 'in-progress', label: '진행중', icon: '🟡', badgeClass: 'badge-status-in-progress' };
+        }
+        if (['D4', 'D5', 'D6', 'D7', 'D8'].includes(c.currentStage)) {
+          return { status: 'revision', label: '보완필요', icon: '🔴', badgeClass: 'badge-status-revision' };
+        }
+        return { status: 'pending', label: '대기', icon: '⚪', badgeClass: 'badge-status-pending' };
+      }
+
+      // D4. RootCause
+      if (stageKey === 'D4') {
+        if (typeof isD4StageComplete === 'function' && isD4StageComplete(c)) {
+          return { status: 'completed', label: '완료', icon: '🟢', badgeClass: 'badge-status-completed' };
+        }
+        if (c.d4?.approval?.status === 'Rejected' || c.d4?.approval?.status === 'Revision Requested') {
+          return { status: 'revision', label: '보완필요', icon: '🔴', badgeClass: 'badge-status-revision' };
+        }
+        if (c.currentStage === 'D4') {
+          return { status: 'in-progress', label: '진행중', icon: '🟡', badgeClass: 'badge-status-in-progress' };
+        }
+        if (['D5', 'D6', 'D7', 'D8'].includes(c.currentStage)) {
+          return { status: 'revision', label: '보완필요', icon: '🔴', badgeClass: 'badge-status-revision' };
+        }
+        return { status: 'pending', label: '대기', icon: '⚪', badgeClass: 'badge-status-pending' };
+      }
+
+      // D5. PCA
+      if (stageKey === 'D5') {
+        const isD5Done = c.d5?.approval?.status === 'Approved' || (c.d5?.candidates && c.d5.candidates.length > 0 && ['D6', 'D7', 'D8'].includes(c.currentStage));
+        if (isD5Done) return { status: 'completed', label: '완료', icon: '🟢', badgeClass: 'badge-status-completed' };
+        if (c.d5?.approval?.status === 'Rejected' || c.d5?.approval?.status === 'Revision Requested') {
+          return { status: 'revision', label: '보완필요', icon: '🔴', badgeClass: 'badge-status-revision' };
+        }
+        if (c.currentStage === 'D5') return { status: 'in-progress', label: '진행중', icon: '🟡', badgeClass: 'badge-status-in-progress' };
+        if (['D6', 'D7', 'D8'].includes(c.currentStage)) return { status: 'revision', label: '보완필요', icon: '🔴', badgeClass: 'badge-status-revision' };
+        return { status: 'pending', label: '대기', icon: '⚪', badgeClass: 'badge-status-pending' };
+      }
+
+      // D6. Valid
+      if (stageKey === 'D6') {
+        const isD6Done = c.d6?.approval?.status === 'Approved' || (c.d6?.validationTests && c.d6.validationTests.length > 0 && ['D7', 'D8'].includes(c.currentStage));
+        if (isD6Done) return { status: 'completed', label: '완료', icon: '🟢', badgeClass: 'badge-status-completed' };
+        if (c.currentStage === 'D6') return { status: 'in-progress', label: '진행중', icon: '🟡', badgeClass: 'badge-status-in-progress' };
+        if (['D7', 'D8'].includes(c.currentStage)) return { status: 'revision', label: '보완필요', icon: '🔴', badgeClass: 'badge-status-revision' };
+        return { status: 'pending', label: '대기', icon: '⚪', badgeClass: 'badge-status-pending' };
+      }
+
+      // D7. Prevent
+      if (stageKey === 'D7') {
+        const isD7Done = c.d7?.approval?.status === 'Approved' || (c.d7?.systemUpdates && c.d7.systemUpdates.length > 0 && c.currentStage === 'D8');
+        if (isD7Done) return { status: 'completed', label: '완료', icon: '🟢', badgeClass: 'badge-status-completed' };
+        if (c.currentStage === 'D7') return { status: 'in-progress', label: '진행중', icon: '🟡', badgeClass: 'badge-status-in-progress' };
+        if (c.currentStage === 'D8') return { status: 'revision', label: '보완필요', icon: '🔴', badgeClass: 'badge-status-revision' };
+        return { status: 'pending', label: '대기', icon: '⚪', badgeClass: 'badge-status-pending' };
+      }
+
+      // D8. Closure
+      if (stageKey === 'D8') {
+        if (c.status === 'Closed') return { status: 'completed', label: '완료', icon: '🟢', badgeClass: 'badge-status-completed' };
+        if (c.currentStage === 'D8') return { status: 'in-progress', label: '진행중', icon: '🟡', badgeClass: 'badge-status-in-progress' };
+        return { status: 'pending', label: '대기', icon: '⚪', badgeClass: 'badge-status-pending' };
+      }
+
+      return { status: 'pending', label: '대기', icon: '⚪', badgeClass: 'badge-status-pending' };
+    }
+
+    /* VIEW 3: 8D WORKSPACE (3-PANE LAYOUT PER STAGE) */
     function renderStageWorkspaceView(c, stage) {
+      const STAGES = [
+        { key: 'overview', title: 'Overview', sub: '종합 현황' },
+        { key: 'D1', title: 'D1. Team', sub: 'CFT 팀구성' },
+        { key: 'D2', title: 'D2. Problem', sub: '5W2H & Fact' },
+        { key: 'D3', title: 'D3. Contain', sub: '긴급 봉쇄 조치' },
+        { key: 'D4', title: 'D4. RootCause', sub: 'Toolbox & Proof' },
+        { key: 'D5', title: 'D5. PCA', sub: '영구대책 수립' },
+        { key: 'D6', title: 'D6. Valid', sub: '효과 검증' },
+        { key: 'D7', title: 'D7. Prevent', sub: '재발방지/수평' },
+        { key: 'D8', title: 'D8. Closure', sub: '종결 & 서명' }
+      ];
+
+      const stepsHTML = STAGES.map(s => {
+        const stInfo = getStageStatusInfo(c, s.key);
+        const isActive = stage === s.key ? 'active' : '';
+        return `
+          <div class="stage-step stage-status-${stInfo.status} ${isActive}" onclick="switchStage('${s.key}')">
+            <div class="stage-step-title">
+              <span>${s.title}</span>
+              <span class="stage-status-badge ${stInfo.badgeClass}">${stInfo.icon} ${stInfo.label}</span>
+            </div>
+            <div class="stage-step-sub">${s.sub}</div>
+          </div>
+        `;
+      }).join('');
+
       return `
-        <!-- D-Stage Step Flow Navigation Bar -->
+        <!-- D-Stage Step Flow Navigation Bar (Traffic Light Color-Coded) -->
         <div class="stage-progress-bar">
-          <div class="stage-step ${stage === 'overview' ? 'active' : ''}" onclick="switchStage('overview')">
-            <div class="stage-step-title">Overview ${c.status === 'Closed' ? '●' : '◐'}</div>
-            <div class="stage-step-sub">종합 현황</div>
-          </div>
-          <div class="stage-step ${stage === 'D1' ? 'active' : ''}" onclick="switchStage('D1')">
-            <div class="stage-step-title">D1. Team ${isCFTAssignmentComplete(c) && c.cftRecommendation?.humanConfirmed ? '●' : '◐'}</div>
-            <div class="stage-step-sub">CFT 팀구성</div>
-          </div>
-          <div class="stage-step ${stage === 'D2' ? 'active' : ''}" onclick="switchStage('D2')">
-            <div class="stage-step-title">D2. Problem ${isD2StageComplete(c) ? '●' : '◐'}</div>
-            <div class="stage-step-sub">5W2H & Fact</div>
-          </div>
-          <div class="stage-step ${stage === 'D3' ? 'active' : ''}" onclick="switchStage('D3')">
-            <div class="stage-step-title">D3. Contain ${isD3StageComplete(c) ? '●' : '◐'}</div>
-            <div class="stage-step-sub">긴급 봉쇄 조치</div>
-          </div>
-          <div class="stage-step ${stage === 'D4' ? 'active' : ''}" onclick="switchStage('D4')">
-            <div class="stage-step-title">D4. RootCause ${isD4StageComplete(c) ? '●' : '◐'}</div>
-            <div class="stage-step-sub">Toolbox & Proof</div>
-          </div>
-          <div class="stage-step ${stage === 'D5' ? 'active' : ''}" onclick="switchStage('D5')">
-            <div class="stage-step-title">D5. PCA ●</div>
-            <div class="stage-step-sub">영구대책 수립</div>
-          </div>
-          <div class="stage-step ${stage === 'D6' ? 'active' : ''}" onclick="switchStage('D6')">
-            <div class="stage-step-title">D6. Valid ●</div>
-            <div class="stage-step-sub">효과 검증</div>
-          </div>
-          <div class="stage-step ${stage === 'D7' ? 'active' : ''}" onclick="switchStage('D7')">
-            <div class="stage-step-title">D7. Prevent ●</div>
-            <div class="stage-step-sub">재발방지/수평</div>
-          </div>
-          <div class="stage-step ${stage === 'D8' ? 'active' : ''}" onclick="switchStage('D8')">
-            <div class="stage-step-title">D8. Closure ●</div>
-            <div class="stage-step-sub">종결 & 서명</div>
-          </div>
+          ${stepsHTML}
         </div>
 
         <div class="stage-preview-toolbar no-print">
@@ -50,7 +160,7 @@
 
         <!-- 3-Pane Grid: Left/Center Workspace (Pane 1 & 3) vs Right AI Side-Panel (Pane 2) -->
         <div class="stage-workspace-grid">
-          
+
           <!-- LEFT / CENTER WORKSPACE -->
           <div>
             ${renderStageContent(c, stage)}
