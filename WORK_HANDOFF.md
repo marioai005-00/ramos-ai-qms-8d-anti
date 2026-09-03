@@ -10,7 +10,11 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **접수 화면(STEP 01) 및 마스터 데이터 100% 실무 정보 일치화 & 1-Click 리셋 탑재**
+  1. **D2 IS / IS NOT 문제 경계 비교 6~8개 다차원 심층 생성 동적 엔진 확장**
+     - 이슈 심각도(Critical / Line Stop)를 AI가 판단하여 8대 다차원 비교 매트릭스(대상, 불량모드, 라인, 기판위치, 시점, 환경, 규모, 설비) 자동 도출.
+     - D2 상단에 `[✨ AI 심층 비교 (6~8개)]` 및 `[기본 4개 생성]` 듀얼 선택 버튼 완비.
+     - Groq `max_tokens` 3,072 증설 및 실제 API 8개 객체 정상 생성 검증 통과.
+  2. **접수 화면(STEP 01) 및 마스터 데이터 100% 실무 정보 일치화 & 1-Click 리셋 탑재**
      - 접수 입력 폼 기본값 및 프리셋을 `16GB`, `MMACGD8J0F-KV0AF0-TPAG`, `0QH321200A02-LPAGA00`로 완전 교체.
      - 사내 ERP 코드(`MMACGD8J0F-HZRAF1-LPAGA00`) 입력 필드 추가.
      - `STORAGE_KEY V5` 승격 및 상단 헤더에 `[🔄 16GB 실데이터 초기화]` 버튼 탑재로 과거 캐시 일소.
@@ -198,6 +202,27 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 13:54] D2 IS / IS NOT 문제 경계 비교 6~8개 다차원 심층 생성 동적 엔진 확장
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `portal_server.py`, `js/views/workspace.js`, `index.html`, `WORK_HANDOFF.md`
+* **원인**: 마리오님의 분석 깊이 확장 지침("여기 보면 AI가 자동으로 4개만 만들어주잖아? 좀 더 만들 수 있지 않겠어? Issue 정도를 판단해서 기본 4개, 많게는 6~8개까지 만들 수 있게?")에 따라, 고정 4행 생성을 탈피하고 이슈 심각도(Critical / Line Stop)를 AI가 능동 감지하여 최대 8개의 다차원 정밀 비교행을 생성하는 지능형 확장 엔진을 구축함.
+* **수정 내용**:
+  1. **Dual AI Dispatcher 시스템 프롬프트 및 파라미터 고도화 (`portal_server.py`)**:
+     - `task == "d2_is_is_not"` 프롬프트에 DYNAMIC DEPTH RULE 탑재:
+       1) 제품/LOT (What - 대상), 2) 불량 모드 (What - 결함 특성), 3) 공장/라인 (Where - 위치), 4) 기판 실장 위치 (Where - PCB 위치), 5) 발생 시점 (When - 공정 타이밍), 6) 작업 환경 (When - 조건/추세), 7) 영향 규모 (How Much - 결함률/범위), 8) 설비 조건 (Process - 프로파일) 총 8개 차원 완비.
+     - 긴 JSON 응답 잘림 방지를 위해 `max_tokens`를 1,024에서 3,072로 3배 증설.
+  2. **D2 워크스페이스 듀얼 버튼 및 비동기 추론 연동 (`js/views/workspace.js`)**:
+     - 상단 버튼을 `[✨ AI 심층 비교 (6~8개)]`와 `[기본 4개 생성]` 듀얼 액션으로 확장.
+     - 케이스 메타데이터가 Critical이거나 Line Stop 발생 시 자동으로 8행 심층 모드 트리거.
+     - 8행 전용 고정밀 엔지니어링 Fallback 데이터 세트 완비.
+  3. **캐시 버스팅 승격 (`index.html`)**:
+     - `?v=20260903_v12`로 승격.
+* **검증 결과**:
+  - Python 스크립트 기반 실제 Groq API 질의 테스트 완료:
+    - 정확히 8개 객체(제품/LOT, 불량모드, 공장/라인, 기판실장위치, 발생시점, 작업환경, 영향규모, 설비조건)가 JSON 배열로 무결점 파싱됨 확인.
+  - `portal_server.py` 및 `workspace.js` 구문 검사 오류 0건 통과.
+  - `git diff --check` 오류 0건 통과.
 
 ### 🗓️ [2026-09-03 12:54] 접수 화면(STEP 01) 및 마스터 데이터 100% 실무 정보 일치화 & 1-Click 리셋 탑재
 * **Git 브랜치**: `antigravity/step01-intake-agent`

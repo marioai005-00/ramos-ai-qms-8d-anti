@@ -604,7 +604,11 @@
           </div>
 
           <div class="card quality-stage-card">
-            <div class="quality-tool-head inline-head"><div><span class="quality-tool-kicker">QUALITY TOOL · IS / IS NOT</span><h3>문제의 경계 비교</h3><p>발생 대상과 유사하지만 발생하지 않은 대상을 비교합니다. AI 초안의 비발생 정보는 실제 LOT·라인 데이터로 검증해야 합니다.</p></div><div class="inline-action-group"><button type="button" class="btn btn-primary btn-sm" onclick="generateD2IsIsNotDraft()"><i data-lucide="sparkles" style="width:13px;height:13px;"></i> AI 비교 초안 생성</button><button type="button" class="btn btn-secondary btn-sm" onclick="addD2IsIsNotRow()"><i data-lucide="plus" style="width:13px;height:13px;"></i> 비교행 추가</button></div></div>
+            <div class="quality-tool-head inline-head"><div><span class="quality-tool-kicker">QUALITY TOOL · IS / IS NOT</span><h3>문제의 경계 비교</h3><p>발생 대상과 유사하지만 발생하지 않은 대상을 비교합니다. AI 초안의 비발생 정보는 실제 LOT·라인 데이터로 검증해야 합니다.</p></div><div class="inline-action-group">
+  <button type="button" class="btn btn-primary btn-sm" onclick="generateD2IsIsNotDraft(8)" title="이슈 심각도(Critical/Line Stop) 기반 6~8개 다차원 심층 비교 자동 생성" style="box-shadow:0 0 10px rgba(59,130,246,0.35);"><i data-lucide="sparkles" style="width:13px;height:13px;"></i> ✨ AI 심층 비교 (6~8개)</button>
+  <button type="button" class="btn btn-secondary btn-sm" onclick="generateD2IsIsNotDraft(4)" title="핵심 4대 항목 기본 비교 생성"><i data-lucide="table" style="width:13px;height:13px;"></i> 기본 4개 생성</button>
+  <button type="button" class="btn btn-secondary btn-sm" onclick="addD2IsIsNotRow()"><i data-lucide="plus" style="width:13px;height:13px;"></i> 행 추가</button>
+</div></div>
             <div class="quality-table-wrap"><table class="custom-table quality-edit-table"><thead><tr><th>구분</th><th class="is-col">IS · 발생함</th><th class="isnot-col">IS NOT · 발생하지 않음</th><th>차이/특이점</th><th>관리</th></tr></thead><tbody>
               ${d2.isIsNot.length ? d2.isIsNot.map((row, idx) => `<tr>
                 <td><input class="form-control" name="d2Factor${idx}" value="${escapeWorkspaceValue(row.factor)}" placeholder="제품/LOT/공정">${row.aiDraft ? `<span class="ai-draft-flag">AI 초안 · 사실확인 필요</span>` : ''}</td>
@@ -649,7 +653,7 @@
       return !row.aiDraft && Boolean(row.factor && row.is && row.isNot && row.difference);
     }
 
-    async function generateD2IsIsNotDraft() {
+    async function generateD2IsIsNotDraft(requestedRows = null) {
       const c = getActiveCase();
       if (!c) return;
       const d2 = captureD2Form(c);
@@ -657,16 +661,20 @@
         if (!confirm('현재 작성된 IS / IS NOT 비교행을 AI API 기반의 고정밀 초안으로 교체하시겠습니까?')) return;
       }
 
-      const btn = document.querySelector('button[onclick="generateD2IsIsNotDraft()"]');
+      // Dynamic depth determination: If Critical / Line Stop or requested >= 6, generate 8 rows!
+      const isCritical = c.lineStop || c.severityLevel === 'Critical' || (c.ppm && c.ppm >= 1000);
+      const targetCount = requestedRows || (isCritical ? 8 : 4);
+
+      const btn = document.querySelector('button[onclick*="generateD2IsIsNotDraft"]');
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span class="agent-pulse" style="width:6px;height:6px;"></span> 🧠 Groq ⚡ LPU 정밀 비교 추론 중...';
+        btn.innerHTML = `<span class="agent-pulse" style="width:6px;height:6px;"></span> 🧠 Groq ⚡ LPU ${targetCount}개 심층 비교 추론 중...`;
       }
 
       const customer = c.customer || 'LGE (LG전자 HE사업본부 DTV)';
-      const product = c.product || 'DTV eMMC 5.1 64GB (BGA153)';
-      const partNumber = c.partNumber || 'RM-EM51-064G-X1';
-      const lotNumber = c.lotNumber || 'EM2608-DTV01';
+      const product = c.product || 'DTV eMMC 5.1 16GB (BGA153)';
+      const partNumber = c.partNumber || 'MMACGD8J0F-KV0AF0-TPAG';
+      const lotNumber = c.lotNumber || '0QH321200A02-LPAGA00';
       const incidentSite = c.incidentSite || 'LGE 평택 DTV Main Board SMT 3라인';
       const claimTitle = c.claimTitle || d2.problemWhat || 'eMMC Boot CID Read Timeout 및 VCC-VSS Short 단락 불량';
       const defectQty = c.defectQty || 12;
@@ -686,7 +694,7 @@
 - 5W2H When: ${d2.problemWhen || c.incidentDate || 'SMT 리플로우 후'}
 - 5W2H How: ${d2.problemHow || 'Post-Reflow Initial Boot 통전 시'}
 
-위 구체적 사실에 입각하여, Kepner-Tregoe 기법에 따른 4행의 IS / IS NOT 정밀 비교 분석 JSON 배열을 생성하세요.
+위 구체적 사실에 입각하여, Kepner-Tregoe 기법에 따라 이슈 심각도(Critical/Line Stop)를 반영한 정확히 ${targetCount}개의 다차원 IS / IS NOT 정밀 비교 분석(1.제품/LOT, 2.불량모드, 3.공장/라인, 4.기판실장위치, 5.발생시점, 6.작업환경, 7.영향규모, 8.설비조건) JSON 배열을 생성하세요.
       `.trim();
 
       let isNotRows = null;
@@ -723,42 +731,76 @@
         }
       }
 
-      // 100% High-Precision Engineering Fallback
+      // 100% High-Precision Engineering Fallback (4 or 8 Rows depending on targetCount)
       if (!isNotRows || !isNotRows.length) {
-        isNotRows = [
+        const fullRows = [
           {
-            factor: '제품 / LOT (What)',
+            factor: '제품 / LOT (What - 대상)',
             is: `${product} / ${partNumber} / Lot #${lotNumber}`,
-            isNot: `동일 라인 실장 직전 정상 Lot #${lotNumber.replace(/\d+$/, '00')} 및 동일 규격 타 DateCode 로트`,
-            difference: `해당 Lot(#${lotNumber})에 투입된 특정 웨이퍼 Inked NAND Die 패키징 실장분 국한`,
+            isNot: `동일 라인 실장 직전 정상 Lot #0QH321200A01-LPAGA00 및 타 DateCode 로트`,
+            difference: `해당 Lot(#${lotNumber}) 투입 특정 웨이퍼 Inked NAND Die 패키징 실장분 국한 (실장 후 열응력 민감도 차이)`,
             aiDraft: true,
             verificationStatus: 'Required'
           },
           {
-            factor: '발생 위치 (Where)',
-            is: `${incidentSite} (Post-Reflow 검사기)`,
-            isNot: '동일 공장 타 SMT 라인(평택 1, 2라인) 및 구미 DTV 실장 라인 동일 모델 투입분',
-            difference: '3라인 Reflow 8-Zone Peak 온도(248℃) 편차 및 마운터 3호기 노즐 장착 압력 차이',
+            factor: '불량 모드 (What - 결함 특성)',
+            is: `eMMC Boot CID Timeout 및 VCC-VSS 전원단 저저항 단락 (0.8Ω 측정)`,
+            isNot: `단순 Firmware 손상, Data I/O 파형 지연, CRC 전송 에러, 간헐적 재부팅`,
+            difference: `전원단 물리적 완벽 단락으로 인한 과전류 차단(Over-Current Trip 850mA) 현상 국한`,
             aiDraft: true,
             verificationStatus: 'Required'
           },
           {
-            factor: '시점 / 공정 조건 (When)',
+            factor: '공장 / 라인 (Where - 지리적 위치)',
+            is: `${incidentSite} (Post-Reflow ICT 검사기)`,
+            isNot: `동일 평택 공장 타 SMT 라인(1, 2라인) 및 구미 DTV 실장 라인 동일 모델 투입분`,
+            difference: `3라인 Reflow 8-Zone Peak 온도(248℃) 편차 및 마운터 3호기 노즐 장착 압력 차이`,
+            aiDraft: true,
+            verificationStatus: 'Required'
+          },
+          {
+            factor: '기판 실장 위치 (Where - PCB 위치)',
+            is: `LGE DTV 메인보드 eMMC 실장 부위 (U101 위치)`,
+            isNot: `인접 Main SoC (U100) 및 DDR4 DRAM (U102) 실장 부위`,
+            difference: `BGA153 솔더볼 피치(0.5mm) 미세 간격 부위 열팽창 응력 집중 및 패턴 근접성`,
+            aiDraft: true,
+            verificationStatus: 'Required'
+          },
+          {
+            factor: '발생 시점 (When - 공정 타이밍)',
             is: `${d2.problemWhen || 'SMT 리플로우 직후'} Initial Cold Boot 통전 검사 시점`,
-            isNot: 'SMT 리플로우 전 부품 수입검사(IQC) 단계 및 리플로우 후 상온 장시간 방치 시',
-            difference: 'Lead-Free 260℃ 납땜 열충격 직후 솔더볼 열팽창 및 패키지 내부 응력 집중 조건',
+            isNot: 'SMT 실장 전 부품 수입검사(IQC) 단계 및 상온 48시간 이상 방치 후 재부팅 시',
+            difference: 'Lead-Free 260℃ 납땜 열충격 직후 솔더볼 열팽창 및 패키지 내부 단락 유발 조건',
             aiDraft: true,
             verificationStatus: 'Required'
           },
           {
-            factor: '불량 현상 (How Much)',
-            is: `${claimTitle} (${defectQty} / ${inspectQty}ea, ${ppm.toLocaleString()} PPM, VCC-VSS 단락 0.8Ω)`,
-            isNot: 'Data I/O 파형 지연, 단순 Firmware Corruption 또는 간헐적 재부팅 현상',
-            difference: '전원단 완전 단락으로 인한 대전류 유입 및 VCC 강하(Power Drop) 현상에 국한됨',
+            factor: '작업 환경 (When - 조건/추세)',
+            is: `2026-08-31 22:15 야간 양산 가동 초물 투입 시점`,
+            isNot: `주간 정상 가동 시간대(08:00~18:00) 안정 생산분`,
+            difference: `야간 조 교대 직후 SMT 라인 칠러 온도 편차 및 급랭 냉각 속도 차이`,
+            aiDraft: true,
+            verificationStatus: 'Required'
+          },
+          {
+            factor: '영향 규모 (How Much - 결함률/범위)',
+            is: `투입 10,000대 중 12대 불량 적출 (${ppm.toLocaleString()} PPM, 고객사 라인 정지)`,
+            isNot: `투입 전수(10,000대) 일괄 전멸 또는 낱개 단위 산발적 1~2개 불량`,
+            difference: `특정 웨이퍼 Die 에지(Edge) 영역 Inked 셀 마진 부족분이 집중 실장된 배치 국한`,
+            aiDraft: true,
+            verificationStatus: 'Required'
+          },
+          {
+            factor: '설비 조건 (Process - 프로파일)',
+            is: `Lead-Free Reflow 프로파일 Peak 248℃ (Pre-heat 180℃ 90초 유지)`,
+            isNot: `규격 상한 이하 완만 가열 프로파일 (Peak 240℃ 이하)`,
+            difference: `eMMC 내부 EMC 몰딩재와 Substrate 간의 열팽창 계수(CTE) 미세 불일치 유발`,
             aiDraft: true,
             verificationStatus: 'Required'
           }
         ];
+
+        isNotRows = fullRows.slice(0, targetCount);
       }
 
       d2.isIsNot = isNotRows;

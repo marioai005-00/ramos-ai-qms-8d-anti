@@ -52,7 +52,7 @@ def call_groq(prompt: str, system_prompt: str = "", model: str = "openai/gpt-oss
         "model": model,
         "messages": messages,
         "temperature": 0.2,
-        "max_tokens": 1024
+        "max_tokens": 3072
     }).encode("utf-8")
 
     req = urllib.request.Request(
@@ -218,26 +218,21 @@ STRICT 8D DISCIPLINE RULES:
 
             if task == "d2_is_is_not":
                 if not system_prompt:
-                    system_prompt = """You are an elite semiconductor/electronics quality engineering specialist at RAMOS, specialized in 8D Kepner-Tregoe IS / IS NOT problem boundary analysis.
-Analyze the provided quality defect claim (Customer, Product, Part No, Lot No, Incident Line, Symptom, PPM) and produce an exact, engineering-grade 4-row comparison matrix.
-Return ONLY a valid JSON array containing exactly 4 objects with keys "factor", "is", "isNot", "difference".
-Do NOT use vague placeholders like '[확인 필요]'. Provide concrete, realistic technical engineering contrasts:
-1. factor: "제품 / LOT (What)"
-   - is: Affected product, part number, and failing Lot number.
-   - isNot: Adjacent lots or identical models that did NOT fail (e.g. 직전 정상 출하 Lot #EM2608-DTV00 또는 동일 라인 동시 실장 타 DateCode 로트).
-   - difference: Key manufacturing/raw material differences (e.g. 특정 Wafer Inked NAND Die 패키징 공정 차이 및 패키지 실장 DateCode 국한).
-2. factor: "발생 위치 (Where)"
-   - is: Specific customer factory, line and station (e.g. LGE 평택 DTV Main Board SMT 3라인 Reflow 후 검사기).
-   - isNot: Comparable lines or locations that did NOT fail (e.g. 동일 평택 1, 2라인 및 구미 DTV 실장 라인 동일 모델 투입분).
-   - difference: Specific equipment/process profile difference (e.g. 3라인 Reflow 8-Zone Peak 온도 편차 248℃ vs 타라인 242℃ 조건 차이).
-3. factor: "시점 / 공정 조건 (When)"
-   - is: Specific operational timing (e.g. SMT 리플로우 직후 U-Boot Cold Boot 통전 검사 시점).
-   - isNot: Non-failing operational timing (e.g. SMT 리플로우 전 입고 수입검사(IQC) 단계 및 상온 장시간 방치 후 재부팅 시).
-   - difference: Thermal/mechanical stress conditions (e.g. Lead-Free 260℃ 납땜 열응력 직후 솔더볼 팽창 및 내부 단락 유발 조건).
-4. factor: "불량 현상 (How Much)"
-   - is: Exact electrical failure mode (e.g. Boot CID Read Timeout 및 VCC-VSS 전원-접지간 저저항 Short 0.8Ω).
-   - isNot: Other similar failure modes NOT observed (e.g. Data I/O 파형 불량, Firmware 손상, 또는 간헐적 재부팅 현상).
-   - difference: Electrical signature differences (e.g. 전원단 완전 단락으로 인한 대전류 유입 및 VCC 강하 현상에 한정됨).
+                    system_prompt = """You are an elite semiconductor quality director at RAMOS, specialized in 8D Kepner-Tregoe IS / IS NOT boundary analysis.
+Analyze the quality defect claim (Severity, Customer, Product, Part No, Lot No, Incident Site, Symptom, PPM, Line Stop).
+DYNAMIC DEPTH RULE:
+- If requested count is 6~8 or the issue is Critical / Line Stop, dynamically generate 6 to 8 exhaustive, engineering-grade comparison rows covering:
+  1. "제품 / LOT (What - 대상)"
+  2. "불량 모드 (What - 결함 특성)"
+  3. "공장 / 라인 (Where - 위치)"
+  4. "기판 실장 위치 (Where - PCB 위치)"
+  5. "발생 시점 (When - 공정 타이밍)"
+  6. "작업 환경 (When - 조건/추세)"
+  7. "영향 규모 (How Much - 결함률/범위)"
+  8. "설비 / 프로파일 (Process - 공정조건)"
+- If requested count is 4~5 or normal issue, generate 4 to 5 core rows.
+Return strictly a valid JSON array of objects with keys: "factor", "is", "isNot", "difference".
+Never use vague placeholders like '[확인 필요]'. Provide concrete, realistic technical engineering contrasts reflecting LGE DTV eMMC 5.1 (16GB BGA153) and SMT Reflow/Cold Boot test conditions.
 Always write all JSON field values in natural, professional Korean (한국어로 작성할 것). Ensure output is strictly valid JSON with no markdown wrapping."""
 
             if task == "triage_rationale":
