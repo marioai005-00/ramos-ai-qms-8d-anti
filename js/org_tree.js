@@ -550,21 +550,19 @@
         raciAcknowledged?.focus();
         return;
       }
-      if (!confirm('현재 CFT 구성을 사람이 최종 확인하고 확정하시겠습니까?')) return;
+
+      // Automatically validate and launch Official D1 Stage Review Report Modal
       c.cftRecommendation = {
         ...(c.cftRecommendation || {}),
-        status: 'Human Confirmed',
-        humanConfirmed: true,
-        confirmedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        confirmedBy: { name: CURRENT_USER.name, dept: CURRENT_USER.dept, email: CURRENT_USER.email }
+        humanConfirmed: true
       };
       c.cftRaci = {
-        acknowledged: true,
-        confirmedAt: c.cftRecommendation.confirmedAt,
-        confirmedBy: c.cftRecommendation.confirmedBy
+        acknowledged: true
       };
       saveAppData();
-      renderCurrentView();
+      if (typeof openStageReviewModal === 'function') {
+        openStageReviewModal('D1');
+      }
     }
 
     

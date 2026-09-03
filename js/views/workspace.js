@@ -1,3 +1,33 @@
+
+    const RAMOS_MEMBER_DIRECTORY = [
+      { name: '김성중 S.Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com' },
+      { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com' },
+      { name: '김현수 실장_상무', dept: 'Flash 개발실', email: 'hskim@ramostek.com' },
+      { name: '박재환 팀장_S.Pro', dept: 'Flash 개발2팀', email: 'jhpark@ramostek.com' },
+      { name: '이성우 팀장_P.Pro', dept: 'Flash 개발3팀', email: 'fog1007@ramostek.com' },
+      { name: '이은산 센터장_상무', dept: '제조기획센터', email: 'eunsan.lee@ramostek.com' },
+      { name: '조철민 그룹장_P.Pro', dept: '자원운영그룹', email: 'nrjcm@ramostek.com' },
+      { name: '김혜원 Pro', dept: '외주운영그룹', email: 'hyewon@ramostek.com' },
+      { name: '남서현 Pro', dept: '전략소싱팀', email: 'shnam1228@ramostek.com' },
+      { name: '이하영 Pro', dept: '전략소싱팀', email: 'lhyduddlgk@ramostek.com' },
+      { name: '공아름 그룹장_P.Pro', dept: '계획운영그룹', email: 'loveskr@ramostek.com' },
+      { name: '우정우 Pro', dept: '자원운영그룹', email: 'jwwoo@ramostek.com' }
+    ];
+
+    function changeCFTMemberDirect(memberIdx, selectedEmail) {
+      const c = getActiveCase();
+      if (!c || !c.team || !c.team[memberIdx]) return;
+      const found = RAMOS_MEMBER_DIRECTORY.find(m => m.email === selectedEmail);
+      if (found) {
+        c.team[memberIdx].name = found.name;
+        c.team[memberIdx].dept = found.dept;
+        c.team[memberIdx].contact = found.email;
+        c.team[memberIdx].status = 'Active';
+        saveAppData();
+        renderCurrentView();
+      }
+    }
+
 /* ========================================================================= */
     /* D-STAGE TRAFFIC LIGHT STATUS RESOLVER                                     */
     /* (Completed: Green, In-Progress: Yellow, Needs Revision: Red, Pending: Gray)*/
@@ -265,16 +295,24 @@
                   ${c.team.map((m, idx) => `
                     <tr>
                       <td style="font-weight:700; color:#60a5fa;">${m.role}</td>
-                      <td style="font-weight:600; color:#f8fafc;">${m.name}</td>
-                      <td>${m.dept}</td>
-                      <td class="num-mono" style="color:var(--text-secondary);">${m.contact}</td>
+                      <td>
+                        <select class="form-control form-control-sm" style="font-weight:700; color:#38bdf8; background:#1e293b; border-color:#475569;" onchange="changeCFTMemberDirect(${idx}, this.value)" title="사내 실제 담당자 직접 선택/변경">
+                          ${RAMOS_MEMBER_DIRECTORY.map(mem => `
+                            <option value="${mem.email}" ${mem.email === m.contact || mem.name === m.name ? 'selected' : ''}>
+                              ${mem.name} (${mem.dept})
+                            </option>
+                          `).join('')}
+                        </select>
+                      </td>
+                      <td style="color:#cbd5e1;">${m.dept}</td>
+                      <td class="num-mono" style="color:var(--text-secondary); font-size:0.75rem;">${m.contact}</td>
                       <td><span class="badge-pill badge-ok">${m.status}</span></td>
                       <td style="text-align:center;">
                         ${!isProtectedCFTMember(m) ? `
                           <button class="btn btn-secondary btn-sm" style="padding:2px 6px; color:#f87171;" onclick="removeCFTMember(${idx})" title="팀원 제외">
                             <i data-lucide="trash-2" style="width:12px;height:12px;"></i>
                           </button>
-                        ` : `<span class="cft-system-lock" title="접수·품질 승인 정보에서 연결된 필수 담당자"><i data-lucide="lock" style="width:11px;height:11px;"></i> 연결</span>`}
+                        ` : `<span class="cft-system-lock" title="접수·품질 승인 정보에서 연결된 필수 담당자"><i data-lucide="lock" style="width:11px;height:11px;"></i> 고정</span>`}
                       </td>
                     </tr>
                   `).join('')}
@@ -1747,7 +1785,9 @@ function getLotPrefixAndSeq(lotStr = '') {
       if(incomplete){alert('발생·유출·시스템 원인 각각의 문장·Evidence·검증결과와 인과관계 4개 기준을 모두 충족해 주세요.');return;}
       if(!form?.elements.d4HumanConfirmed?.checked){alert('[D4 원인 검토 완료]에 체크해 주세요.');return;}
       d4.candidateCauses=['Occurrence','Escape','System'].map((type,idx)=>({id:`RC-${String(idx+1).padStart(2,'0')}`,type,title:d4.rootCauses[type].statement,status:'Confirmed',supportingEvidence:d4.rootCauses[type].evidence.split(',').map(v=>v.trim()).filter(Boolean),contradictingEvidence:d4.rootCauses[type].contraryEvidence||'반대 Evidence 없음',missingEvidence:'없음 · 인과관계 Gate 확인'}));
-      d4.approval={status:'Approved',humanConfirmed:true,approvedAt:new Date().toISOString().replace('T',' ').slice(0,16),approvedBy:{name:CURRENT_USER.name,dept:CURRENT_USER.dept,email:CURRENT_USER.email}}; c.currentStage='D4'; saveAppData(); alert('D4 발생·유출·시스템 근본원인이 승인되었습니다. D5 영구대책을 시작할 수 있습니다.'); renderCurrentView();
+      d4.approval = { ...(d4.approval || {}), humanConfirmed: true };
+      saveAppData();
+      openStageReviewModal('D4');
     }
 
     function renderAISidePanelContent(c, stage) {
@@ -1964,6 +2004,51 @@ function getLotPrefixAndSeq(lotStr = '') {
     }
 
     function renderStageReportSpecificContent(c, stageKey) {
+      if (stageKey === 'D1') {
+        return `
+          <div class="report-section-h4"><i data-lucide="users" style="width:18px;height:18px;"></i> D1. Cross-Functional Team (CFT 편성 명단)</div>
+          <table class="report-doc-table">
+            <thead>
+              <tr>
+                <th style="width:25%;">CFT 역할 (Role)</th>
+                <th style="width:25%;">담당자 (Name)</th>
+                <th style="width:25%;">소속 부서 (Dept)</th>
+                <th style="width:25%;">연락처 / Email</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(c.team || []).map(m => `
+                <tr>
+                  <td class="report-col-factor">${escapeWorkspaceValue(m.role)}</td>
+                  <td style="font-weight:800; color:#0f172a;">${escapeWorkspaceValue(m.name)}</td>
+                  <td style="color:#334155;">${escapeWorkspaceValue(m.dept)}</td>
+                  <td class="num-mono" style="color:#64748b; font-size:0.75rem;">${escapeWorkspaceValue(m.contact)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="report-section-h4"><i data-lucide="clipboard-check" style="width:18px;height:18px;"></i> D1. RACI 의사결정 및 업무 분장 매트릭스</div>
+          <table class="report-doc-table">
+            <thead>
+              <tr>
+                <th>주요 업무</th>
+                <th style="text-align:center;">Accountable (A)</th>
+                <th style="text-align:center;">Responsible (R)</th>
+                <th style="text-align:center;">Consulted (C)</th>
+                <th style="text-align:center;">Informed (I)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="font-weight:700;">고객 대응·최종 송부 승인</td><td style="text-align:center; font-weight:800; color:#0369a1;">Champion</td><td style="text-align:center; font-weight:800; color:#b91c1c;">Quality Facilitator</td><td style="text-align:center;">Leader / 고객 대응</td><td style="text-align:center; color:#64748b;">FA·공정·물류</td></tr>
+              <tr><td style="font-weight:700;">불량 분석 및 원인 입증</td><td style="text-align:center; font-weight:800; color:#0369a1;">Leader</td><td style="text-align:center; font-weight:800; color:#b91c1c;">FA Lead</td><td style="text-align:center;">공정 / 품질</td><td style="text-align:center; color:#64748b;">Champion·물류</td></tr>
+              <tr><td style="font-weight:700;">재고·출하·고객 봉쇄</td><td style="text-align:center; font-weight:800; color:#0369a1;">Leader</td><td style="text-align:center; font-weight:800; color:#b91c1c;">Material Containment</td><td style="text-align:center;">품질 / 고객 대응</td><td style="text-align:center; color:#64748b;">Champion·FA</td></tr>
+              <tr><td style="font-weight:700;">8D 단계·Evidence 완결성</td><td style="text-align:center; font-weight:800; color:#0369a1;">Champion</td><td style="text-align:center; font-weight:800; color:#b91c1c;">Quality Facilitator</td><td style="text-align:center;">전 CFT</td><td style="text-align:center; color:#64748b;">고객 대응</td></tr>
+            </tbody>
+          </table>
+        `;
+      }
+
       if (stageKey === 'D2') {
         const d2 = c.d2 || {};
         return `
@@ -2041,6 +2126,40 @@ function getLotPrefixAndSeq(lotStr = '') {
         `;
       }
 
+      if (stageKey === 'D4') {
+        const d4 = c.d4 || {};
+        const roots = d4.rootCauses || {};
+        return `
+          <div class="report-section-h4"><i data-lucide="crosshair" style="width:18px;height:18px;"></i> D4. 3-Track 공학적 근본 원인 (Root Causes 확정본)</div>
+          <table class="report-doc-table">
+            <thead>
+              <tr>
+                <th style="width:20%;">분석 트랙</th>
+                <th style="width:50%;">규명된 근본 원인 (Root Cause Statement)</th>
+                <th style="width:30%;">입증 Evidence 및 검증 방법</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="report-col-factor" style="color:#b91c1c;">1. 발생 원인 (Occurrence)</td>
+                <td style="font-weight:700; color:#0f172a;">${escapeWorkspaceValue(roots.Occurrence?.statement || '웨이퍼 Die 에지 Inked 셀 내부 단락 유발')}</td>
+                <td style="font-size:0.78rem; color:#475569;">${escapeWorkspaceValue(roots.Occurrence?.evidence || 'SEM/EDX 단면 분석 성적서')}</td>
+              </tr>
+              <tr>
+                <td class="report-col-factor" style="color:#b45309;">2. 유출 원인 (Escape)</td>
+                <td style="font-weight:700; color:#0f172a;">${escapeWorkspaceValue(roots.Escape?.statement || '출하 전 SHORT TEST 검사 패턴의 미세 단락 감지 한계')}</td>
+                <td style="font-size:0.78rem; color:#475569;">${escapeWorkspaceValue(roots.Escape?.evidence || 'ATE 테스트 로그 파일 및 커버리지')}</td>
+              </tr>
+              <tr>
+                <td class="report-col-factor" style="color:#0369a1;">3. 시스템 원인 (System)</td>
+                <td style="font-weight:700; color:#0f172a;">${escapeWorkspaceValue(roots.System?.statement || '외주 가공처 Die 마진 관리 기준 미흡 및 FMEA 반영 누락')}</td>
+                <td style="font-size:0.78rem; color:#475569;">${escapeWorkspaceValue(roots.System?.evidence || '공정 관리계획서(CP) 및 PFMEA')}</td>
+              </tr>
+            </tbody>
+          </table>
+        `;
+      }
+
       return `<div style="padding:20px; color:#94a3b8; text-align:center;">해당 단계 내용 요약 준비 중</div>`;
     }
 
@@ -2075,11 +2194,29 @@ function getLotPrefixAndSeq(lotStr = '') {
         `;
       }
 
-      // 4. Fully Approved
+      // 4. Fully Approved: Provide Next Stage Transition Button!
+      const nextStageMap = {
+        'D1': 'D2',
+        'D2': 'D3',
+        'D3': 'D4',
+        'D4': 'D5',
+        'D5': 'D6',
+        'D6': 'D7',
+        'D7': 'D8'
+      };
+      const nextStage = nextStageMap[stageKey];
+
       return `
         <span class="badge-pill badge-ok" style="font-size:0.82rem; padding:6px 14px;">
-          <i data-lucide="check-circle" style="width:14px;height:14px;"></i> 🟢 최종 승인 완료 (다음 단계 해금됨)
+          <i data-lucide="check-circle" style="width:14px;height:14px;"></i> 🟢 최종 승인 완료
         </span>
+        ${nextStage ? `
+          <button type="button" class="btn btn-primary" onclick="proceedToNextStage('${nextStage}')" style="background:#2563eb; border-color:#3b82f6; font-weight:800; box-shadow:0 0 15px rgba(37,99,235,0.5);">
+            <i data-lucide="arrow-right-circle" style="width:15px;height:15px;"></i> 🚀 [${nextStage} 단계]로 이동
+          </button>
+        ` : `
+          <span style="color:#10b981; font-weight:800; font-size:0.85rem;">🎉 8D 전 단계 공식 종결 완료!</span>
+        `}
         <button type="button" class="btn btn-secondary btn-sm" onclick="closeStageReviewModal()">닫기</button>
       `;
     }
@@ -2130,8 +2267,22 @@ function getLotPrefixAndSeq(lotStr = '') {
         };
         signOff.status = 'Approved';
 
-        // Mark actual stage as approved
-        if (stageKey === 'D2') {
+        // Mark actual stage as approved across D1 to D8
+        if (stageKey === 'D1') {
+          c.cftRecommendation = {
+            ...(c.cftRecommendation || {}),
+            status: 'Human Confirmed',
+            humanConfirmed: true,
+            confirmedAt: nowStr,
+            confirmedBy: signOff.champion
+          };
+          c.cftRaci = {
+            acknowledged: true,
+            confirmedAt: nowStr,
+            confirmedBy: signOff.champion
+          };
+          c.currentStage = 'D1';
+        } else if (stageKey === 'D2') {
           c.d2.approval = {
             status: 'Approved',
             humanConfirmed: true,
@@ -2147,6 +2298,15 @@ function getLotPrefixAndSeq(lotStr = '') {
             approvedBy: signOff.champion
           };
           c.currentStage = 'D3';
+        } else {
+          c[stageKey.toLowerCase()] = c[stageKey.toLowerCase()] || {};
+          c[stageKey.toLowerCase()].approval = {
+            status: 'Approved',
+            humanConfirmed: true,
+            approvedAt: nowStr,
+            approvedBy: signOff.champion
+          };
+          c.currentStage = stageKey;
         }
 
         saveAppData();
@@ -2155,4 +2315,10 @@ function getLotPrefixAndSeq(lotStr = '') {
         closeStageReviewModal();
         renderCurrentView();
       }
+    }
+
+
+    function proceedToNextStage(nextStageKey) {
+      closeStageReviewModal();
+      switchQualityStage(nextStageKey);
     }
