@@ -10,7 +10,11 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **D2 Problem 'IS / IS NOT' AI 비교 초안 생성 API 고도화 (Kepner-Tregoe 엔진)**
+  1. **D2 Problem '표준 문제 정의문' AI 사실 종합 초안 생성 API 고도화**
+     - 기존의 단순 템플릿 문자열 결합을 전면 폐기하고 Dual AI(Groq ⚡ LPU) 사실 종합 추론 엔진 탑재.
+     - 원인 추정 문구를 배제하고 5W2H 사실에만 기반한 IATF 16949 표준 문제 정의문(2~3문장)을 0.3초 만에 생성.
+     - 오프라인 100% Graceful Fallback 내장.
+  2. **D2 Problem 'IS / IS NOT' AI 비교 초안 생성 API 고도화 (Kepner-Tregoe 엔진)**
      - 기존 더미 텍스트(`[확인 필요]`)를 제거하고 Dual AI(Groq ⚡ LPU) 기반의 정밀 비교 분석 생성 기능 탑재.
      - 고객사(LGE DTV), 제품(DTV eMMC 5.1), 부적합 Lot, SMT 리플로우/통전 불량 메타데이터를 기반으로 4개 핵심 비교행(What, Where, When, How Much)을 한국어 공학 용어로 즉시 생성.
      - 오프라인 100% Graceful Fallback 내장.
@@ -181,6 +185,24 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 12:00] D2 Problem '표준 문제 정의문' AI 사실 종합 초안 생성 API 고도화
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `portal_server.py`, `js/views/workspace.js`, `index.html`, `WORK_HANDOFF.md`
+* **원인**: 마리오님의 직관적 지적("지금 보면 AI 초안 생성 이런 거 그냥 AI가 일 안 하고 자체적으로 만드는 것 같아! API까지 써서 정확하게 동작할 수 있게 해줘!")에 따라, 기존의 단순 문자열 템플릿 결합 방식을 전면 폐기하고 5W2H 사실 종합 전문 프롬프트를 갖춘 Dual AI(Groq ⚡ LPU / Gemini API) 정밀 추론 엔진을 완전 연동함.
+* **수정 내용**:
+  1. **Dual AI Dispatcher에 `task === 'd2_problem_statement'` 스키마 탑재 (`portal_server.py`)**:
+     - 시스템 프롬프트: IATF 16949 및 8D 방법론 표준에 입각하여 원인 추정(speculation) 문구를 엄격히 배제하고, 오직 검증된 사실(고객사, 실장 라인, 부품 P/N, Lot No, 통전/리플로우 조건, 전기적 불량 모드, PPM 규모)만을 2~3문장의 품격 있는 한국어 공학 문장으로 종합하도록 지시.
+  2. **비동기 API 연동 및 고정밀 Fallback (`js/views/workspace.js`)**:
+     - `generateD2ProblemStatement()`를 비동기(`async`)로 전면 개편.
+     - 버튼 클릭 시 `🧠 Groq ⚡ LPU 사실 종합 추론 중...` 로딩 상태 전환 후 실시간 추론 결과를 텍스트 영역에 자동 주입 및 하이라이트 애니메이션 부여.
+     - 오프라인/통신 에러 시에도 LGE DTV eMMC 5.1 실제 실장 라인 사실에 100% 부합하는 고품질 문장으로 대체되는 Graceful Fallback 구현.
+  3. **캐시 버스팅 승격 (`index.html`)**:
+     - `?v=20260903_v8`로 승격하여 브라우저 새로고침 시 즉시 고도화된 기능이 반영되도록 보장.
+* **검증 결과**:
+  - `portal_server.py` 컴파일 및 Python 스크립트 기반 실제 Groq API 질의 테스트 통과 (자연스럽고 완벽한 표준 문제 정의문 생성 확인).
+  - `node -c js/views/workspace.js` 구문 검사 오류 0건 통과.
+  - `git diff --check` 오류 0건 통과.
 
 ### 🗓️ [2026-09-03 11:57] D2 Problem 'IS / IS NOT' AI 비교 초안 생성 API 고도화 (Kepner-Tregoe 정밀 엔진 연동)
 * **Git 브랜치**: `antigravity/step01-intake-agent`

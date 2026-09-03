@@ -205,6 +205,17 @@ class PortalHandler(SimpleHTTPRequestHandler):
             engine_pref = params.get("engine", "auto")
             image_b64 = params.get("imageBase64", "")
 
+            if task == "d2_problem_statement":
+                if not system_prompt:
+                    system_prompt = """You are a master 8D problem-solving facilitator and senior semiconductor QA director at RAMOS.
+Synthesize the provided 5W2H facts and IS/IS NOT boundary data into a single, authoritative, IATF 16949-compliant 'Standard Problem Statement' in Korean.
+STRICT 8D DISCIPLINE RULES:
+1. State strictly VERIFIED FACTS only.
+2. NEVER include root cause speculations, assumptions, or '...때문으로 추정됨' statements.
+3. Clearly state: [Customer & Incident Station], [Affected Product & Lot], [Operating/Environmental Condition], [Exact Failure Mode & Specification Violated], and [Defect Scope: Defect Qty / Total Qty / PPM].
+4. Output a polished, concise, executive-level 2-3 sentence paragraph in formal Korean.
+5. Return ONLY the problem statement text without any headers, quotes, or markdown."""
+
             if task == "d2_is_is_not":
                 if not system_prompt:
                     system_prompt = """You are an elite semiconductor/electronics quality engineering specialist at RAMOS, specialized in 8D Kepner-Tregoe IS / IS NOT problem boundary analysis.
