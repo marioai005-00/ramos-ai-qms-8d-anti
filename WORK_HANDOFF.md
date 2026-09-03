@@ -10,7 +10,10 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **LGE DTV eMMC 및 Inked NAND Die 핵심 기술 배경 전면 반영**
+  1. **고객 대외용 클레임 표기 정제 및 Inked NAND 내부 FA 영역 엄격 분리**
+     - 고객사(LGE) 공식 대외 영역(STEP 01 접수, 프리셋, 제품 규격명)에서 'Inked NAND' 노출 전면 제거 ➔ 고객 납품 공식 규격명 `DTV eMMC 5.1 (BGA153)` 및 `Cold Boot 인식 지연` 등 고객 관점 현업 클레임으로 일원화.
+     - 'Inked NAND Die' 기술 특성은 오직 **D4 (Root Cause Analysis)** 단계의 RAmos 내부 기술진(Flash 개발실, FA팀 박재환 팀장) 심층 원인 분석 항목으로 전문성 있게 격리 배치.
+  2. **LGE DTV eMMC 및 Inked NAND Die 핵심 기술 배경 전면 반영**
      - 차량용/전장 내용 전면 삭제 및 오직 **LGE DTV eMMC (Inked NAND 적용)** 비즈니스로 일원화.
      - STEP 01 프리셋: `[LGE DTV] eMMC Boot CID Short` 및 `[LGE DTV] Inked NAND Read Timeout` 2대 전담 시나리오 재구성.
      - Case 1, 2번 데이터셋 제품명에 `Inked NAND Die 적용` 특성 공식 명기.
@@ -161,6 +164,25 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 11:25] 고객 대외용 클레임 표기 정제 및 Inked NAND RAmos 내부 FA 분석 영역 분리
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `js/data.js`, `js/views/intake.js`, `js/org_tree.js`, `input/RAmos_조직도_업무스킬_양식.xlsx`, `WORK_HANDOFF.md`
+* **원인**: 마리오님의 날카로운 실무 지침("우리는 Inked라는 것을 알고 있지만 LGE에서는 정품 NAND와 동일하게 생각하고 있어! 고객 공문에 Inked라고 적히는 건 말이 안 돼!")에 따라, 고객 대외 접수 영역과 RAmos 내부 연구소 FA 분석 영역을 철저히 분리함.
+* **수정 내용**:
+  1. **고객사(LGE) 공식 대외 영역 정제 (`js/views/intake.js`)**:
+     - 프리셋 공문 제목 및 화면 버튼에서 'Inked NAND' 노출 전면 제거.
+     - 고객 관점의 현실적 클레임 명칭으로 교체:
+       - `[LGE DTV] eMMC Boot CID Short 클레임 캡쳐`
+       - `[LGE DTV] eMMC Cold Boot 인식 지연 공문`
+     - 제품명 역시 공식 납품 규격명인 `DTV eMMC 5.1 64GB (BGA153)`, `DTV eMMC 5.1 32GB (BGA153)`로 단정하게 정리.
+  2. **RAmos 내부 기술 분석 영역 집중 (`js/data.js`, `js/org_tree.js`)**:
+     - 'Inked NAND Die' 특성은 오직 **D4 (Root Cause Analysis)** 단계의 RAmos 기술진(Flash 개발실, FA팀 박재환 팀장) 내부 가설 및 분석 항목(`당사 패키징 적용 Inked NAND Die의 Cold Boot 블록 마진 분석 및 WLT Inking 맵 대조`)으로 전문성 있게 분리 배치.
+     - FA Lead 박재환 팀장의 전문 역량에 `Inked NAND Die 셀 마진 분석, EDS Inking 맵 대조` 등록.
+* **검증 결과**:
+  - `node -c js/data.js`, `node -c js/views/intake.js`, `node -c js/org_tree.js` 통과.
+  - Python openpyxl 엑셀 갱신 완료.
+  - Git whitespace 무결성 통과.
 
 ### 🗓️ [2026-09-03 11:20] LGE DTV eMMC 및 Inked NAND Die 핵심 기술 배경 전면 반영 (차량용 제거 및 DTV 일원화)
 * **Git 브랜치**: `antigravity/step01-intake-agent`

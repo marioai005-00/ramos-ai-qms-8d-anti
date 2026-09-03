@@ -11,7 +11,7 @@
         customer: 'LGE (LG전자)',
         customerContact: '최영수 책임 (DTV 품질보증팀)',
         customerEmail: 'ys.choi@lge.com',
-        product: 'DTV eMMC 5.1 64GB (BGA153 / Inked NAND 적용)',
+        product: 'DTV eMMC 5.1 64GB (BGA153)',
         partNumber: 'RM-EM51-064G-X1',
         lotNumber: 'EM2608-DTV01',
         mfgSite: 'RAMOS 오창 1공장 (SMT/PKG Line 3)',
@@ -289,7 +289,7 @@
         customer: 'LGE (LG전자 HE사업본부 DTV)',
         customerContact: '김성식 책임 (HE DTV SMT품질팀)',
         customerEmail: 'ss.kim@lge.com',
-        product: 'DTV eMMC 5.1 32GB (Inked NAND Die 적용)',
+        product: 'DTV eMMC 5.1 32GB (BGA153)',
         partNumber: 'RM-EM51-032G-DTV',
         lotNumber: 'EM2608-DTV02',
         mfgSite: 'RAMOS 오창 1공장 SMT 2라인',
@@ -302,7 +302,7 @@
         defectQty: 5,
         inspectQty: 5000,
         ppm: 1000,
-        claimTitle: 'LGE DTV 메인보드 SMT 후 eMMC Inked NAND 특정 블록 Read Timeout 및 Boot CID 응답 지연',
+        claimTitle: 'LGE DTV 메인보드 SMT 실장 후 Cold Boot 시 eMMC 초기화 응답 불가 및 Read Timeout 발생',
         severityLevel: 'Critical',
         lineStop: true,
         safetyRisk: false,
@@ -317,7 +317,7 @@
           { role: '8D Quality Facilitator / 실무', name: '김성중 Senior Pro', dept: '품질혁신팀', contact: 'sjkim@ramostek.com', status: 'Active' }
         ],
         d2: {
-          problemWhat: 'DTV 부팅 시 Inked NAND 특정 블록 ECC Uncorrectable Error 및 Read Retry 타임아웃',
+          problemWhat: 'DTV 부팅 시 U-Boot 단계에서 eMMC CMD1 응답 타임아웃 및 Read Retry 발생',
           problemWhere: 'LGE 평택 DTV Main Board 실장 2라인 검사 공정',
           problemWhen: '2026.09.01 19:30',
           problemWho: 'LGE DTV SMT품질팀 김성식 책임',
@@ -326,7 +326,7 @@
           problemHowMany: '5 / 5,000ea (1,000 PPM)',
           isIsNot: [],
           hypotheses: [
-            { id: 'HYP-01', title: 'Inked NAND Die 웨이퍼 검사 시 Marginal Block의 온도 스트레스 열화 가능성', confidence: 'High', status: 'Under Investigation', requiredEvidence: ['NAND WLT Inking 맵 데이터', 'NAND CS 단면 SEM'] }
+            { id: 'HYP-01', title: '당사 패키징 적용 Inked NAND Die의 Cold Boot 블록 마진 부족 및 WLT Inking 맵 대조 필요성', confidence: 'High', status: 'Under Investigation (연구소 내부 분석)', confidence: 'High', status: 'Under Investigation', requiredEvidence: ['NAND WLT Inking 맵 데이터', 'NAND CS 단면 SEM'] }
           ]
         },
         d3: { materialFlow: [], actions: [], effectivenessStatement: '해당 Inked NAND Lot 출하 잠금 및 LGE 평택 라인 재고 격리 완료' },

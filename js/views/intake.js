@@ -7,7 +7,7 @@
         customer: 'LGE (LG전자 HE사업본부 DTV)',
         customerContact: '최영수 책임 (DTV 품질보증팀)',
         customerEmail: 'ys.choi@lge.com',
-        product: 'DTV eMMC 5.1 64GB (Inked NAND Die 적용)',
+        product: 'DTV eMMC 5.1 64GB (BGA153)',
         partNumber: 'RM-EM51-064G-X1',
         lotNumber: 'EM2608-DTV01',
         mfgSite: 'RAMOS 오창 1공장 SMT 3라인',
@@ -20,22 +20,22 @@
         recurrentDefect: 'false',
         sampleFileName: 'LGE_DTV_eMMC_Boot_Failure_Claim.png (LGE 품질불량 메일 캡쳐)'
       },
-      lge_dtv_inked: {
+      lge_dtv_timeout: {
         customer: 'LGE (LG전자 HE사업본부 DTV)',
         customerContact: '김성식 책임 (HE DTV SMT품질팀)',
         customerEmail: 'ss.kim@lge.com',
-        product: 'DTV eMMC 5.1 32GB (Inked NAND Die 적용)',
+        product: 'DTV eMMC 5.1 32GB (BGA153)',
         partNumber: 'RM-EM51-032G-DTV',
         lotNumber: 'EM2608-DTV02',
         mfgSite: 'RAMOS 오창 1공장 SMT 2라인',
         incidentSite: 'LGE 평택 DTV Main Board 실장 2라인',
         defectQty: 5,
         inspectQty: 5000,
-        claimTitle: 'LGE DTV 메인보드 SMT 후 eMMC Inked NAND 특정 블록 Read Timeout 및 Boot CID 응답 지연',
+        claimTitle: 'LGE DTV 메인보드 SMT 실장 후 Cold Boot 시 eMMC 초기화 응답 불가 및 Read Timeout 발생',
         lineStop: 'true',
         safetyRisk: 'false',
         recurrentDefect: 'false',
-        sampleFileName: 'LGE_DTV_Inked_NAND_Read_Timeout_Official.pdf (LGE 품질 공문 PDF)'
+        sampleFileName: 'LGE_DTV_Cold_Boot_Timeout_Official.pdf (LGE 품질 공문 PDF)'
       }
     };
 
@@ -80,8 +80,8 @@
 
     function detectIntakePresetKey(text = '') {
       const normalized = String(text).toLowerCase().replace(/\s+/g, ' ');
-      if (normalized.includes('ink') || normalized.includes('블록') || normalized.includes('block') || normalized.includes('timeout') || normalized.includes('retry')) {
-        return 'lge_dtv_inked';
+      if (normalized.includes('cold') || normalized.includes('timeout') || normalized.includes('지연') || normalized.includes('retry') || normalized.includes('초기화')) {
+        return 'lge_dtv_timeout';
       }
       return 'lge_dtv_short';
     }
@@ -184,15 +184,15 @@
               <div id="attachedFilesList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:10px;"></div>
             </div>
 
-            <!-- LGE DTV eMMC (Inked NAND) Dedicated Presets & AI Parse Button -->
+            <!-- LGE DTV eMMC Dedicated Presets & AI Parse Button -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; flex-wrap:wrap; gap:10px;">
               <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                <span style="font-size:0.72rem; color:#60a5fa; font-weight:800;">📺 LGE DTV eMMC (Inked NAND) 전담 프리셋:</span>
+                <span style="font-size:0.72rem; color:#60a5fa; font-weight:800;">📺 LGE DTV eMMC 전담 프리셋:</span>
                 <button type="button" class="preset-pill-btn" onclick="applyIntakePreset('lge_dtv_short')">
                   <i data-lucide="image" style="width:12px; height:12px; color:#38bdf8;"></i> [LGE DTV] eMMC Boot CID Short 클레임 캡쳐
                 </button>
-                <button type="button" class="preset-pill-btn" onclick="applyIntakePreset('lge_dtv_inked')">
-                  <i data-lucide="file-text" style="width:12px; height:12px; color:#a78bfa;"></i> [LGE DTV] Inked NAND 블록 Read Timeout 공문
+                <button type="button" class="preset-pill-btn" onclick="applyIntakePreset('lge_dtv_timeout')">
+                  <i data-lucide="file-text" style="width:12px; height:12px; color:#a78bfa;"></i> [LGE DTV] eMMC Cold Boot 인식 지연 공문
                 </button>
               </div>
 
