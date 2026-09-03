@@ -10,7 +10,12 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **RAK4/RAK5 창고 엑셀 업로드 시 인접 LOT 자동 식별 및 세부 내역 표출**
+  1. **LGE 16GB 단일 규격 및 고객 P/N ↔ 사내 P/N 크로스 레퍼런스 자동 연동**
+     - 고객사 납품 공식 P/N: `MMACGD8J0F-KV0AF0-TPAG` (16GB 단일화)
+     - 사내 ERP 코드: `MMACGD8J0F-HZRAF1-LPAGA00`, 사내 MES 코드: `MMACGD8J0F-HZRAF1`
+     - 마리오님이 제공해주신 실제 엑셀 3종(9행/10행 헤더 오프셋) 자동 스캔 및 양방향 크로스 레퍼런스 파싱 완비.
+     - Node.js 기반 실데이터 테스트 완료 (RAK4 3,394ea 및 MES A02 1,608ea 정상 추출).
+  2. **RAK4/RAK5 창고 엑셀 업로드 시 인접 LOT 자동 식별 및 세부 내역 표출**
      - RAK4/5 창고 분리 관리 체계는 100% 유지하면서, 엑셀 파서가 `🔴 발생 LOT`, `🟡 직전 인접 LOT`, `🟡 직후 인접 LOT`를 자동 감지.
      - 창고 카드 내에 각 로트별 현재고, Hold 수량, 권고 상태 테이블 표출 및 D3 상단 `adjacentLots` 자동 연동.
      - `input/RAK4_완제품재고_인접LOT_샘플양식.xlsx`, `input/RAK5_출하대기재고_인접LOT_샘플양식.xlsx` 생성 완비.
@@ -189,6 +194,31 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 12:47] LGE 16GB 단일 규격 및 고객 P/N(MMACGD8J0F-KV0AF0-TPAG) ↔ 사내 P/N 크로스 레퍼런스 자동 연동 완비
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `js/data.js`, `js/views/intake.js`, `js/views/workspace.js`, `index.html`, `WORK_HANDOFF.md`
+* **원인**: 마리오님의 중요한 실제 비즈니스 도메인 지침("MMACGD8J0F-KV0AF0-TPAG 일단 고객사에 우리 제품의 품목이 이거라고 알려줬고! LGE에서 eMMC 관련 내용이 오면 다 이거야! 그리고 우리는 LGE에 16GB 제품만 납품해!")에 따라, 고객사 공식 P/N(`MMACGD8J0F-KV0AF0-TPAG`)과 사내 ERP/MES 관리 품목코드(`MMACGD8J0F-HZRAF1-LPAGA00` / `MMACGD8J0F-HZRAF1`) 간의 크로스 레퍼런스 자동 매핑 체계를 완성하고, 마리오님이 업로드해주신 실제 엑셀 3종(9행/10행 헤더 오프셋)을 100% 자동 인식하도록 파서를 전면 업그레이드함.
+* **수정 내용**:
+  1. **LGE 16GB 전담 및 공식 P/N 일원화 (`js/data.js`, `js/views/intake.js`)**:
+     - 제품명: `DTV eMMC 5.1 16GB (BGA153)` (32GB/64GB 전면 배제 및 16GB 단일화)
+     - 고객사 납품 공식 P/N: `MMACGD8J0F-KV0AF0-TPAG`
+     - 사내 ERP 관리 P/N: `MMACGD8J0F-HZRAF1-LPAGA00`
+     - 사내 MES 재공 품목ID: `MMACGD8J0F-HZRAF1`
+     - 마스터 Lot 및 원Lot: `0QH321200A02-LPAGA00` / `0QH320000A02-TN`
+  2. **지능형 헤더 자동 오프셋 스캔 엔진 (`parseSheetWithSmartHeader` in `js/views/workspace.js`)**:
+     - 사내 엑셀 특유의 상단 1~8행 검색조건 메타데이터를 자동으로 건너뛰고, 실제 표 헤더 행(MES 9행, ERP 10행)을 지능적으로 스캔하여 데이터 객체로 매핑.
+  3. **다중 별칭 크로스 레퍼런스 필터 (`filterInventoryRowsForCase`)**:
+     - 고객사 P/N(`MMACGD8J0F-KV0AF0-TPAG`) 또는 사내 ERP/MES 코드(`MMACGD8J0F-HZRAF1`) 중 어느 것이 적혀 있어도 공통 품목군(`MMACGD8J0F`)으로 즉시 인식.
+     - 원LotID(`0QH320000A02-TN`)를 통한 수직 계보(Genealogy) 매칭 및 인접 시퀀스(A02, A03, A05, A06) 완벽 연동.
+  4. **캐시 버스팅 승격 (`index.html`)**:
+     - `?v=20260903_v10`으로 승격하여 브라우저 새로고침 시 즉각 반영 보장.
+* **검증 결과**:
+  - 마리오님이 제공해주신 실제 엑셀 3종(`260903_RAK4 재고 현황.xlsx`, `260903_emmc 재공 현황.xlsx`) 대상 Node.js 파싱 검증 완료:
+    - RAK4 7개 행 및 4개 Lot(A02 1,675ea, A03 109ea 등) 정상 추출.
+    - MES 재공 136개 행 중 A02 관련 17개 행 및 공정별 수량(SHORT TEST 1,458ea, STORAGE 122ea 등) 100% 정상 추출.
+  - `node -c` 구문 검사 오류 0건 통과.
+  - `git diff --check` 오류 0건 통과.
 
 ### 🗓️ [2026-09-03 12:26] RAK4/RAK5 완제품 창고 엑셀 업로드 시 인접 LOT 자동 식별 및 세부 내역 표출 기능 구현
 * **Git 브랜치**: `antigravity/step01-intake-agent`

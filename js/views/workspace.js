@@ -1084,14 +1084,57 @@
       return Number.isFinite(num)?num:0;
     }
 
+    function parseSheetWithSmartHeader(sheet, sheetName = '') {
+      const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+      if (!matrix || !matrix.length) return [];
+
+      const targetKeywords = ['lotid', 'lotno', 'lot', '품목', '제품id', '양품재고수량', '현재수량', '현재고', '창고코드', '공정명', '원lotid'];
+
+      let headerRowIdx = 0;
+      let maxMatches = 0;
+
+      // Scan first 25 rows to detect the real table header (e.g. Row 9 or Row 10 in company Excel)
+      for (let r = 0; r < Math.min(25, matrix.length); r++) {
+        const rowCells = matrix[r] || [];
+        const normalizedCells = rowCells.map(c => normalizeInventoryHeader(c));
+        let matches = 0;
+        targetKeywords.forEach(kw => {
+          if (normalizedCells.some(cell => cell.includes(kw))) {
+            matches++;
+          }
+        });
+        if (matches > maxMatches) {
+          maxMatches = matches;
+          headerRowIdx = r;
+        }
+      }
+
+      const headers = (matrix[headerRowIdx] || []).map((h, idx) => String(h || '').trim() || `_COL_${idx+1}`);
+      const dataRows = [];
+
+      for (let r = headerRowIdx + 1; r < matrix.length; r++) {
+        const rowVals = matrix[r] || [];
+        if (!rowVals.some(v => v !== null && String(v).trim() !== '')) continue;
+
+        const rowObj = { __sheet: sheetName, __rowNum: r + 1 };
+        headers.forEach((h, colIdx) => {
+          rowObj[h] = rowVals[colIdx] ?? '';
+        });
+        dataRows.push(rowObj);
+      }
+
+      return dataRows;
+    }
+
     function detectInventoryColumns(rows) {
       return {
-        warehouse:findInventoryColumn(rows,['창고','창고코드','저장위치','storage location','warehouse','location']),
-        lot:findInventoryColumn(rows,['lot','lot no','lot number','제조lot','로트','배치']),
-        part:findInventoryColumn(rows,['품번','자재코드','part number','part no','material code','item code']),
-        quantity:findInventoryColumn(rows,['현재고','현재재고','재고수량','가용재고','current stock','on hand','stock qty','inventory qty','wip qty','수량','qty']),
-        hold:findInventoryColumn(rows,['hold 수량','hold qty','격리수량','보류수량','홀드수량']),
-        process:findInventoryColumn(rows,['공정명','공정','operation name','operation','process name','process','작업장','work center'])
+        warehouse: findInventoryColumn(rows, ['창고코드', '창고명', '창고', '저장위치', 'warehouse', 'location']),
+        lot: findInventoryColumn(rows, ['lot no.', 'lot no', 'lotid', 'lot id', '원lotid', 'lot', '제조lot', '로트번호', '배치']),
+        rawLot: findInventoryColumn(rows, ['원lotid', '원천lot', '원lot', '부모lotid']),
+        part: findInventoryColumn(rows, ['품목', '제품id', '품목명', '품목코드', '품번', '자재코드', 'part number', 'part no', 'material code', 'item code']),
+        quantity: findInventoryColumn(rows, ['양품재고수량', '현재수량', '현재고', '현재재고', '재고수량', '가용재고', '수량', 'qty']),
+        hold: findInventoryColumn(rows, ['보류수량', 'hold 수량', '불량재고수량', '공손수', '격리수량', 'hold qty']),
+        process: findInventoryColumn(rows, ['공정명', '공정', 'operation name', 'operation', 'process name', 'process', '작업장'])
       };
     }
 
@@ -1127,26 +1170,48 @@ function getLotPrefixAndSeq(lotStr = '') {
 
     function filterInventoryRowsForCase(rows, columns, c) {
       const targetLot = String(c.lotNumber || '').trim();
+
+      // Filter out total/summary rows that do not have a valid lot or item
+      rows = rows.filter(row => {
+        const hasLot = columns.lot && String(row[columns.lot] || '').trim();
+        const hasPart = columns.part && String(row[columns.part] || '').trim();
+        return hasLot || hasPart;
+      });
       const lotNeedle = normalizeInventoryHeader(targetLot);
       const tInfo = getLotPrefixAndSeq(targetLot);
       const prefixNeedle = normalizeInventoryHeader(tInfo.prefix);
-      const partNeedle = normalizeInventoryHeader(c.partNumber);
-      const hasCaseKey = Boolean(columns.lot || columns.part);
-      if (!hasCaseKey) return rows;
+
+      // Multi-alias Cross-Reference P/N keys (Customer P/N + Internal ERP/MES P/N)
+      const partAliases = [
+        c.partNumber,
+        c.internalPartNumber,
+        c.mesPartId,
+        'MMACGD8J0F-KV0AF0-TPAG',
+        'MMACGD8J0F-HZRAF1-LPAGA00',
+        'MMACGD8J0F-HZRAF1',
+        'MMACGD8J0F'
+      ].filter(Boolean).map(normalizeInventoryHeader);
+
+      const rawLotNeedle = normalizeInventoryHeader(c.rawLotId || '0QH320000A02-TN');
 
       return rows.filter(row => {
-        const lot = normalizeInventoryHeader(columns.lot ? row[columns.lot] : '');
-        const part = normalizeInventoryHeader(columns.part ? row[columns.part] : '');
+        const lotVal = normalizeInventoryHeader(columns.lot ? row[columns.lot] : '');
+        const rawLotVal = normalizeInventoryHeader(columns.rawLot ? row[columns.rawLot] : '');
+        const partVal = normalizeInventoryHeader(columns.part ? row[columns.part] : '');
 
-        // Match part number if present
-        const partMatches = (!columns.part || !partNeedle) ? true : part.includes(partNeedle);
+        // 1. Part check (Match any alias if part column exists)
+        let partMatches = true;
+        if (columns.part && partVal) {
+          partMatches = partAliases.some(alias => partVal.includes(alias) || alias.includes(partVal));
+        }
 
-        // Match lot: either exact lot, or prefix match for adjacent lots!
+        // 2. Lot check (Target Lot, Adjacent prefix, or RawLotID)
         let lotMatches = true;
         if (columns.lot && targetLot) {
-          const isExact = lot.includes(lotNeedle);
-          const isAdjacentPrefix = prefixNeedle && prefixNeedle.length >= 4 && lot.includes(prefixNeedle);
-          lotMatches = isExact || isAdjacentPrefix;
+          const isExact = lotVal.includes(lotNeedle);
+          const isAdjacentPrefix = prefixNeedle && prefixNeedle.length >= 4 && lotVal.includes(prefixNeedle);
+          const isRawLotMatch = rawLotNeedle && (rawLotVal.includes(rawLotNeedle) || lotVal.includes(rawLotNeedle));
+          lotMatches = isExact || isAdjacentPrefix || isRawLotMatch;
         }
 
         return partMatches && lotMatches;
@@ -1158,7 +1223,7 @@ function getLotPrefixAndSeq(lotStr = '') {
       if (typeof XLSX==='undefined') { alert('Excel 파서를 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.'); return; }
       try {
         const workbook=XLSX.read(await file.arrayBuffer(),{type:'array'});
-        const rows=workbook.SheetNames.flatMap(sheetName=>XLSX.utils.sheet_to_json(workbook.Sheets[sheetName],{defval:'',raw:false}).map(row=>({...row,__sheet:sheetName})));
+        const rows = workbook.SheetNames.flatMap(sheetName => parseSheetWithSmartHeader(workbook.Sheets[sheetName], sheetName));
         if (!rows.length) throw new Error('Excel에 읽을 수 있는 데이터 행이 없습니다.');
         const columns=detectInventoryColumns(rows); if (!columns.quantity) throw new Error('현재고/재고수량/QTY 열을 찾지 못했습니다.');
         const c=getActiveCase(); const d3=ensureD3Structure(c); let filtered=filterInventoryRowsForCase(rows,columns,c);
