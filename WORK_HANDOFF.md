@@ -10,7 +10,12 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **고객 대외용 클레임 표기 정제 및 Inked NAND 내부 FA 영역 엄격 분리**
+  1. **실시간 최신 파일 반영 및 제로 캐싱(Zero Caching) 인프라 전면 보강**
+     - 웹 서버(`portal_server.py`): 정적 파일 요청에 `Cache-Control: no-cache, no-store, must-revalidate` 강제 전송.
+     - 프론트엔드(`index.html`): CSS 및 모든 JS 모듈에 `?v=20260903_v4` 캐시 버스팅 파라미터 부여.
+     - 스토리지 마이그레이션(`js/data.js`): `STORAGE_KEY` V4 승격 및 구버전 데이터 감지 시 LGE DTV 최신 벤치마크 상태로 자동 마이그레이션.
+     - 런처 고도화(`run_portal.bat`): 이전 프로세스 자동 종료 및 `http://localhost:8080` 자동 실행.
+  2. **고객 대외용 클레임 표기 정제 및 Inked NAND 내부 FA 영역 엄격 분리**
      - 고객사(LGE) 공식 대외 영역(STEP 01 접수, 프리셋, 제품 규격명)에서 'Inked NAND' 노출 전면 제거 ➔ 고객 납품 공식 규격명 `DTV eMMC 5.1 (BGA153)` 및 `Cold Boot 인식 지연` 등 고객 관점 현업 클레임으로 일원화.
      - 'Inked NAND Die' 기술 특성은 오직 **D4 (Root Cause Analysis)** 단계의 RAmos 내부 기술진(Flash 개발실, FA팀 박재환 팀장) 심층 원인 분석 항목으로 전문성 있게 격리 배치.
   2. **LGE DTV eMMC 및 Inked NAND Die 핵심 기술 배경 전면 반영**
@@ -164,6 +169,26 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 11:30] 실시간 최신 파일 반영 및 제로 캐싱(Zero Caching) 인프라 전면 보강
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `portal_server.py`, `index.html`, `js/data.js`, `run_portal.bat`, `WORK_HANDOFF.md`
+* **원인**: 마리오님의 지적("run_portal.bat로 실행하는데 왜 최신 파일로 적용이 안 되어 있어? 항상 업데이트되면 최신 파일로 보일 수 있도록 해줘야지!")에 따라, 브라우저 캐시 및 localStorage 레거시 데이터로 인해 최신 파일 내용이 즉시 반영되지 않던 문제를 원천 해결함.
+* **수정 내용**:
+  1. **파이썬 웹 서버 제로 캐시 강제 (`portal_server.py`)**:
+     - `PortalHandler`의 `end_headers`를 오버라이드하여 모든 정적 파일(HTML, CSS, JS, JSON) 요청에 대해 `Cache-Control: no-cache, no-store, must-revalidate`, `Pragma: no-cache`, `Expires: 0` 헤더를 강제 전송.
+     - 브라우저가 디스크의 최신 파일을 무조건 새로 읽어 들이도록 보장.
+  2. **프론트엔드 캐시 버스팅 파라미터 부여 (`index.html`)**:
+     - `css/styles.css?v=20260903_v4` 및 모든 모듈형 JS 스크립트 태그에 `?v=20260903_v4` 쿼리 파라미터를 추가하여 브라우저의 이전 캐시를 100% 무력화.
+  3. **스토리지 키 버전 업 & 구버전 자동 마이그레이션 (`js/data.js`)**:
+     - 스토리지 키를 `AI_QMS_8D_DATA_V4`로 올리고, 브라우저가 열릴 때 구버전(타사 데이터 등)이 감지되면 자동으로 최신 LGE DTV eMMC 벤치마크 상태로 깨끗하게 초기화·마이그레이션하는 로직 탑재.
+  4. **런처 스크립트 고도화 (`run_portal.bat`)**:
+     - 8080 포트를 점유하고 있는 이전 프로세스를 깔끔하게 종료(`taskkill`) 후 최신 `portal_server.py`를 신규 구동.
+     - 2초 후 기본 브라우저를 자동으로 실행하여 `http://localhost:8080` 최신 화면을 즉시 띄우도록 개선.
+* **검증 결과**:
+  - `portal_server.py` 컴파일 및 HTTP 헤더 검증 완료.
+  - `js/data.js` 구문 검사 오류 0건 통과.
+  - `git diff --check` 오류 0건 통과.
 
 ### 🗓️ [2026-09-03 11:25] 고객 대외용 클레임 표기 정제 및 Inked NAND RAmos 내부 FA 분석 영역 분리
 * **Git 브랜치**: `antigravity/step01-intake-agent`

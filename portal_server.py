@@ -183,6 +183,12 @@ class PortalHandler(SimpleHTTPRequestHandler):
 
         super().do_GET()
 
+    def end_headers(self) -> None:
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
+
     def do_POST(self) -> None:  # noqa: N802
         clean_path = self.path.split("?", 1)[0]
         if clean_path == AI_DISPATCH_PATH:

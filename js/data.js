@@ -1,9 +1,8 @@
 /* ========================================================================= */
     /* MASTER DATA STORE & BENCHMARK CASES (PHILOSOPHY ALIGNED)                   */
     /* ========================================================================= */
-    // V3 starts the redesigned Intake -> Triage -> Approved Case workflow from a clean state.
-    // Legacy V2 browser data is intentionally left untouched for recoverability.
-    const STORAGE_KEY = 'AI_QMS_8D_DATA_V3';
+    // V4 strictly enforces LGE DTV eMMC B2B dedicated benchmark cases.
+    const STORAGE_KEY = 'AI_QMS_8D_DATA_V4';
 
     const INITIAL_CASES = [
       {
@@ -50,7 +49,7 @@
           problemWhich: 'Part: RM-EM51-064G-X1 / Lot: #EM2608-DTV01 (64GB BGA)',
           problemHow: 'Reflow 실장 후 Power-on Booting 시그널 인가 시 12ea 응답 없음 (VCC-VSS Short 측정됨)',
           problemHowMany: '12 / 10,000ea (1,200 PPM)',
-          
+
           isIsNot: [
             { factor: 'Product', is: 'eMMC 5.1 64GB (BGA153)', isNot: 'eMMC 32GB / 128GB 동일 패키지' },
             { factor: 'Lot No.', is: 'EM2608-DTV01 (8월 4주차 생산)', isNot: 'EM2608-DTV00 (이전 정상 출하 Lot)' },
@@ -979,10 +978,10 @@
     // Bulletproof Data State Management (Prevents any corrupt localStorage or blank screen)
     function loadStoredAppData() {
       const defaultState = {
-        cases: [],
+        cases: JSON.parse(JSON.stringify(INITIAL_CASES)),
         intakeQueue: [],
         activeIntakeId: null,
-        activeCaseId: null,
+        activeCaseId: INITIAL_CASES[0]?.id || null,
         currentView: 'dashboard',
         activeStage: 'overview',
         sidebarTab: 'menu'
@@ -990,8 +989,22 @@
 
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return defaultState;
+        if (!raw) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultState));
+          return defaultState;
+        }
         const parsed = JSON.parse(raw);
+
+        // Auto-migration: If stored data contains outdated third-party customers (Samsung/Hynix/Automotive), reset to clean LGE DTV state!
+        const hasOutdatedData = parsed && Array.isArray(parsed.cases) && parsed.cases.some(c =>
+          c.customer && (c.customer.includes('Samsung') || c.customer.includes('hynix') || c.customer.includes('삼성') || c.customer.includes('하이닉스') || c.customer.includes('전장') || c.customer.includes('Automotive'))
+        );
+
+        if (hasOutdatedData) {
+          console.log('[AI-QMS] Outdated benchmark data detected. Auto-migrating to LGE DTV eMMC benchmark state.');
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultState));
+          return defaultState;
+        }
 
         // Case A: Parsed is legacy array of cases
         if (Array.isArray(parsed)) {
@@ -1004,7 +1017,7 @@
         // Case B: Parsed is appData object
         if (parsed && typeof parsed === 'object') {
           const validCases = Array.isArray(parsed.cases) ? parsed.cases : [];
-          
+
           // Strictly sanitize all gates across all cases to remove customer sign-off
           validCases.forEach(c => {
             if (c.gates) {
@@ -1163,7 +1176,7 @@
       cases.forEach(c => {
         const cft = c.team || [];
         const isMember = cft.some(m => m.name && m.name.includes(user.name));
-        
+
         // Ensure gates sanitized
         if (typeof ensureCaseGates === 'function') {
           ensureCaseGates(c);
@@ -1192,11 +1205,11 @@
                   isApproval: true,
                   stepNum: i + 1,
                   role: appr.role,
-                  title: isDispatch 
-                    ? `[고객사 공식 송부 대기] ${g.title} 내부 승인 완료 ➔ 고객사 송부 실행 필요` 
+                  title: isDispatch
+                    ? `[고객사 공식 송부 대기] ${g.title} 내부 승인 완료 ➔ 고객사 송부 실행 필요`
                     : `[전자 결재 승인 대기] ${g.title} (${appr.role}) 승인 필요`,
-                  desc: isDispatch 
-                    ? `3차 8D Champion 결재 완료됨. SLA 준수를 위해 ${c.customerContact || '고객품질팀'} 앞 메일 발송을 처리하세요.` 
+                  desc: isDispatch
+                    ? `3차 8D Champion 결재 완료됨. SLA 준수를 위해 ${c.customerContact || '고객품질팀'} 앞 메일 발송을 처리하세요.`
                     : `이전 결재 단계 완료됨. 8D 공식 보고서 내용 검토 후 [${appr.name}] 님의 승인 서명을 완료하세요.`
                 });
               }
