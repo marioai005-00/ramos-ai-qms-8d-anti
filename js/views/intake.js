@@ -3,56 +3,39 @@
     let intakeFiles = [];
 
     const INTAKE_PRESETS = {
-      lge: {
-        customer: 'LGE (LG전자)',
+      lge_dtv: {
+        customer: 'LGE (LG전자 HE사업본부 DTV)',
         customerContact: '최영수 책임 (DTV 품질보증팀)',
         customerEmail: 'ys.choi@lge.com',
         product: 'eMMC 5.1 64GB (BGA153)',
         partNumber: 'RM-EM51-064G-X1',
         lotNumber: 'EM2608-DTV01',
         mfgSite: 'RAMOS 오창 1공장 SMT 3라인',
-        incidentSite: 'LGE 평택 DTV Main Board 실장 라인',
+        incidentSite: 'LGE 평택 DTV SMT 3라인',
         defectQty: 12,
         inspectQty: 10000,
-        claimTitle: 'LGE DTV Main Board SMT Post-Reflow 시 eMMC Boot CID Read Timeout 및 12ea VCC-VSS Short 단락 측정됨.',
+        claimTitle: 'LGE DTV 메인보드 SMT Post-Reflow 시 eMMC Boot CID Read Timeout 및 VCC-VSS Short 단락 불량 (라인 일시 정지)',
         lineStop: 'true',
         safetyRisk: 'false',
         recurrentDefect: 'false',
-        sampleFileName: 'LGE_Groupware_Claim_Mail_Capture.png (그룹웨어 메일 캡쳐)'
+        sampleFileName: 'LGE_DTV_eMMC_Boot_Failure_Claim.png (LGE 품질불량 메일 캡쳐)'
       },
-      samsung: {
-        customer: 'Samsung Electronics (메모리사업부)',
-        customerContact: '강민규 프로 (SSD QA팀)',
-        customerEmail: 'mg.kang@samsung.com',
-        product: 'PCIe Gen4 Enterprise SSD 3.84TB',
-        partNumber: 'RM-SSD4-384T',
-        lotNumber: 'SS2608-NV04',
-        mfgSite: 'RAMOS 오창 2공장 SSD 라인',
-        incidentSite: 'Samsung Server System Validation Lab',
-        defectQty: 2,
-        inspectQty: 500,
-        claimTitle: '서버 챔버 70℃ High-Temperature 4K Random Read Stress 중 PCIe Gen4 Link Drop 및 Controller Hang 발생',
-        lineStop: 'false',
-        safetyRisk: 'false',
-        recurrentDefect: 'false',
-        sampleFileName: 'Samsung_SSD_Defect_Notice.xlsx (불량통보서 엑셀)'
-      },
-      hynix: {
-        customer: 'SK hynix (DRAM 사업부)',
-        customerContact: '윤태석 수석 (고객지원실)',
-        customerEmail: 'ts.yoon@skhynix.com',
-        product: 'DDR4 SODIMM 16GB (3200Mbps)',
-        partNumber: 'RM-DDR4-16G-SO',
-        lotNumber: 'HY2608-DM02',
-        mfgSite: 'RAMOS 오창 1공장 PKG 라인',
-        incidentSite: 'SK hynix 이천 모듈 테스트 라인',
-        defectQty: 5,
-        inspectQty: 2000,
-        claimTitle: 'DRAM Ball Grid BGA X-Ray 검사 시 Center 패드 Void율 28% 초과 (규격 < 15%) 기준 미달 적출',
+      lge_auto: {
+        customer: 'LGE (LG전자 VS사업본부 전장)',
+        customerContact: '박진석 책임 (VS 전장품질팀)',
+        customerEmail: 'jinseok.park@lge.com',
+        product: 'Automotive eMMC 5.1 32GB (AEC-Q100)',
+        partNumber: 'RM-AUTO-EM51-032G',
+        lotNumber: 'EM2608-VS02',
+        mfgSite: 'RAMOS 오창 1공장 전장 전용 라인',
+        incidentSite: 'LGE 평택 VS 인포테인먼트 SMT 1라인',
+        defectQty: 3,
+        inspectQty: 5000,
+        claimTitle: '차량용 IVI 시스템 85℃ 고온 신뢰성 시험 중 eMMC I/O 응답 지연 및 초기화 Timeout 발생',
         lineStop: 'true',
         safetyRisk: 'false',
-        recurrentDefect: 'true',
-        sampleFileName: 'SK_Hynix_Quality_Claim_Official.pdf (고객사 공식 공문 PDF)'
+        recurrentDefect: 'false',
+        sampleFileName: 'LGE_VS_Auto_eMMC_Reliability_Claim.pdf (LGE 전장 품질 공문 PDF)'
       }
     };
 
@@ -97,10 +80,10 @@
 
     function detectIntakePresetKey(text = '') {
       const normalized = String(text).toLowerCase().replace(/\s+/g, ' ');
-      if (normalized.includes('samsung') || normalized.includes('삼성전자')) return 'samsung';
-      if (normalized.includes('hynix') || normalized.includes('하이닉스')) return 'hynix';
-      if (normalized.includes('lge') || normalized.includes('lg전자')) return 'lge';
-      return '';
+      if (normalized.includes('전장') || normalized.includes('auto') || normalized.includes('차량') || normalized.includes('ivi') || normalized.includes('vs')) {
+        return 'lge_auto';
+      }
+      return 'lge_dtv';
     }
 
     function getRecommendedIntakeOwner(customer = '', productOrContext = '') {
@@ -201,18 +184,15 @@
               <div id="attachedFilesList" style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:10px;"></div>
             </div>
 
-            <!-- Demo Quick Presets & AI Parse Button -->
+            <!-- LGE eMMC B2B Quick Presets & AI Parse Button -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; flex-wrap:wrap; gap:10px;">
               <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">빠른 시나리오 프리셋:</span>
-                <button type="button" class="preset-pill-btn" onclick="applyIntakePreset('lge')">
-                  <i data-lucide="image" style="width:12px; height:12px; color:#60a5fa;"></i> [LGE] eMMC Boot Fail 메일 캡쳐
+                <span style="font-size:0.72rem; color:#60a5fa; font-weight:800;">⚡ LGE eMMC B2B 전담 프리셋:</span>
+                <button type="button" class="preset-pill-btn" onclick="applyIntakePreset('lge_dtv')">
+                  <i data-lucide="image" style="width:12px; height:12px; color:#38bdf8;"></i> [LGE DTV] eMMC Boot Fail 클레임 캡쳐
                 </button>
-                <button type="button" class="preset-pill-btn" onclick="applyIntakePreset('samsung')">
-                  <i data-lucide="file-spreadsheet" style="width:12px; height:12px; color:#10b981;"></i> [삼성전자] SSD Link Drop 통보서.xlsx
-                </button>
-                <button type="button" class="preset-pill-btn" onclick="applyIntakePreset('hynix')">
-                  <i data-lucide="file-text" style="width:12px; height:12px; color:#fbbf24;"></i> [SK하이닉스] DRAM Void 공문.pdf
+                <button type="button" class="preset-pill-btn" onclick="applyIntakePreset('lge_auto')">
+                  <i data-lucide="file-text" style="width:12px; height:12px; color:#a78bfa;"></i> [LGE 전장] 차량용 eMMC 고온 응답지연 공문
                 </button>
               </div>
 

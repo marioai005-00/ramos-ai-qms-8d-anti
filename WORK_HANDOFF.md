@@ -10,10 +10,13 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **전략소싱팀 LGE eMMC 현업 R&R 반영 및 AI 자동 라우팅 정밀 튜닝**
-     - 전략소싱팀 남서현 Pro(영업 담당) 및 이하영 Pro(CS 담당) R&R 엑셀/웹 스킬 DB 등록.
-     - STEP 01에서 LGE 부적합 인입 시 전략소싱팀 이하영 Pro(CS 주관) / 남서현 Pro(영업)로 1순위 자동 라우팅 연동.
-  2. **임직원 R&R 및 전문 스킬 관리 체계 구축 (Excel 템플릿 & 웹 UI 양방향 동기화)**
+  1. **LGE eMMC B2B 전담 비즈니스 모델로 시스템 전면 정렬**
+     - 타사(삼성전자 SSD, SK하이닉스 DRAM) 예시·프리셋·목업 케이스를 전면 제거.
+     - LGE eMMC 2대 B2B 전담 시나리오(`[LGE DTV]` eMMC 5.1 64GB / `[LGE 전장]` Automotive eMMC 5.1 32GB)로 일원화.
+     - 기본 케이스 2번을 `LGE (LG전자 VS사업본부 전장) Automotive eMMC 5.1 32GB` 8D 케이스로 교체.
+  2. **전략소싱팀 LGE eMMC 현업 R&R 반영 및 AI 자동 라우팅 정밀 튜닝**
+     - 전략소싱팀 남서현 Pro(영업) / 이하영 Pro(CS) R&R 엑셀 및 웹 DB 등록 및 STEP 01 우선 라우팅 연동.
+  3. **임직원 R&R 및 전문 스킬 관리 체계 구축 (Excel 템플릿 & 웹 UI 양방향 동기화)**
      - 엑셀 방식: 62명 표준 템플릿(`input/RAmos_조직도_업무스킬_양식.xlsx`) 제공, 엑셀 수정 후 브라우저 일괄 업로드 지원.
      - 웹 UI 방식: [RAmos 조직도] 탭에서 직원을 클릭하여 `담당 업무(R&R)`, `주력 제품군`, `핵심 스킬`을 직접 입력/저장하는 편집 틀 구축.
      - 양방향 동기화: 웹에서 입력한 정보를 `[📥 엑셀 내보내기]`로 즉시 다운로드하거나, 엑셀을 `[📤 엑셀 가져오기]`로 일괄 덮어쓰기 지원.
@@ -153,6 +156,27 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 11:18] LGE eMMC B2B 전담 비즈니스 모델로 시스템 전면 정렬 (타사 예시 제거 및 LGE eMMC 전용화)
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `js/data.js`, `js/views/intake.js`, `portal_server.py`, `WORK_HANDOFF.md`
+* **원인**: 마리오님의 확고한 도메인 지침("예시로 삼성전자 하이닉스 있는건 지우고! 우리는 항상 LG eMMC 만 B2B로 하고있어!")에 따라, 시스템 전반의 고객사/제품군을 'LGE eMMC B2B 전담' 모델로 100% 일원화하고 타사(삼성/하이닉스) 목업 데이터를 전면 제거함.
+* **수정 내용**:
+  1. **STEP 01 접수 프리셋 전면 개편 (`js/views/intake.js`)**:
+     - 기존 삼성전자 SSD 및 SK하이닉스 DRAM 프리셋 및 상단 버튼 완전 제거.
+     - LGE eMMC B2B 2대 전담 시나리오로 재편:
+       - `[LGE DTV]`: DTV 메인보드 eMMC 5.1 64GB SMT Boot Fail & Short 클레임 (LGE 평택 DTV 라인)
+       - `[LGE 전장]`: 차량용 IVI AEC-Q100 eMMC 5.1 32GB 고온 신뢰성 응답지연 공문 (LGE 평택 VS 라인)
+     - `detectIntakePresetKey` 역시 LGE eMMC 맥락(DTV vs 전장)으로 최적화.
+  2. **기본 데이터셋 정렬 (`js/data.js`)**:
+     - 두 번째 케이스(`RAMOS-8D-20260902-02`)를 기존 삼성전자 SSD에서 `LGE (LG전자 VS사업본부 전장) Automotive eMMC 5.1 32GB` 실제 8D 케이스로 전면 교체.
+     - 8D 팀원에 전략소싱팀 이하영 Pro (Customer Response Owner) 및 Flash 개발진 공식 배속.
+  3. **Dual AI Dispatcher 시스템 프롬프트 (`portal_server.py`)**:
+     - `intake_extract`의 메타데이터 예시를 LGE 전담 B2B 규격으로 튜닝.
+* **검증 결과**:
+  - `node -c js/data.js` 및 `node -c js/views/intake.js` 구문 검사 오류 0건 통과.
+  - Python 로컬 서버 컴파일 검사 통과.
+  - Git whitespace 무결성 통과.
 
 ### 🗓️ [2026-09-03 11:10] 전략소싱팀 LGE eMMC 현업 R&R 반영 (남서현 Pro 영업 / 이하영 Pro CS) 및 AI 자동 라우팅 연동
 * **Git 브랜치**: `antigravity/step01-intake-agent`

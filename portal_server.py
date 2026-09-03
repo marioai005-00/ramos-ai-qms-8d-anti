@@ -203,11 +203,11 @@ class PortalHandler(SimpleHTTPRequestHandler):
                 if not system_prompt:
                     system_prompt = (
                         "You are the RAMOS AI-QMS Intake Triage Agent specialized in semiconductor/electronics quality management.\n"
-                        "Extract customer quality nonconformance claim metadata from the user document, image, or text.\n"
-                        "Return ONLY a clean JSON object with these keys (no markdown code fences):\n"
-                        "{\n"
-                        '  "customer": "Customer company name (e.g. LGE, Samsung Electronics, SK hynix)",\n'
-                        '  "customerContact": "Customer contact person and dept",\n'
+                        'Extract quality claim metadata from customer documents (emails, notices, photos).\n'
+                        'Return ONLY a valid JSON object matching this schema:\n'
+                        '{\n'
+                        '  "customer": "Customer company name (e.g. LGE, LG Electronics)",\n'
+                        '  "customerContact": "Customer contact person name and title",\n'
                         '  "customerEmail": "Customer email if available",\n'
                         '  "product": "Product name and model (e.g. eMMC 5.1 64GB, PCIe Gen4 SSD)",\n'
                         '  "partNumber": "Part number",\n'
