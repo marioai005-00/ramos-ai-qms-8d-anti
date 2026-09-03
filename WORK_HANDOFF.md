@@ -10,7 +10,11 @@
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **LGE 16GB 단일 규격 및 고객 P/N ↔ 사내 P/N 크로스 레퍼런스 자동 연동**
+  1. **접수 화면(STEP 01) 및 마스터 데이터 100% 실무 정보 일치화 & 1-Click 리셋 탑재**
+     - 접수 입력 폼 기본값 및 프리셋을 `16GB`, `MMACGD8J0F-KV0AF0-TPAG`, `0QH321200A02-LPAGA00`로 완전 교체.
+     - 사내 ERP 코드(`MMACGD8J0F-HZRAF1-LPAGA00`) 입력 필드 추가.
+     - `STORAGE_KEY V5` 승격 및 상단 헤더에 `[🔄 16GB 실데이터 초기화]` 버튼 탑재로 과거 캐시 일소.
+  2. **LGE 16GB 단일 규격 및 고객 P/N ↔ 사내 P/N 크로스 레퍼런스 자동 연동**
      - 고객사 납품 공식 P/N: `MMACGD8J0F-KV0AF0-TPAG` (16GB 단일화)
      - 사내 ERP 코드: `MMACGD8J0F-HZRAF1-LPAGA00`, 사내 MES 코드: `MMACGD8J0F-HZRAF1`
      - 마리오님이 제공해주신 실제 엑셀 3종(9행/10행 헤더 오프셋) 자동 스캔 및 양방향 크로스 레퍼런스 파싱 완비.
@@ -194,6 +198,26 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-03 12:54] 접수 화면(STEP 01) 및 마스터 데이터 100% 실무 정보 일치화 & 1-Click 리셋 탑재
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **변경 파일**: `js/data.js`, `js/views/intake.js`, `index.html`, `WORK_HANDOFF.md`
+* **원인**: 마리오님의 실무 현장 전환 피드백("접수 화면부터 다시 실제 정보로 깔끔하게 보고 싶어요")에 따라, 폼 기본값 및 전체 케이스 데이터에 남아있던 구버전 가상 데이터(64GB, `RM-EM51...`, `EM2608...`)를 전면 일소하고 실제 16GB 제품 및 P/N으로 통일하며, 브라우저 캐시 충돌을 원천 차단하기 위한 `STORAGE_KEY V5` 승격 및 `16GB 실데이터 초기화` 버튼을 탑재함.
+* **수정 내용**:
+  1. **접수 입력 폼(STEP 01) 실제 데이터 고정 (`js/views/intake.js`)**:
+     - 기본값 전면 교체: `DTV eMMC 5.1 16GB (BGA153)`, 고객 납품 P/N `MMACGD8J0F-KV0AF0-TPAG`, 불량 Lot `0QH321200A02-LPAGA00`.
+     - 사내 ERP 코드(`MMACGD8J0F-HZRAF1-LPAGA00`) 입력 필드를 신설하여 접수 시점부터 고객 P/N과 사내 P/N이 1:1로 함께 연계되도록 구성.
+     - 생산 Site: `RAMOS 오창 1공장 (RF01 SMT 3라인)`, 발생 Site: `LGE 평택 DTV Main Board 실장 3라인`.
+  2. **마스터 데이터 전사 일괄 교체 및 V5 승격 (`js/data.js`)**:
+     - `STORAGE_KEY = 'AI_QMS_8D_DATA_V5_REAL_16GB'`로 승격.
+     - D1 CFT, D2 5W2H, D3 7-Area 및 봉쇄 조치 전반의 모든 64GB/32GB/옛날 로트 표기를 실제 `16GB` 및 `0QH321200A02`로 교체.
+     - 전역 리셋 함수 `window.resetToReal16GBData()` 구현.
+  3. **상단 네비게이션 `[🔄 16GB 실데이터 초기화]` 버튼 장착 (`index.html`)**:
+     - 상단 헤더 우측에 원클릭 초기화 버튼을 배치하여 언제든 깨끗한 실제 16GB 상태로 리셋 가능.
+     - 캐시 버스팅 파라미터 `?v=20260903_v11`로 승격.
+* **검증 결과**:
+  - `node -c` 구문 검사 오류 0건 통과.
+  - `git diff --check` 오류 0건 통과.
 
 ### 🗓️ [2026-09-03 12:47] LGE 16GB 단일 규격 및 고객 P/N(MMACGD8J0F-KV0AF0-TPAG) ↔ 사내 P/N 크로스 레퍼런스 자동 연동 완비
 * **Git 브랜치**: `antigravity/step01-intake-agent`

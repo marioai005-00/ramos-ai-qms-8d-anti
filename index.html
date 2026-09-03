@@ -13,7 +13,7 @@
   <script src="js/vendor/xlsx.full.min.js"></script>
 
   <!-- Modular Portal Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20260903_v10">
+  <link rel="stylesheet" href="css/styles.css?v=20260903_v11">
 </head>
 <body>
   <!-- ========================================================================= -->
@@ -272,6 +272,10 @@
           <i data-lucide="file-text" style="width: 13px; height: 13px;"></i>
           <span>8D 리포트 & 결재</span>
         </button>
+        <button class="btn btn-secondary btn-sm" onclick="if(confirm('진짜 회사 16GB 기준 데이터로 화면을 깨끗하게 새로고침하시겠습니까?')) resetToReal16GBData()" title="진짜 회사 16GB 데이터로 전체 초기화" style="border-color:rgba(56,189,248,0.4); color:#38bdf8;">
+          <i data-lucide="rotate-ccw" style="width:13px; height:13px;"></i>
+          <span>16GB 실데이터 초기화</span>
+        </button>
         <button class="btn btn-secondary btn-sm" onclick="handleLogout()" title="로그아웃" style="padding:6px 9px;">
           <i data-lucide="log-out" style="width: 13px; height: 13px; color: #f87171;"></i>
         </button>
@@ -294,17 +298,17 @@
   </div>
 
   <!-- Modular JavaScript Architecture (Cache-Busting for Instant Live Updates) -->
-  <script src="js/data.js?v=20260903_v10"></script>
-  <script src="js/org_tree.js?v=20260903_v10"></script>
-  <script src="js/ai_engine.js?v=20260903_v10"></script>
-  <script src="js/views/dashboard.js?v=20260903_v10"></script>
-  <script src="js/views/intake.js?v=20260903_v10"></script>
-  <script src="js/views/workspace.js?v=20260903_v10"></script>
-  <script src="js/views/evidence.js?v=20260903_v10"></script>
-  <script src="js/views/actions.js?v=20260903_v10"></script>
-  <script src="js/views/reports.js?v=20260903_v10"></script>
-  <script src="js/views/d4_evidence.js?v=20260903_v10"></script>
-  <script src="js/views/stage_preview.js?v=20260903_v10"></script>
-  <script src="js/app.js?v=20260903_v10"></script>
+  <script src="js/data.js?v=20260903_v11"></script>
+  <script src="js/org_tree.js?v=20260903_v11"></script>
+  <script src="js/ai_engine.js?v=20260903_v11"></script>
+  <script src="js/views/dashboard.js?v=20260903_v11"></script>
+  <script src="js/views/intake.js?v=20260903_v11"></script>
+  <script src="js/views/workspace.js?v=20260903_v11"></script>
+  <script src="js/views/evidence.js?v=20260903_v11"></script>
+  <script src="js/views/actions.js?v=20260903_v11"></script>
+  <script src="js/views/reports.js?v=20260903_v11"></script>
+  <script src="js/views/d4_evidence.js?v=20260903_v11"></script>
+  <script src="js/views/stage_preview.js?v=20260903_v11"></script>
+  <script src="js/app.js?v=20260903_v11"></script>
 </body>
 </html>

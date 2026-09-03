@@ -250,26 +250,30 @@
               <div class="grid-3">
                 <div class="form-group">
                   <label class="form-label">제품명 (Product) <span class="required">*</span></label>
-                  <input type="text" id="formProduct" name="product" class="form-control" placeholder="예: eMMC 5.1 64GB" required value="eMMC 5.1 64GB (BGA153)">
+                  <input type="text" id="formProduct" name="product" class="form-control" placeholder="DTV eMMC 5.1 16GB (BGA153)" required value="DTV eMMC 5.1 16GB (BGA153)">
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Part Number</label>
-                  <input type="text" id="formPartNumber" name="partNumber" class="form-control" placeholder="RM-EM51-064G-X1" value="RM-EM51-064G-X1">
+                  <label class="form-label">고객 납품 P/N <span class="required">*</span></label>
+                  <input type="text" id="formPartNumber" name="partNumber" class="form-control num-mono" placeholder="MMACGD8J0F-KV0AF0-TPAG" required value="MMACGD8J0F-KV0AF0-TPAG">
                 </div>
                 <div class="form-group">
-                  <label class="form-label">Lot Number <span class="required">*</span></label>
-                  <input type="text" id="formLotNumber" name="lotNumber" class="form-control" placeholder="EM2608-DTV01" required value="EM2608-DTV01">
+                  <label class="form-label">사내 ERP 코드 (RAK4/5) <small style="color:#60a5fa;">[크로스연계]</small></label>
+                  <input type="text" id="formInternalPartNumber" name="internalPartNumber" class="form-control num-mono" value="MMACGD8J0F-HZRAF1-LPAGA00">
                 </div>
               </div>
 
-              <div class="grid-2">
+              <div class="grid-3">
+                <div class="form-group">
+                  <label class="form-label">불량 Lot Number <span class="required">*</span></label>
+                  <input type="text" id="formLotNumber" name="lotNumber" class="form-control num-mono" placeholder="0QH321200A02-LPAGA00" required value="0QH321200A02-LPAGA00">
+                </div>
                 <div class="form-group">
                   <label class="form-label">생산 Site (당사 공장)</label>
-                  <input type="text" id="formMfgSite" name="mfgSite" class="form-control" value="RAMOS 오창 1공장 SMT 3라인">
+                  <input type="text" id="formMfgSite" name="mfgSite" class="form-control" value="RAMOS 오창 1공장 (RF01 SMT 3라인)">
                 </div>
                 <div class="form-group">
                   <label class="form-label">발생 Site (고객사 공정)</label>
-                  <input type="text" id="formIncidentSite" name="incidentSite" class="form-control" value="LGE 평택 DTV Main Board 실장 라인">
+                  <input type="text" id="formIncidentSite" name="incidentSite" class="form-control" value="LGE 평택 DTV Main Board 실장 3라인">
                 </div>
               </div>
 

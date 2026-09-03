@@ -2,7 +2,7 @@
     /* MASTER DATA STORE & BENCHMARK CASES (PHILOSOPHY ALIGNED)                   */
     /* ========================================================================= */
     // V4 strictly enforces LGE DTV eMMC B2B dedicated benchmark cases.
-    const STORAGE_KEY = 'AI_QMS_8D_DATA_V4';
+    const STORAGE_KEY = 'AI_QMS_8D_DATA_V5_REAL_16GB';
 
     const INITIAL_CASES = [
       {
@@ -49,13 +49,13 @@
           problemWhere: 'LGE 평택 스마트 DTV 양산 실장 라인 (SMT Post-Reflow ICT Test)',
           problemWhen: '2026년 8월 31일 22시 15분 야간 양산 가동 중 초물 검출',
           problemWho: 'LGE SMT 공정 라인 검사원 (공정 품질 검사)',
-          problemWhich: 'Part: RM-EM51-064G-X1 / Lot: #EM2608-DTV01 (64GB BGA)',
+          problemWhich: 'Part: MMACGD8J0F-KV0AF0-TPAG / Lot: #0QH321200A02-LPAGA00 (16GB BGA153)',
           problemHow: 'Reflow 실장 후 Power-on Booting 시그널 인가 시 12ea 응답 없음 (VCC-VSS Short 측정됨)',
           problemHowMany: '12 / 10,000ea (1,200 PPM)',
 
           isIsNot: [
-            { factor: 'Product', is: 'eMMC 5.1 64GB (BGA153)', isNot: 'eMMC 32GB / 128GB 동일 패키지' },
-            { factor: 'Lot No.', is: 'EM2608-DTV01 (8월 4주차 생산)', isNot: 'EM2608-DTV00 (이전 정상 출하 Lot)' },
+            { factor: 'Product', is: 'DTV eMMC 5.1 16GB (BGA153)', isNot: 'eMMC 32GB / 128GB 동일 패키지' },
+            { factor: 'Lot No.', is: '0QH321200A02-LPAGA00 (8월 4주차 생산)', isNot: '0QH321200A01-LPAGA00 (이전 정상 출하 Lot)' },
             { factor: 'Site', is: 'LGE 평택 DTV 라인', isNot: '삼성전자 / 소니 등 타사 납품 라인' },
             { factor: 'Failure Mode', is: 'Boot CID Read Fail (VCC-VSS Short)', isNot: 'Data Retention Error / Read/Write Speed Drop' },
             { factor: 'Position', is: 'Main Board U101 eMMC 위치', isNot: 'U102 DRAM / Main AP SoC' },
@@ -106,19 +106,19 @@
         d3: {
           materialFlow: [
             { area: '1. Supplier (원자재 협력사)', lot: 'Capacitor #C2608', totalQty: 100000, holdQty: 100000, screenQty: 5000, ngQty: 0, status: 'Hold & Audit', evidence: 'Supplier Lock Notice #SL-260901' },
-            { area: '2. Ramos WIP (당사 재공품)', lot: 'EM2608-DTV01', totalQty: 15000, holdQty: 15000, screenQty: 15000, ngQty: 0, status: '100% Lock', evidence: 'MES WIP Lock ID #WIP-901' },
-            { area: '3. Ramos FG (당사 완제품 재고)', lot: 'EM2608-DTV01', totalQty: 45000, holdQty: 45000, screenQty: 45000, ngQty: 0, status: 'Shipment Blocked', evidence: 'ERP Hold Record #ERP-8D-01' },
-            { area: '4. In-Transit (운송 중 재고)', lot: 'EM2608-DTV01', totalQty: 8000, holdQty: 8000, screenQty: 0, ngQty: 0, status: 'Recalled', evidence: 'Logistics Recall Ack #TR-881' },
-            { area: '5. Customer WH (고객사 창고 재고)', lot: 'EM2608-DTV01', totalQty: 22000, holdQty: 22000, screenQty: 22000, ngQty: 0, status: 'Customer Hold', evidence: 'LGE WH Isolation Mail' },
-            { area: '6. Customer Production (고객사 라인)', lot: 'EM2608-DTV01', totalQty: 10000, holdQty: 10000, screenQty: 10000, ngQty: 12, status: '100% Screened', evidence: 'LGE Line Screening Sheet' },
-            { area: '7. Field / Market (시장 유출 재고)', lot: 'EM2608-DTV01', totalQty: 0, holdQty: 0, screenQty: 0, ngQty: 0, status: 'Zero Leakage', evidence: 'LGE TV Outflow Check: Complete' }
+            { area: '2. Ramos WIP (당사 재공품)', lot: '0QH321200A02-LPAGA00', totalQty: 15000, holdQty: 15000, screenQty: 15000, ngQty: 0, status: '100% Lock', evidence: 'MES WIP Lock ID #WIP-901' },
+            { area: '3. Ramos FG (당사 완제품 재고)', lot: '0QH321200A02-LPAGA00', totalQty: 45000, holdQty: 45000, screenQty: 45000, ngQty: 0, status: 'Shipment Blocked', evidence: 'ERP Hold Record #ERP-8D-01' },
+            { area: '4. In-Transit (운송 중 재고)', lot: '0QH321200A02-LPAGA00', totalQty: 8000, holdQty: 8000, screenQty: 0, ngQty: 0, status: 'Recalled', evidence: 'Logistics Recall Ack #TR-881' },
+            { area: '5. Customer WH (고객사 창고 재고)', lot: '0QH321200A02-LPAGA00', totalQty: 22000, holdQty: 22000, screenQty: 22000, ngQty: 0, status: 'Customer Hold', evidence: 'LGE WH Isolation Mail' },
+            { area: '6. Customer Production (고객사 라인)', lot: '0QH321200A02-LPAGA00', totalQty: 10000, holdQty: 10000, screenQty: 10000, ngQty: 12, status: '100% Screened', evidence: 'LGE Line Screening Sheet' },
+            { area: '7. Field / Market (시장 유출 재고)', lot: '0QH321200A02-LPAGA00', totalQty: 0, holdQty: 0, screenQty: 0, ngQty: 0, status: 'Zero Leakage', evidence: 'LGE TV Outflow Check: Complete' }
           ],
           actions: [
             { id: 'CA-001', target: '당사 완제품 창고 (FG)', action: 'ERP 출하 시스템 전면 잠금(Shipment Lock)', owner: '공아름 선임', due: '09.01 09:30', completion: '09.01 09:15', result: '45,000ea 출하 통제 완료', status: 'Closed', evidenceId: 'EVD-01' },
             { id: 'CA-002', target: 'LGE 생산 라인 재고', action: 'SMT 투입 정지 및 잔여 10,000ea 전수 전기 검사(IV Curve)', owner: '김성중 수석', due: '09.01 12:00', completion: '09.01 11:45', result: '10,000ea 선별 중 12ea 불량 적출, 9,988ea 정상', status: 'Closed', evidenceId: 'EVD-02' },
             { id: 'CA-003', target: '협력사 원자재 재고', action: 'MLCC 특정 배치 공급 중단 및 격리 보관', owner: '장민호 책임', due: '09.01 14:00', completion: '09.01 13:30', result: '원자재 100,000ea 입고 잠금 완료', status: 'Closed', evidenceId: 'EVD-03' }
           ],
-          effectivenessStatement: '확인된 Affected Lot(#EM2608-DTV01) 및 관리대상 재고 전량(100,000ea)에 대한 출하 차단·격리·선별 조치 완료. 공정 및 완제품 단계 유출 방지 조치 완결됨.'
+          effectivenessStatement: '확인된 Affected Lot(#0QH321200A02-LPAGA00) 및 관리대상 재고 전량(100,000ea)에 대한 출하 차단·격리·선별 조치 완료. 공정 및 완제품 단계 유출 방지 조치 완결됨.'
         },
 
         // D4: Root Cause Analysis (Occurrence & Escape, 5-Why, FA Data)
@@ -242,8 +242,8 @@
             { docName: 'BOM Review Checklist', docNo: 'SOP-RD-044', rev: 'Rev.3.0', changeContent: '신규 부품 승인 시 HTOL/환경시험 온도와 부품 Spec 일치 검증 게이트 신설', status: 'Completed', owner: '이창민 상무' }
           ],
           horizontalDeployment: [
-            { product: 'eMMC 5.1 32GB (RM-EM51-032G)', samePartUsed: 'Yes (X5R 적용 확인)', sameRisk: 'Yes (High)', action: 'BOM Rev.B로 즉시 X7R 변경 완료', status: 'Closed' },
-            { product: 'eMMC 5.1 64GB (RM-EM51-064G)', samePartUsed: 'Yes (개선 대상)', sameRisk: 'Yes (High)', action: 'ECN-260901 적용 완결', status: 'Closed' },
+            { product: 'DTV eMMC 5.1 16GB (BGA153) (RM-EM51-032G)', samePartUsed: 'Yes (X5R 적용 확인)', sameRisk: 'Yes (High)', action: 'BOM Rev.B로 즉시 X7R 변경 완료', status: 'Closed' },
+            { product: 'DTV eMMC 5.1 16GB (BGA153) (RM-EM51-064G)', samePartUsed: 'Yes (개선 대상)', sameRisk: 'Yes (High)', action: 'ECN-260901 적용 완결', status: 'Closed' },
             { product: 'eMMC 5.1 128GB (RM-EM51-128G)', samePartUsed: 'No (기존 X7R 적용 중)', sameRisk: 'None', action: '이상 없음 확인', status: 'Closed' },
             { product: 'NVMe SSD 512GB (RM-SSD-512G)', samePartUsed: 'No (별도 고온 부품군)', sameRisk: 'Low', action: 'BOM Cross Check 완료', status: 'Closed' }
           ]
@@ -326,7 +326,7 @@
           problemWhere: 'LGE 평택 DTV Main Board 실장 2라인 검사 공정',
           problemWhen: '2026.09.01 19:30',
           problemWho: 'LGE DTV SMT품질팀 김성식 책임',
-          problemWhich: 'RM-EM51-032G-DTV / Lot #EM2608-DTV02',
+          problemWhich: 'MMACGD8J0F-KV0AF0-TPAG / Lot #0QH321200A05-LPAGA00',
           problemHow: 'SMT 리플로우 후 Initial Boot 단계에서 Inked NAND Bad Block 테이블 매핑 지연',
           problemHowMany: '5 / 5,000ea (1,000 PPM)',
           isIsNot: [],
@@ -1308,3 +1308,11 @@
 
       return tasks;
     }
+
+
+    window.resetToReal16GBData = function() {
+      localStorage.removeItem('AI_QMS_8D_DATA_V4');
+      localStorage.removeItem('AI_QMS_8D_DATA_V5_REAL_16GB');
+      localStorage.removeItem('AI_QMS_8D_DATA_V3');
+      location.reload();
+    };
