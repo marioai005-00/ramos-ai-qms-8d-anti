@@ -96,6 +96,7 @@ function openStageReportPreview(stage) {
     ${renderStageReportPreview(c,stage)}
   </div>`;
   modal.style.display = 'flex';
+  if (stage === 'D4' && typeof hydrateD4EvidenceAttachments === 'function') setTimeout(() => hydrateD4EvidenceAttachments(container), 0);
   if (window.lucide) lucide.createIcons();
 }
 

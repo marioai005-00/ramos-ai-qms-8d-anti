@@ -1043,7 +1043,7 @@
       if(!isD3StageComplete(c)){alert('D4 승인 전 D3 봉쇄 범위와 효과성 승인이 필요합니다.');return;}
       const ids=d4.selectedTools.map(row=>row.id); if(D4_CORE_TOOL_IDS.some(id=>!ids.includes(id))){alert('D4 필수 도구 5개(타임라인·Process Flow·Change Point·Fishbone·3-Track 5 Why)를 적용해 주세요.');return;}
       if(d4.selectedTools.some(row=>!row.hypothesis||!row.evidence||!row.finding||!row.owner||row.status==='Planned'||row.status==='Testing'||!row.verified)){alert('선택한 모든 품질도구의 가설·Evidence·결과·담당자·판정을 작성하고 사실 확인해 주세요.');return;}
-      if(d4.selectedTools.some(row=>!row.artifact?.humanConfirmed||!row.artifact?.rows?.length)){alert('선택한 모든 품질도구에서 [Evidence 작성]을 열어 구조화된 분석 문서를 작성하고 사람 확인해 주세요.');return;}
+      if(d4.selectedTools.some(row=>!row.artifact?.humanConfirmed||(!row.artifact?.rows?.length&&!row.artifact?.attachments?.length))){alert('선택한 모든 품질도구에서 분석 양식을 작성하거나 완성된 분석자료를 첨부한 뒤 사람 확인해 주세요.');return;}
       const incomplete=['Occurrence','Escape','System'].some(type=>{const root=d4.rootCauses[type];return !root.statement||!root.evidence||!root.validationMethod||root.status!=='Confirmed'||Object.values(root.checks||{}).some(value=>!value);});
       if(incomplete){alert('발생·유출·시스템 원인 각각의 문장·Evidence·검증결과와 인과관계 4개 기준을 모두 충족해 주세요.');return;}
       if(!form?.elements.d4HumanConfirmed?.checked){alert('[D4 원인 검토 완료]에 체크해 주세요.');return;}
