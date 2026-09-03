@@ -114,9 +114,11 @@
             { area: '7. Field / Market (시장 유출 재고)', lot: '0QH321200A02-LPAGA00', totalQty: 0, holdQty: 0, screenQty: 0, ngQty: 0, status: 'Zero Leakage', evidence: 'LGE TV Outflow Check: Complete' }
           ],
           actions: [
-            { id: 'CA-001', target: '당사 완제품 창고 (FG)', action: 'ERP 출하 시스템 전면 잠금(Shipment Lock)', owner: '공아름 선임', due: '09.01 09:30', completion: '09.01 09:15', result: '45,000ea 출하 통제 완료', status: 'Closed', evidenceId: 'EVD-01' },
-            { id: 'CA-002', target: 'LGE 생산 라인 재고', action: 'SMT 투입 정지 및 잔여 10,000ea 전수 전기 검사(IV Curve)', owner: '김성중 수석', due: '09.01 12:00', completion: '09.01 11:45', result: '10,000ea 선별 중 12ea 불량 적출, 9,988ea 정상', status: 'Closed', evidenceId: 'EVD-02' },
-            { id: 'CA-003', target: '협력사 원자재 재고', action: 'MLCC 특정 배치 공급 중단 및 격리 보관', owner: '장민호 책임', due: '09.01 14:00', completion: '09.01 13:30', result: '원자재 100,000ea 입고 잠금 완료', status: 'Closed', evidenceId: 'EVD-03' }
+            { id: 'ICA-01', target: '사내 창고 (RAK4/5) & CTST 공정', action: 'ERP 완제품 출하 전면 잠금(Shipment Lock) 및 CTST MES 재공품 HOLD 태그 부착', owner: '조철민 그룹장_P.Pro (자원운영그룹)', due: '2026-09-01 09:30', completion: '2026-09-01 09:15', result: 'RAK4 1,675ea 출하 잠금 및 CTST 재공 1,608ea 격리 완료', status: 'Completed', evidence: 'ERP Hold 전표 #ERP-HLD-01' },
+            { id: 'ICA-02', target: '외주 가공처 (TechL 라인)', action: 'TechL 외주 SMT/TEST 공정 작업 중지 및 SHORT TEST 잔여 재공 일괄 격리 통보', owner: '김혜원 Pro (외주운영그룹)', due: '2026-09-01 10:30', completion: '2026-09-01 10:10', result: 'TechL SMT 3라인 가동 일시 중단 및 공정 락 통보 공문 발송', status: 'Completed', evidence: 'TechL 라인스톱 접수증 #TL-260901' },
+            { id: 'ICA-03', target: '운송 중 물류 (In-Transit)', action: '평택행 출하 트럭 송장 추적 및 운송사 유선 통보하여 오창 창고 회차 조치', owner: '남서현 Pro (전략소싱팀 LGE 영업)', due: '2026-09-01 11:30', completion: '2026-09-01 11:00', result: '운송 중 8,000ea 트럭 회차 완료 및 RAK4 입고 대기 전환', status: 'Completed', evidence: '물류사 회차 확인서 #LOGI-881' },
+            { id: 'ICA-04', target: '고객사 (LGE 평택 DTV 라인)', action: 'LGE 평택 DTV SMT 3라인 투입 중단 긴급 공문 발송 및 고객 창고 재고 격리 요청', owner: '이하영 Pro (전략소싱팀 LGE CS)', due: '2026-09-01 12:00', completion: '2026-09-01 11:40', result: 'LGE 품질팀 접수 확인 및 메인보드 SMT 투입 차단 완료', status: 'Completed', evidence: 'LGE CS 접수 회신 메일' },
+            { id: 'ICA-05', target: '고객사 현장 전기 선별', action: 'LGE 평택 공장 현장 CS 급파, VCC-VSS 저항 0.8Ω 단락 선별 지그 기반 100% 전수 검사', owner: '박재환 팀장_S.Pro (Flash개발2팀 FA Lead)', due: '2026-09-02 08:30', completion: '2026-09-01 18:00', result: 'LGE 잔여 10,000ea 전수 측정 중 12ea 단락 적출, 9,988ea 양품 판정', status: 'Completed', evidence: '현장 선별 성적서 #EVD-02' }
           ],
           effectivenessStatement: '확인된 Affected Lot(#0QH321200A02-LPAGA00) 및 관리대상 재고 전량(100,000ea)에 대한 출하 차단·격리·선별 조치 완료. 공정 및 완제품 단계 유출 방지 조치 완결됨.'
         },

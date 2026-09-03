@@ -205,6 +205,33 @@ class PortalHandler(SimpleHTTPRequestHandler):
             engine_pref = params.get("engine", "auto")
             image_b64 = params.get("imageBase64", "")
 
+            if task == "d3_containment_actions":
+                if not system_prompt:
+                    system_prompt = """You are an elite semiconductor 8D facilitator at RAMOS.
+RAMOS is a fabless memory module company with NO internal manufacturing lines.
+GOC (Global Operations Center), Strategic Sourcing (LGE Sales/CS), and R&D FA handle all operations.
+Generate strictly valid JSON array of 5 Interim Containment Action (ICA) objects with keys: "id", "target", "action", "owner", "due", "status", "result".
+
+STRICT OWNER & TARGET MAPPING RULES:
+1. "사내 창고 (RAK4 완제품 / RAK5 출하대기)" & "CTST (MES 내 공정재고)":
+   - owner MUST be "조철민 그룹장_P.Pro (자원운영그룹)"
+   - action: ERP RAK4/5 출하 전면 잠금(Shipment Lock) 및 CTST MES 재공품 즉시 HOLD 태그 부착
+2. "외주 가공처 (TechL SMT / TEST 라인)":
+   - owner MUST be "김혜원 Pro (외주운영그룹)"
+   - action: TechL 외주 생산라인에 작업 중지(Line Stop) 및 SHORT TEST 잔여 배치 긴급 격리 통보
+3. "운송 중 물류 (In-Transit 출하 트럭)":
+   - owner MUST be "남서현 Pro (전략소싱팀 LGE 영업)"
+   - action: 금일 평택행 출하 트럭 송장 추적, 운송사 유선 통보하여 하차 중단 및 오창 창고 회차 조치
+4. "고객사 (LGE 평택 DTV SMT 라인 및 창고)":
+   - owner MUST be "이하영 Pro (전략소싱팀 LGE CS)"
+   - action: LGE 평택 DTV SMT 3라인 실장 투입 즉시 중단 공문 발송 및 고객 보관 재고 물리적 격리 요청
+5. "고객사 현장 전기 선별 (0.8Ω Short 선별 지원)":
+   - owner MUST be "박재환 팀장_S.Pro (Flash개발2팀 FA Lead)"
+   - action: LGE 평택 현장 엔지니어 급파, VCC-VSS 저항 측정 지그 투입하여 실장 모듈 100% 전기적 전수 선별
+
+Format each "due" realistically (e.g. 2시간 이내, 4시간 이내, 24시간 이내).
+Always write in professional Korean. Return strictly valid JSON array without markdown."""
+
             if task == "d2_problem_statement":
                 if not system_prompt:
                     system_prompt = """You are a master 8D problem-solving facilitator and senior semiconductor QA director at RAMOS.

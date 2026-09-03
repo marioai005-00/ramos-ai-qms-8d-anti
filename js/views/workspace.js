@@ -1370,7 +1370,21 @@ function getLotPrefixAndSeq(lotStr = '') {
           </div>
 
           <div class="card quality-stage-card">
-            <div class="quality-tool-head inline-head"><div><span class="quality-tool-kicker">QUALITY TOOL · INTERIM CONTAINMENT ACTION</span><h3>긴급 봉쇄조치</h3></div><button type="button" class="btn btn-secondary btn-sm" onclick="addD3ContainmentAction()"><i data-lucide="plus" style="width:13px;height:13px;"></i> 조치 추가</button></div>
+            <div class="quality-tool-head inline-head">
+  <div>
+    <span class="quality-tool-kicker">QUALITY TOOL · INTERIM CONTAINMENT ACTION</span>
+    <h3>긴급 봉쇄조치 (ICA 플랜)</h3>
+    <p>라모스는 자체 제조라인이 없으므로 GOC(자원운영·외주운영), 전략소싱(영업·CS), 개발(FA)이 100% 실명으로 역할을 분담합니다.</p>
+  </div>
+  <div class="inline-action-group">
+    <button type="button" class="btn btn-primary btn-sm" onclick="generateD3ContainmentPlan()" title="사내 조직도(조철민, 김혜원, 남서현, 이하영, 박재환) 기반 5대 봉쇄조치 자동 편성" style="box-shadow:0 0 10px rgba(59,130,246,0.35);">
+      <i data-lucide="sparkles" style="width:13px;height:13px;"></i> ✨ AI 봉쇄 플랜 자동 수립
+    </button>
+    <button type="button" class="btn btn-secondary btn-sm" onclick="addD3ContainmentAction()">
+      <i data-lucide="plus" style="width:13px;height:13px;"></i> 수기 추가
+    </button>
+  </div>
+</div>
             <div class="quality-table-wrap"><table class="custom-table quality-edit-table wide-quality-table"><thead><tr><th>ID</th><th>대상</th><th>조치 내용</th><th>담당자</th><th>기한</th><th>상태</th><th>결과·Evidence</th><th>관리</th></tr></thead><tbody>
               ${d3.actions.length ? d3.actions.map((row,idx) => `<tr><td class="num-mono">${row.id || `ICA-${String(idx+1).padStart(2,'0')}`}</td><td><input class="form-control" name="caTarget${idx}" value="${escapeWorkspaceValue(row.target)}"></td><td><input class="form-control" name="caAction${idx}" value="${escapeWorkspaceValue(row.action)}"></td><td><input class="form-control" name="caOwner${idx}" value="${escapeWorkspaceValue(row.owner)}"></td><td><input class="form-control" name="caDue${idx}" type="datetime-local" value="${escapeWorkspaceValue(String(row.due || '').replace(' ','T'))}"></td><td><select class="form-control" name="caStatus${idx}">${['Open','In Progress','Completed'].map(status => `<option ${row.status === status ? 'selected' : ''}>${status}</option>`).join('')}</select></td><td><input class="form-control" name="caResult${idx}" value="${escapeWorkspaceValue(row.result || row.evidence)}" placeholder="결과/증거번호"></td><td><button type="button" class="icon-danger-btn" onclick="removeD3ContainmentAction(${idx})"><i data-lucide="trash-2"></i></button></td></tr>`).join('') : `<tr><td colspan="8" class="quality-empty-row">출하정지·재고격리·고객선별 등의 봉쇄조치를 등록하세요.</td></tr>`}
             </tbody></table></div>
@@ -1409,6 +1423,150 @@ function getLotPrefixAndSeq(lotStr = '') {
       const c = getActiveCase(); const d3 = captureD3Form(c);
       d3.materialFlow = createD3MaterialFlowRows(c);
       saveAppData(); renderCurrentView();
+    }
+
+
+    async function generateD3ContainmentPlan() {
+      const c = getActiveCase();
+      if (!c) return;
+      const d3 = captureD3Form(c);
+
+      if (d3.actions.length > 0 && d3.actions.some(a => a.action || a.target)) {
+        if (!confirm('기존에 입력된 긴급 봉쇄조치를 실제 조직도(조철민 그룹장, 김혜원 Pro, 남서현 Pro, 이하영 Pro, 박재환 팀장) 기반의 AI 추천 플랜으로 교체하시겠습니까?')) return;
+      }
+
+      const btn = document.querySelector('button[onclick="generateD3ContainmentPlan()"]');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="agent-pulse" style="width:6px;height:6px;"></span> 🧠 Groq ⚡ LPU 봉쇄 플랜 수립 중...';
+      }
+
+      const customer = c.customer || 'LGE (LG전자 HE사업본부 DTV)';
+      const product = c.product || 'DTV eMMC 5.1 16GB (BGA153)';
+      const partNumber = c.partNumber || 'MMACGD8J0F-KV0AF0-TPAG';
+      const lotNumber = c.lotNumber || '0QH321200A02-LPAGA00';
+      const incidentSite = c.incidentSite || 'LGE 평택 DTV Main Board SMT 3라인';
+      const defectQty = c.defectQty || 12;
+      const ppm = c.ppm || 1200;
+
+      const userPrompt = `
+[품질 사고 정보]
+- 고객사: ${customer}
+- 제품명 / P/N: ${product} / ${partNumber}
+- 부적합 Lot No: #${lotNumber}
+- 발생 라인: ${incidentSite}
+- 불량 규모: ${defectQty}ea (${ppm.toLocaleString()} PPM, 라인 정지 위험)
+- 회사 특성: 라모스테크놀러지는 자체 제조라인이 없는 Fabless/모듈 회사임.
+- 필수 배속 담당자:
+  1) 사내 창고(RAK4/5) 및 CTST MES 재공: 조철민 그룹장_P.Pro (자원운영그룹)
+  2) TechL 외주 가공처 SMT/공정 통제: 김혜원 Pro (외주운영그룹)
+  3) In-Transit 운송 트럭 회차/물류: 남서현 Pro (전략소싱팀 LGE 영업)
+  4) LGE 평택 라인 투입 중지 공문: 이하영 Pro (전략소싱팀 LGE CS)
+  5) 현장 0.8Ω 저항 전기 선별 지원: 박재환 팀장_S.Pro (Flash개발2팀 FA Lead)
+
+위 사실을 바탕으로 실행 가능한 5대 긴급 봉쇄조치(ICA) JSON 배열을 생성하세요.
+      `.trim();
+
+      let generatedActions = null;
+
+      if (typeof RamosDualAI !== 'undefined') {
+        try {
+          const aiRes = await RamosDualAI.query({
+            task: 'd3_containment_actions',
+            prompt: userPrompt,
+            engine: 'groq'
+          });
+
+          if (aiRes && aiRes.success && aiRes.text) {
+            let cleanJson = aiRes.text.trim();
+            if (cleanJson.includes('```json')) {
+              cleanJson = cleanJson.split('```json')[1].split('```')[0].trim();
+            } else if (cleanJson.includes('```')) {
+              cleanJson = cleanJson.split('```')[1].split('```')[0].trim();
+            }
+            const parsed = JSON.parse(cleanJson);
+            if (Array.isArray(parsed) && parsed.length >= 3) {
+              generatedActions = parsed.map((item, idx) => ({
+                id: item.id || `ICA-${String(idx+1).padStart(2,'0')}`,
+                target: item.target || '',
+                action: item.action || '',
+                owner: item.owner || '',
+                due: item.due || new Date(Date.now() + (idx+1)*3600*1000*2).toISOString().replace('T',' ').slice(0,16),
+                status: item.status || 'Open',
+                result: item.result || '',
+                completion: item.completion || ''
+              }));
+            }
+          }
+        } catch (err) {
+          console.warn('AI D3 Containment Plan error, applying real org fallback:', err);
+        }
+      }
+
+      // 100% Real Company Org-Structure Fallback (조철민, 김혜원, 남서현, 이하영, 박재환)
+      if (!generatedActions || !generatedActions.length) {
+        const now = new Date();
+        const fmtDue = (h) => new Date(now.getTime() + h*3600*1000).toISOString().replace('T',' ').slice(0,16);
+
+        generatedActions = [
+          {
+            id: 'ICA-01',
+            target: '사내 창고 (RAK4/5) & CTST 재공',
+            action: 'ERP 완제품 출하 전면 잠금(Shipment Lock) 등록 및 CTST MES 재공품 전량 HOLD 태그 부착',
+            owner: '조철민 그룹장_P.Pro (자원운영그룹)',
+            due: fmtDue(2),
+            status: 'Open',
+            result: 'ERP RAK4 1,675ea 출하 잠금 전산 등록',
+            completion: ''
+          },
+          {
+            id: 'ICA-02',
+            target: '외주 가공처 (TechL 라인)',
+            action: 'TechL 외주 SMT/TEST 공정 작업 즉시 중지(Line Hold) 및 SHORT TEST 잔여품 격리 통보',
+            owner: '김혜원 Pro (외주운영그룹)',
+            due: fmtDue(4),
+            status: 'Open',
+            result: 'TechL 라인스톱 및 공정 락 접수증',
+            completion: ''
+          },
+          {
+            id: 'ICA-03',
+            target: '운송 중 물류 (In-Transit)',
+            action: '평택행 출하 트럭 송장 추적 및 운송사 유선 통보하여 오창 입고창고 회차 지시',
+            owner: '남서현 Pro (전략소싱팀 LGE 영업)',
+            due: fmtDue(4),
+            status: 'Open',
+            result: '운송사 통화 확인 및 회차 접수증',
+            completion: ''
+          },
+          {
+            id: 'ICA-04',
+            target: '고객사 (LGE 평택 DTV 라인)',
+            action: 'LGE 평택 DTV SMT 3라인 실장 투입 즉시 중단 공문 발송 및 고객 창고 재고 격리 요청',
+            owner: '이하영 Pro (전략소싱팀 LGE CS)',
+            due: fmtDue(4),
+            status: 'Open',
+            result: 'LGE DTV 품질팀 공문 접수 및 투입 차단 메일',
+            completion: ''
+          },
+          {
+            id: 'ICA-05',
+            target: '고객사 현장 전기 선별',
+            action: 'LGE 평택 공장 현장 CS 급파, VCC-VSS 저항 0.8Ω 단락 선별 지그 투입하여 실장 모듈 100% 전수 검사',
+            owner: '박재환 팀장_S.Pro (Flash개발2팀 FA Lead)',
+            due: fmtDue(24),
+            status: 'Open',
+            result: 'LGE 평택 현장 100% 전기적 선별 성적서',
+            completion: ''
+          }
+        ];
+      }
+
+      d3.actions = generatedActions;
+      saveAppData();
+      renderCurrentView();
+
+      if (window.lucide) lucide.createIcons();
     }
 
     function addD3ContainmentAction() {
