@@ -1967,28 +1967,28 @@ function getLotPrefixAndSeq(lotStr = '') {
       if (stageKey === 'D2') {
         const d2 = c.d2 || {};
         return `
-          <div class="report-section-h4"><i data-lucide="check-square" style="width:14px;height:14px;"></i> IATF 16949 표준 문제 정의문 (Fact Synthesis)</div>
-          <div style="background:rgba(59,130,246,0.08); border-left:3px solid #3b82f6; padding:12px 14px; border-radius:4px; font-size:0.82rem; color:#e2e8f0; line-height:1.6; margin-bottom:14px;">
-            ${d2.problemStatement || '문제 정의문이 작성되지 않았습니다.'}
+          <div class="report-section-h4"><i data-lucide="check-square" style="width:18px;height:18px;"></i> IATF 16949 표준 문제 정의문 (Fact Synthesis)</div>
+          <div class="report-statement-box">
+            ${escapeWorkspaceValue(d2.problemStatement || '문제 정의문이 작성되지 않았습니다.')}
           </div>
 
-          <div class="report-section-h4"><i data-lucide="table" style="width:14px;height:14px;"></i> Kepner-Tregoe IS / IS NOT 문제의 경계 비교 매트릭스 (${d2.isIsNot?.length || 0}개 차원)</div>
-          <table class="custom-table" style="font-size:0.72rem; margin-bottom:14px;">
+          <div class="report-section-h4"><i data-lucide="table" style="width:18px;height:18px;"></i> Kepner-Tregoe IS / IS NOT 문제의 경계 비교 매트릭스 (${d2.isIsNot?.length || 0}개 차원)</div>
+          <table class="report-doc-table">
             <thead>
               <tr>
-                <th>구분</th>
-                <th>IS (발생함)</th>
-                <th>IS NOT (발생 안함)</th>
-                <th>차이 / 특이점</th>
+                <th style="width:18%;">구분 (Factor)</th>
+                <th style="width:28%; background:#991b1b !important;">🔴 IS (발생 대상)</th>
+                <th style="width:27%; background:#166534 !important;">🟢 IS NOT (발생 안함)</th>
+                <th style="width:27%; background:#9a3412 !important;">⚡ 차이 / 특이점</th>
               </tr>
             </thead>
             <tbody>
               ${(d2.isIsNot || []).map(r => `
                 <tr>
-                  <td style="font-weight:700; color:#38bdf8;">${escapeWorkspaceValue(r.factor)}</td>
-                  <td style="color:#f8fafc;">${escapeWorkspaceValue(r.is)}</td>
-                  <td style="color:#94a3b8;">${escapeWorkspaceValue(r.isNot)}</td>
-                  <td style="color:#fbbf24;">${escapeWorkspaceValue(r.difference)}</td>
+                  <td class="report-col-factor">${escapeWorkspaceValue(r.factor)}</td>
+                  <td class="report-col-is">${escapeWorkspaceValue(r.is)}</td>
+                  <td class="report-col-isnot">${escapeWorkspaceValue(r.isNot)}</td>
+                  <td class="report-col-diff">${escapeWorkspaceValue(r.difference)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1999,41 +1999,41 @@ function getLotPrefixAndSeq(lotStr = '') {
       if (stageKey === 'D3') {
         const d3 = c.d3 || {};
         return `
-          <div class="report-section-h4"><i data-lucide="radar" style="width:14px;height:14px;"></i> 7-Area 재고 격리 및 영향 범위 요약</div>
-          <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:14px;">
-            <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:6px;">
-              <span style="font-size:0.68rem; color:#94a3b8;">RAK4 완제품 재고</span>
-              <div style="font-size:1rem; font-weight:800; color:#38bdf8;">${Number(d3.inventorySources?.erp?.RAK4?.currentQty || 1675).toLocaleString()}ea (Hold 100%)</div>
+          <div class="report-section-h4"><i data-lucide="radar" style="width:18px;height:18px;"></i> 7-Area 재고 격리 및 영향 범위 요약</div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; margin-bottom:18px;">
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:6px;">
+              <span style="font-size:0.75rem; color:#64748b; font-weight:700;">RAK4 완제품 재고 (ERP)</span>
+              <div style="font-size:1.15rem; font-weight:900; color:#0369a1; margin-top:4px;">${Number(d3.inventorySources?.erp?.RAK4?.currentQty || 1675).toLocaleString()}ea <span style="font-size:0.75rem; color:#b91c1c; font-weight:800;">(Hold 100%)</span></div>
             </div>
-            <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:6px;">
-              <span style="font-size:0.68rem; color:#94a3b8;">CTST MES 라인 재공</span>
-              <div style="font-size:1rem; font-weight:800; color:#fbbf24;">${Number(d3.inventorySources?.mes?.processStocks?.reduce((s,r)=>s+Number(r.currentQty||0),0) || 1608).toLocaleString()}ea (Hold)</div>
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:6px;">
+              <span style="font-size:0.75rem; color:#64748b; font-weight:700;">CTST 라인 재공 (MES)</span>
+              <div style="font-size:1.15rem; font-weight:900; color:#b45309; margin-top:4px;">${Number(d3.inventorySources?.mes?.processStocks?.reduce((s,r)=>s+Number(r.currentQty||0),0) || 1608).toLocaleString()}ea <span style="font-size:0.75rem; color:#b91c1c; font-weight:800;">(Hold)</span></div>
             </div>
-            <div style="background:rgba(255,255,255,0.04); padding:10px; border-radius:6px;">
-              <span style="font-size:0.68rem; color:#94a3b8;">인접 LOT 확대 대상</span>
-              <div style="font-size:0.8rem; font-weight:700; color:#34d399;">${d3.lotScope?.adjacentLots || '0QH321200A03, A05'}</div>
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:6px;">
+              <span style="font-size:0.75rem; color:#64748b; font-weight:700;">인접 LOT 추적 대상</span>
+              <div style="font-size:0.92rem; font-weight:800; color:#15803d; margin-top:4px;">${d3.lotScope?.adjacentLots || '0QH321200A03, A05'}</div>
             </div>
           </div>
 
-          <div class="report-section-h4"><i data-lucide="shield-check" style="width:14px;height:14px;"></i> 긴급 봉쇄 조치 (ICA 실행 내역)</div>
-          <table class="custom-table" style="font-size:0.72rem;">
+          <div class="report-section-h4"><i data-lucide="shield-check" style="width:18px;height:18px;"></i> 긴급 봉쇄 조치 (ICA 실행 내역 - 실명 RACI)</div>
+          <table class="report-doc-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>대상</th>
-                <th>구체적 조치 내용</th>
-                <th>담당자</th>
-                <th>상태</th>
+                <th style="width:10%;">ID</th>
+                <th style="width:25%;">대상 영역 (Target)</th>
+                <th style="width:37%;">구체적 실행 조치</th>
+                <th style="width:18%;">담당자 (Owner)</th>
+                <th style="width:10%;">상태</th>
               </tr>
             </thead>
             <tbody>
               ${(d3.actions || []).map(a => `
                 <tr>
-                  <td class="num-mono">${a.id}</td>
-                  <td style="font-weight:700; color:#38bdf8;">${escapeWorkspaceValue(a.target)}</td>
-                  <td>${escapeWorkspaceValue(a.action)}</td>
-                  <td style="color:#f8fafc; font-weight:600;">${escapeWorkspaceValue(a.owner)}</td>
-                  <td><span class="badge-pill badge-ok">${a.status}</span></td>
+                  <td class="num-mono" style="font-weight:800; color:#0369a1;">${a.id}</td>
+                  <td style="font-weight:800; color:#0f172a;">${escapeWorkspaceValue(a.target)}</td>
+                  <td style="color:#334155; font-size:0.8rem;">${escapeWorkspaceValue(a.action)}</td>
+                  <td style="color:#0f172a; font-weight:800;">${escapeWorkspaceValue(a.owner)}</td>
+                  <td><span class="badge-pill badge-ok" style="font-size:0.72rem; padding:3px 8px;">${a.status}</span></td>
                 </tr>
               `).join('')}
             </tbody>

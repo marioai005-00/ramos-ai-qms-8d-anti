@@ -841,20 +841,20 @@
     }
     .stage-report-modal {
       background: #0f172a;
-      border: 1px solid rgba(59, 130, 246, 0.4);
+      border: 1px solid #3b82f6;
       border-radius: 12px;
       width: 100%;
-      max-width: 960px;
-      max-height: 90vh;
+      max-width: 1000px;
+      max-height: 92vh;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 20px rgba(59, 130, 246, 0.25);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 30px rgba(59, 130, 246, 0.3);
       overflow: hidden;
     }
     .stage-report-header {
       padding: 16px 24px;
       background: #1e293b;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -866,9 +866,9 @@
       background: #0b1120;
     }
     .stage-report-footer {
-      padding: 14px 24px;
+      padding: 16px 24px;
       background: #1e293b;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -877,16 +877,16 @@
     /* 3-Step Sign-Off Box */
     .signoff-box-wrap {
       display: flex;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      background: rgba(15, 23, 42, 0.8);
-      border-radius: 6px;
+      border: 2px solid #334155;
+      background: #1e293b;
+      border-radius: 8px;
       overflow: hidden;
       margin-bottom: 20px;
     }
     .signoff-cell {
       flex: 1;
-      border-right: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 10px;
+      border-right: 1px solid #334155;
+      padding: 12px;
       text-align: center;
       position: relative;
     }
@@ -894,7 +894,7 @@
       border-right: none;
     }
     .signoff-role-title {
-      font-size: 0.7rem;
+      font-size: 0.72rem;
       font-weight: 800;
       color: #94a3b8;
       text-transform: uppercase;
@@ -902,9 +902,9 @@
       margin-bottom: 6px;
     }
     .signoff-person-name {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #f8fafc;
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #ffffff;
       margin-bottom: 4px;
     }
     .signoff-stamp {
@@ -912,59 +912,136 @@
       align-items: center;
       justify-content: center;
       border-radius: 4px;
-      padding: 4px 10px;
-      font-size: 0.72rem;
+      padding: 5px 12px;
+      font-size: 0.75rem;
       font-weight: 800;
       letter-spacing: 0.5px;
       margin-top: 6px;
     }
     .signoff-stamp.approved {
       border: 2px solid #10b981;
-      color: #34d399;
-      background: rgba(16, 185, 129, 0.12);
-      transform: rotate(-3deg);
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.15);
+      font-weight: 900;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
     }
     .signoff-stamp.waiting {
       border: 1px dashed #f59e0b;
       color: #fbbf24;
-      background: rgba(245, 158, 11, 0.08);
+      background: rgba(245, 158, 11, 0.15);
+      font-weight: 800;
     }
     .signoff-stamp.draft {
       border: 1px dashed #64748b;
       color: #94a3b8;
-      background: rgba(100, 116, 139, 0.08);
+      background: rgba(100, 116, 139, 0.1);
     }
+    /* Official Crisp Document Paper (High-Contrast White Paper) */
     .report-paper {
-      background: #0f172a;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #ffffff !important;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1;
       border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      padding: 28px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
     .report-title-strip {
       text-align: center;
-      border-bottom: 2px solid rgba(59, 130, 246, 0.5);
-      padding-bottom: 12px;
-      margin-bottom: 18px;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 14px;
+      margin-bottom: 20px;
+    }
+    .report-title-strip h3 {
+      color: #0f172a !important;
+      font-size: 1.25rem;
+      font-weight: 900;
+      margin: 6px 0;
     }
     .report-meta-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      background: rgba(255, 255, 255, 0.03);
-      padding: 12px;
+      gap: 12px;
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0;
+      padding: 16px;
       border-radius: 6px;
-      margin-bottom: 16px;
-      font-size: 0.75rem;
+      margin-bottom: 20px;
+      font-size: 0.82rem;
+      color: #1e293b !important;
+    }
+    .report-meta-grid b {
+      color: #0f172a !important;
+      font-weight: 800;
     }
     .report-section-h4 {
-      font-size: 0.82rem;
-      font-weight: 800;
-      color: #38bdf8;
-      margin: 16px 0 8px 0;
+      font-size: 0.95rem !important;
+      font-weight: 900 !important;
+      color: #0369a1 !important;
+      margin: 22px 0 10px 0;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 6px;
+    }
+    /* Problem Statement Box */
+    .report-statement-box {
+      background: #f0f9ff !important;
+      border-left: 5px solid #0284c7 !important;
+      border: 1px solid #bae6fd;
+      border-left-width: 5px;
+      padding: 16px 18px;
+      border-radius: 6px;
+      font-size: 0.92rem !important;
+      color: #0c4a6e !important;
+      font-weight: 700 !important;
+      line-height: 1.75;
+      margin-bottom: 18px;
+    }
+    /* High-Contrast Table Inside White Report */
+    .report-doc-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem !important;
+      margin-bottom: 16px;
+      border: 1px solid #cbd5e1;
+    }
+    .report-doc-table th {
+      background: #1e293b !important;
+      color: #ffffff !important;
+      font-weight: 800 !important;
+      padding: 10px 12px;
+      text-align: left;
+      border: 1px solid #334155;
+    }
+    .report-doc-table td {
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      line-height: 1.5;
+    }
+    .report-doc-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    .report-col-factor {
+      font-weight: 900 !important;
+      color: #0369a1 !important;
+      background: #f0fdf4;
+      width: 18%;
+    }
+    .report-col-is {
+      color: #b91c1c !important;
+      font-weight: 800 !important;
+      width: 27%;
+    }
+    .report-col-isnot {
+      color: #15803d !important;
+      font-weight: 700 !important;
+      width: 27%;
+    }
+    .report-col-diff {
+      color: #b45309 !important;
+      font-weight: 700 !important;
+      width: 28%;
     }
 
     /* 5-Why Interactive Tree */
