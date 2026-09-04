@@ -2,7 +2,7 @@
     /* MASTER DATA STORE & BENCHMARK CASES (PHILOSOPHY ALIGNED)                   */
     /* ========================================================================= */
     // V4 strictly enforces LGE DTV eMMC B2B dedicated benchmark cases.
-    const STORAGE_KEY = 'AI_QMS_8D_DATA_V6_REAL_SCM_ACTION';
+    const STORAGE_KEY = 'AI_QMS_8D_DATA_V7_D3_COMPLETED_BENCHMARK';
 
     const INITIAL_CASES = [
       {
@@ -31,8 +31,21 @@
         lineStop: true,
         safetyRisk: false,
         recurrentDefect: false,
-        currentStage: 'D3', // D1~D8
+        currentStage: 'D4', // D1~D3 완료 -> D4 검증 직행 케이스!
         status: 'In Progress', // Draft, In Progress, Under Review, Approved, Closed
+
+        // D1 Confirmation & RACI Gate Cleared
+        cftRecommendation: {
+          status: 'Human Confirmed',
+          humanConfirmed: true,
+          confirmedAt: '2026-09-01 09:00',
+          confirmedBy: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com' }
+        },
+        cftRaci: {
+          acknowledged: true,
+          confirmedAt: '2026-09-01 09:00',
+          confirmedBy: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com' }
+        },
 
         // D1: Cross-Functional Team
         team: [
@@ -46,8 +59,15 @@
           { role: '8D Quality Facilitator / 실무', name: '김성중 S.Pro', dept: '품질혁신팀', contact: 'sjkim@ramostek.com', status: 'Active' }
         ],
 
-        // D2: Problem Description (Strict Fact vs Hypothesis Separation)
+        // D2: Problem Description (Strict Fact vs Hypothesis Separation - APPROVED)
         d2: {
+          approval: {
+            status: 'Approved',
+            humanConfirmed: true,
+            approvedAt: '2026-09-01 10:30',
+            approvedBy: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com' }
+          },
+          problemStatement: '2026년 8월 31일 22시 15분, LGE 평택 스마트 DTV SMT 3라인에서 Post-Reflow 통전 시 DTV eMMC 5.1 16GB(MMACGD8J0F-KV0AF0-TPAG, Lot #0QH321200A02-LPAGA00) 12대에서 Boot CID Read Fail 및 VCC-VSS 단락(0.8Ω) 불량이 적출되어 1,200 PPM이 기록되었으며, 긴급 출하 락 및 격리 조치를 시행함.',
           problemWhat: 'eMMC Boot CID Read Fail 및 CMD1 Ready Timeout (Error Code: 0x04)',
           problemWhere: 'LGE 평택 스마트 DTV 양산 실장 라인 (SMT Post-Reflow ICT Test)',
           problemWhen: '2026년 8월 31일 22시 15분 야간 양산 가동 중 초물 검출',
@@ -105,8 +125,42 @@
           ]
         },
 
-        // D3: Containment Actions (Action-based & 7-Area Material Flow)
+        // D3: Containment Actions (Action-based & 7-Area Material Flow - APPROVED)
         d3: {
+          approval: {
+            status: 'Approved',
+            humanConfirmed: true,
+            approvedAt: '2026-09-01 14:00',
+            approvedBy: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com' }
+          },
+          inventorySources: {
+            erp: {
+              RAK4: { warehouse: 'RAK4', lot: '0QH321200A02-LPAGA00', currentQty: 1675, holdQty: 1675, evidence: 'ERP-HLD-RAK4-01', verified: true },
+              RAK5: { warehouse: 'RAK5', lot: '0QH321200A02-LPAGA00', currentQty: 40, holdQty: 40, evidence: 'ERP-HLD-RAK5-01', verified: true }
+            },
+            mes: {
+              verified: true,
+              evidence: 'MES-WIP-HLD-01',
+              processStocks: [
+                { process: 'SHORT TEST', lot: '0QH321200A02', currentQty: 1458, holdQty: 1458, status: 'HOLD완료', evidence: 'MES-WIP-01' },
+                { process: 'BI 1차', lot: '0QH321200A02', currentQty: 150, holdQty: 150, status: 'HOLD완료', evidence: 'MES-WIP-02' }
+              ]
+            }
+          },
+          lotScope: {
+            affectedLot: '0QH321200A02-LPAGA00 (원Wafer Lot: 0QH320000A02-TN)',
+            adjacentLots: '0QH321200A03-LPAGA00 (직후 인접), A05, A06',
+            rawMaterialBatch: 'Wafer Inked NAND Die 특정 배치 #W-2608 및 MLCC #C2608',
+            equipment: '오창 1공장 RF01 SMT 3라인 Reflow 및 TechL 외주라인',
+            rationale: '동일 Wafer 원Lot 및 동일 SMT 프로파일/야간 시간대 투입분 전량 격리'
+          },
+          effectiveness: {
+            noAdditionalClaim: 'yes',
+            lineStable: 'yes',
+            stockReconciled: 'yes',
+            verificationEvidence: 'LGE 평택 3라인 48시간 무결함 가동 확인 및 ERP/MES 실재고 대사 완료',
+            conclusionText: '7대 관리 영역 전반에 걸친 출하 차단 및 100% 전기적 선별로 유출 위험 0건 입증 완료'
+          },
           materialFlow: [
             { area: '1. Supplier (원자재 협력사)', lot: 'Capacitor #C2608', totalQty: 100000, holdQty: 100000, screenQty: 5000, ngQty: 0, status: 'Hold & Audit', evidence: 'Supplier Lock Notice #SL-260901' },
             { area: '2. Ramos WIP (당사 재공품)', lot: '0QH321200A02-LPAGA00', totalQty: 15000, holdQty: 15000, screenQty: 15000, ngQty: 0, status: '100% Lock', evidence: 'MES WIP Lock ID #WIP-901' },
@@ -275,6 +329,28 @@
           ],
           closureDate: '2026.09.13',
           teamAppreciation: '신속한 24h D3 초동 격리 및 72h 내 물리적 Root Cause 규명으로 LGE TV 라인 Stop을 최소화한 CFT 팀원 전원에게 품질 혁신 포상 수여.'
+        },
+
+        // 3-Step Sign-Off History (D1, D2, D3 Approved!)
+        signOffHistory: {
+          D1: {
+            status: 'Approved',
+            drafter: { name: '김성중 S.Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', signedAt: '2026-09-01 08:45' },
+            leader: { name: '김현수 실장_상무', dept: 'Flash 개발실', email: 'hskim@ramostek.com', signedAt: '2026-09-01 08:50' },
+            champion: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com', signedAt: '2026-09-01 09:00' }
+          },
+          D2: {
+            status: 'Approved',
+            drafter: { name: '김성중 S.Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', signedAt: '2026-09-01 10:00' },
+            leader: { name: '김현수 실장_상무', dept: 'Flash 개발실', email: 'hskim@ramostek.com', signedAt: '2026-09-01 10:15' },
+            champion: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com', signedAt: '2026-09-01 10:30' }
+          },
+          D3: {
+            status: 'Approved',
+            drafter: { name: '김성중 S.Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', signedAt: '2026-09-01 13:00' },
+            leader: { name: '김현수 실장_상무', dept: 'Flash 개발실', email: 'hskim@ramostek.com', signedAt: '2026-09-01 13:30' },
+            champion: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com', signedAt: '2026-09-01 14:00' }
+          }
         },
 
         // Evidence Repository Linked to this Case
@@ -1319,6 +1395,7 @@
       localStorage.removeItem('AI_QMS_8D_DATA_V4');
       localStorage.removeItem('AI_QMS_8D_DATA_V5_REAL_16GB');
       localStorage.removeItem('AI_QMS_8D_DATA_V6_REAL_SCM_ACTION');
+      localStorage.removeItem('AI_QMS_8D_DATA_V7_D3_COMPLETED_BENCHMARK');
       localStorage.removeItem('AI_QMS_8D_DATA_V3');
       location.reload();
     };
