@@ -7,10 +7,13 @@
 ## 📌 현재 활성 프로젝트 상태 (Latest Active Status)
 
 * **최근 업데이트 일시**: `2026-09-03 10:33 (KST)`
-* **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity)
+* **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity) ➔ `11_1_AI_Customer_Nonconformance_8D_System_Antigravity` 백업 완비
 * **진행 상태 (Status)**: 🟢 `[COMPLETED]`
 * **작업 내용 요약**:
-  1. **D3까지 작성·결재 완료된 D4 검증용 벤치마크 케이스 등록 & STORAGE_KEY V7 승격**
+  1. **11_1_AI_Customer_Nonconformance_8D_System_Antigravity 폴더로 전체 백업 완료**
+     - 소스코드, 모듈형 JS/CSS, 실제 엑셀 데이터, `.git` 전체 브랜치 및 이력 100% 미러링 복제 (511개 파일, 5.41MB).
+     - Codex 에이전트가 즉시 이어서 작업할 수 있도록 `CODEX_HANDOFF.md` 지침서 작성 및 커밋 완료.
+  2. **D3까지 작성·결재 완료된 D4 검증용 벤치마크 케이스 등록 & STORAGE_KEY V7 승격**
      - D1 (8인 Action CFT), D2 (IS/IS NOT & 정의문), D3 (7-Area 봉쇄 & 5대 ICA 실행결과) 100% 승인 완료.
      - 3단 결재(간사 ➔ Leader ➔ Champion) 전 단계 날인 완료, `currentStage: 'D4'`로 설정.
      - 화면 접속 시 D4 단계로 직행하여 5대 품질도구 및 3-Track 원인분석 검증 준비 완료.
@@ -229,6 +232,26 @@
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-07 12:25] 11_1_AI_Customer_Nonconformance_8D_System_Antigravity 폴더 전체 백업 완료 및 CODEX_HANDOFF.md 인수인계 체계 구축
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **백업 대상 폴더**: `G:\내 드라이브\AI_Place\Work\11_1_AI_Customer_Nonconformance_8D_System_Antigravity`
+* **원인**: 마리오님의 백업 및 인수인계 요청("11_1_AI_Customer_Nonconformance_8D_System_Antigravity 여기 폴더에 모든 항목을 전부다 백업해서 Codex로 작업을 이어갈 수 있게 해줘")에 따라, 현재 소스코드, Git 이력(.git), 데이터, 엑셀 입력파일, 모듈형 JS/CSS, 설정 파일을 100% 완전 백업하고 Codex 에이전트 전용 인수인계 지침서(`CODEX_HANDOFF.md`)를 탑재함.
+* **수정 내용**:
+  1. **전체 파일 및 Git 이력 100% 미러링 복제 (Robocopy)**:
+     - 소스 디렉토리: `11_AI_Customer_Nonconformance_8D_System_Antigravity`
+     - 타겟 디렉토리: `11_1_AI_Customer_Nonconformance_8D_System_Antigravity`
+     - 총 511개 파일, 5.41MB 및 `.git` 전체 브랜치(`antigravity/step01-intake-agent`, `main`, `antigravity/d4-evidence-preview`) 무손실 복사 완료.
+  2. **Codex 전용 인수인계 문서 (`CODEX_HANDOFF.md`) 신규 생성**:
+     - 라모스테크놀러지 Fabless 모듈 기업 특성(자체 생산공장 없음, 5대 축 거버넌스) 명시.
+     - 마리오님 지정 실제 담당자 배속 RACI (이은산 센터장 봉쇄 총괄, 조철민 그룹장 RAK4/5 & CTST 락, 김혜원 Pro 외주 통제, 공아름 그룹장 외주조립처 물량관리 등) 정리.
+     - 시스템 실행 방법 (`python portal_server.py` 또는 `run_portal.bat` ➔ `http://localhost:8080`) 명시.
+     - D1~D8 통일 3단 결재선 및 D3 완료 ➔ D4 직행 벤치마크 케이스(V7) 현황 정리.
+     - Codex가 즉시 이어받아 착수할 Next Actions (D4 3-Track 원인분석 고도화, ERP 출하 엑셀 업로더 연동 등) 가이드 수록.
+  3. **백업 대상 폴더 Git 커밋 완료**:
+     - `11_1_...` 폴더에서 `git add CODEX_HANDOFF.md` 및 커밋(`07dcd3e`) 완료.
+* **검증 결과**:
+  - `11_1_...` 폴더 내 `git status`, `git branch -v` 정상 확인 (working tree clean).
 
 ### 🗓️ [2026-09-04 09:04] D3까지 작성·결재 완료된 D4 검증용 벤치마크 케이스 등록 & STORAGE_KEY V7 승격
 * **Git 브랜치**: `antigravity/step01-intake-agent`
