@@ -6,11 +6,21 @@
 
 ## 📌 현재 활성 프로젝트 상태 (Latest Active Status)
 
-* **최근 업데이트 일시**: `2026-09-08 13:42 (KST)`
+* **최근 업데이트 일시**: `2026-09-08 16:58 (KST)`
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System_Antigravity`
-* **진행 상태 (Status)**: 🟢 `[COMPLETED]` / 🌟 `[WYSIWYG_REPORT_PAPER_LOCKDOWN_ACTIVE]`
+* **진행 상태 (Status)**: 🟢 `[COMPLETED]` / 🚀 `[GITHUB_PUSH_AND_WEB_DEPLOY_READY]`
 * **작업 내용 요약**:
-  1. **8D 리포트 다크/라이트 모드 완전 무결성 단일 WYSIWYG A4 인쇄 규격 고정 (`css/styles.css`, `index.html`)**:
+  1. **GitHub 리포지토리 최신 소스코드 동기화 및 타인 접속 배포 환경 구축 (`origin/main`, `.nojekyll`, `README.md`)**:
+     - **사용자 요청**: "자!! 이제 Github에 업로드해서 실질적으로 다르사람이 접속해서 확인할 수 있는지 해보자!!"
+     - **동기화 조치**:
+       - `main` 브랜치 및 `antigravity/step01-intake-agent` 브랜치를 최신 기능 커밋(`48de3e3`)으로 완벽 동기화 완료.
+       - 원격 저장소(`https://github.com/marioai005-00/ramos-ai-qms-8d-anti.git`)의 `origin/main` 및 `origin/antigravity/step01-intake-agent`로 100% 푸시 성공.
+       - GitHub Pages 정적 웹 호스팅을 위한 `.nojekyll` 파일 생성 및 커밋/푸시 완료.
+     - **타인/동료 접속 및 검증 수단 2종 제공**:
+       - **방식 1 (웹 브라우저 즉시 체험)**: GitHub Pages 배포 URL (`https://marioai005-00.github.io/ramos-ai-qms-8d-anti/`)
+       - **방식 2 (Git Clone 및 로컬 실행)**: `git clone` 후 `run_portal.bat` 또는 `index.html` 더블클릭 (Zero-dependency 브라우저 완결 구동)
+       - `README.md`에 결재 권한별 4대 데모 계정(Master `sjkim`, Drafter `chomin`, Leader `eslee`, Champion `hskim`, PW `1`) 가이드 탑재.
+  2. **8D 리포트 다크/라이트 모드 완전 무결성 단일 WYSIWYG A4 인쇄 규격 고정 (`css/styles.css`, `index.html`)**:
      - **사용자 제보 증상 및 요청**:
        - "ㅋㅋ 지금봐봐... 다크오ㄷ든 라이트 모드든 레포트는 하나로만 가자!! 출려되는 형태 그대로 보여질 수 있도록만 해줘!!"
        - 앱 테마를 다크 모드로 설정 시, `.report-paper` 백지 용지 내의 D4 근원인 카드(`d4-root-card`), 분석 장비 메타(`d4-figure-meta`), 5-Why 및 Fishbone 다이어그램 등이 CSS 변수(`var(--bg-card)`)의 영향으로 어두운 남색 블록으로 변형되어, 실제 인쇄/고객사 전달 시의 백지 문서(WYSIWYG) 형태와 시각적 괴리가 발생하던 현상.

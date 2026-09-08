@@ -37,13 +37,43 @@
 
 ---
 
-## 💻 빠른 실행 방법
+## 🌐 타인/외부 사용자 접속 및 실행 방법 (Access & Verification Guide)
 
-* **`run_portal.bat`** 더블클릭: 브라우저에서 즉시 인터랙티브 포털 실행
-* **`index.html`**: Zero-dependency 단일 HTML (외부 라이브러리 CDN 내장, 빌드 도구 불필요)
+### 방법 1. 웹 브라우저 즉시 접속 (GitHub Pages)
+설치나 서버 구동 없이 링크 클릭만으로 모든 기능(D1~D8 워크플로우, 8D 리포트 인쇄, FA 갤러리)을 브라우저에서 즉시 체험할 수 있습니다:
+* **웹 데모 접속 URL**: [https://marioai005-00.github.io/ramos-ai-qms-8d-anti/](https://marioai005-00.github.io/ramos-ai-qms-8d-anti/)
+*(※ 리포지토리가 Private인 경우: GitHub 저장소 Settings → General 맨 아래에서 `Public`으로 변경하거나, Settings → Pages에서 배포 브랜치를 `main`으로 지정하시면 즉시 전 세계 어디서든 웹 브라우저로 접속 가능합니다.)*
+
+### 방법 2. Git Clone 및 로컬 실행 (Full Python + AI Server)
+```bash
+# 1. 저장소 클론
+git clone https://github.com/marioai005-00/ramos-ai-qms-8d-anti.git
+cd ramos-ai-qms-8d-anti
+
+# 2. 로컬 포털 원클릭 실행 (Windows)
+run_portal.bat
+
+# 또는 파이썬 없이도 index.html 파일을 더블클릭하면 100% 독립 실행됩니다!
+```
+
+---
+
+## 🔑 데모 로그인 계정 안내 (Demo Accounts)
+
+모든 계정의 기본 비밀번호는 **`1`** 입니다. 상단 빠른 로그인 버튼 또는 아래 ID로 접속하실 수 있습니다:
+
+| 사내 계정 ID | 성명 / 직급 | 역할 및 권한 (RACI) | 결재/전결 권한 |
+| :--- | :--- | :--- | :--- |
+| **`sjkim`** | 김성중 Senior Pro | **품질 총괄 마스터 (MASTER)** | 👑 전 단계 1초 전결 승인 |
+| **`chomin`** | 조철민 팀장 | **기안자 (Drafter)** | D1~D8 기안 상신 |
+| **`eslee`** | 이은산 상무 | **센터장 (Leader)** | D1~D8 1차 심의 승인 |
+| **`hskim`** | 김현수 대표이사 | **최고의사결정권자 (Champion)** | D1~D8 최종 종결 승인 |
+
+---
 
 ## 🔄 프로젝트 작업 인수인계
 
 * 이 프로젝트의 변경 이력과 다음 작업은 같은 폴더의 **`WORK_HANDOFF.md`**를 기준으로 합니다.
 * 마스터 `Work` 폴더에는 공용 인수인계 파일을 만들지 않으며, 다른 프로젝트의 기록과 섞지 않습니다.
 * 의미 있는 수정·추가·삭제가 발생할 때마다 코드 변경과 같은 작업 턴에서 `WORK_HANDOFF.md`도 함께 갱신합니다.
+
