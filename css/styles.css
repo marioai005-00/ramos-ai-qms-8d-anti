@@ -35225,3 +35225,26 @@ html[data-theme="light"] .content-body {
   border-color: var(--border);
   border-bottom: 1px solid var(--bg-card);
 }
+
+
+/* ========================================================================= */
+/* SUBCONTRACTOR (외주 협력사 전용) STYLES & VISUAL IDENTITY                 */
+/* ========================================================================= */
+
+.supplier-portal-external-mode .supplier-portal-header.supplier-header-orange {
+  border-top: 3px solid #f97316;
+  background: linear-gradient(180deg, rgba(249, 115, 22, 0.06) 0%, rgba(15, 23, 42, 0.95) 100%);
+}
+[data-theme="light"] .supplier-portal-external-mode .supplier-portal-header.supplier-header-orange {
+  background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+  border-top: 3px solid #ea580c;
+}
+
+.supplier-mode-header-badge {
+  animation: fadeIn 0.3s ease;
+}
+
+.quick-persona-chip:hover {
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+}

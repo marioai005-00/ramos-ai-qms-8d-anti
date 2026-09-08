@@ -6,51 +6,66 @@
 
 ## 📌 현재 활성 프로젝트 상태 (Latest Active Status)
 
-* **최근 업데이트 일시**: `2026-09-08 19:15 (KST)`
+* **최근 업데이트 일시**: `2026-09-09 08:35 (KST)`
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System_Antigravity`
-* **진행 상태 (Status)**: 🟢 `[COMPLETED]` / 🚀 `[UNIVERSAL_DOC_VIEWER_AND_CLEAN_TOOLBAR_DEPLOYED]`
+* **진행 상태 (Status)**: 🟢 `[COMPLETED]` / 🏭 `[DEDICATED_SUBCONTRACTOR_ACCOUNT_AND_SECURITY_MODE_DEPLOYED]`
 * **작업 내용 요약**:
-  1. **사내 SQE 관제 툴바 수평 단일 행 레이아웃 전면 리팩토링 (UI 깨짐 완벽 해결)**:
-     - **사용자 피드백**: "이부분이 너무 엉망이야!!!" (첨부 이미지: 필터 드롭다운과 버튼 5개가 좌측에 수직으로 찌그러져 나열되는 레이아웃 붕괴 현상).
-     - **원인 분석**: `.supplier-filter-bar`, `.filter-item`, `.supplier-filter-actions`, `.supplier-tab-nav` 관련 핵심 CSS 규칙이 누락되어 기본 블록 요소로 수직 적체됨.
-     - **조치 내역**:
-       - `css/styles.css`에 엔터프라이즈급 flex 툴바 스타일 전면 구축.
-       - 협력사/유형/상태 드롭다운 및 검색창을 36px 정규 규격의 일렬 수평 배열로 정돈.
-       - 필터 초기화 및 신규 접수 버튼을 우측 끝(`margin-left: auto;`)으로 자동 밀착 배치.
-       - 상단 브랜드 헤더와 `[📋 사내 SQE 실시간 관제 현황판]`, `[📥 협력사 전용 접수 창구]` 탭 스위처를 고해상도 일체형 네비게이션으로 통일.
-  2. **외주사 자체 양식(PDF, Excel, 이미지, 워드) 무설치 인브라우저 통합 뷰어 구축 (`js/views/doc_viewer.js`)**:
-     - **사용자 요구**: "또 외주 업체의 경우 자체 PCN양식이나 Report 양식을 PDF나 이미지 워드 엑셀로 넣을 수 있잖아?? 그런것을 넣으면 그냥 우리가 바로 그파일을 뷰어로 볼 수 있도록 해줘!!"
-     - **핵심 기능 및 아키텍처**:
-       - **독립 모달 레이어 (`#documentViewerModal`, `z-index: 260`)**: 심의 모달(`z-index: 100`) 상단에 오버레이로 팝업되어, SQE 심의 도중 작성 중인 내용을 잃지 않고 언제든 문서를 즉시 열어 대조 가능.
-       - **① 공인 규격서 PDF 뷰어 (`pdf_spec`, `pdf_daeduck`)**:
-         - muRata 공식 Automotive GCM 시리즈 X7R MLCC 규격서 및 대덕전자 동박 평가서 시뮬레이션.
-         - AEC-Q200 Grade 1 합격 인증 인장, 전압/용량/유전체/IR 등 전기적 사양 및 가속 시험 결과표 렌더링.
-       - **② 원시 신뢰성 데이터 엑셀/CSV 뷰어 (`excel_sheet`, `csv_log`)**:
-         - SheetJS 파서 및 멀티 시트(`TC_1000h_Summary`, `Raw_Measurements_30ea`, `ESD_Surge_Test`) 인터랙티브 탭 지원.
-         - 30개 시료 온도사이클링(-40℃~+125℃) 1,000시간 측정 로우 데이터, 실시간 시료 검색 필터, 불량수/저항변화율 자동 집계.
-       - **③ 불량 실물 X-Ray/현미경 이미지 뷰어 (`image_xray`)**:
-         - Nordson Dage Quadra 5 160kV 초정밀 투과 X-Ray 캔버스 (BGA 솔더볼 어레이 및 #D4 보이드 18.2% 결함 콜아웃 박스).
-         - 90도 회전(`rotateViewerImage()`), 줌 슬라이더(40%~250%), 100μm 계측 스케일바 탑재.
-       - **④ 실제 로컬 파일 업로드 즉시 미리보기 연동**:
-         - PCN 및 Issue 접수 창구 드롭존에 숨김 `<input type="file">` 및 `handleSupplierFileUpload()` 탑재.
-         - 사용자가 PC의 임의 파일(.pdf, .xlsx, .png 등)을 드래그하거나 선택하면 즉시 Blob URL을 생성하여 `[👁️ 뷰어로 확인]` 칩 생성.
-  3. **전체 엔드투엔드(E2E) 브라우저 자동화 검증 100% PASS**:
-     - `tests/test_supplier_portal_e2e.cjs`에 문서 뷰어(PDF, 엑셀, X-Ray 회전, 닫기) E2E 시나리오 신규 편입.
-     - `python tests/run_full_e2e.py` 실행 결과: 4/4 전 스위트 100% 통과!
-       - 1/3 사이드바 네비게이션 & 동적 인디케이터: PASS
-       - 2/3 라이트/다크 테마 토글 및 영속성: PASS
-       - 3/4 코어 워크플로우 브라우저 스모크: PASS
-       - 4/4 외주 포털 관제 툴바, 티켓 심의, 통합 문서 뷰어: PASS
-     - 실사 검증 스크린샷 5종 산출:
-       - `verify_supplier_watchtower.png` (정돈된 단일 행 수평 필터바 및 파일 퀵뷰 배지)
-       - `verify_pdf_viewer.png` (muRata A4 기술 규격서 인브라우저 뷰어)
-       - `verify_excel_viewer.png` (온도사이클링 1,000시간 원시 데이터 엑셀 그리드 뷰어)
-       - `verify_xray_viewer.png` (BGA 보이드 90도 회전 X-Ray 결함 뷰어)
-       - `verify_supplier_review_modal.png` (심의 모달 내 파일 클릭 바로보기 칩)
+  1. **외주 협력사 전용 계정 및 퀵 로그인·페르소나 체계 구축**:
+     - **사용자 요청**: "일단 외주 계정으로 1개 만들어줘!! 외주 계정으로 접속하였을 때, 어떻게 보이는지를 좀 보려고!!"
+     - **계정 정보**: ID `mwpark` (또는 한글 `외주`, `외주사`, `박민우`), PW `1` (성명: 박민우 과장, 소속: 하나마이크론(주) OSAT PKG).
+     - **로그인 화면 및 헤더 페르소나 칩 탑재**: `#loginScreen` 퀵 로그인 칩에 `[🏭 박민우 과장 | 외주(하나마이크론)]` 추가 및 헤더 페르소나 드롭다운에 `🏭 [외주] 박민우 과장 (하나마이크론)` 등록.
+  2. **철저한 협력사 데이터 격리 (Subcontractor Data Isolation)**:
+     - 타사(ASE Korea, 대덕전자 등)의 영업 비밀 및 공정 이상 내역 완전 차단/은닉.
+     - 오직 당사(`하나마이크론(주)`)의 4M PCN 및 품질 이슈 티켓만 관제 테이블에 렌더링.
+     - 상단 4대 KPI 지표(총 접수 건수, 신규, 심의 중, 8D 승격 등) 역시 당사 데이터만을 기준으로 자동 집계.
+  3. **외주사 전용 보안 모드 시각화 & UX 최적화**:
+     - **헤더 모드 배지**: `[🏭 하나마이크론(주) 전용 접속 모드] [🔄 본사 SQE 전환]` 버튼 탑재 (1-Click으로 본사/외주 간 즉각 전환 테스트 가능).
+     - **좌측 사이드바**: 상단에 오렌지색 외주사 보안 모드 안내 배너 및 하단 오렌지 그라데이션 외주 협력사 전용 프로필 뱃지 표출.
+     - **포털 브랜드 타이틀**: `외주 협력사 품질 & 4M PCN 접수 포털` + `[🏭 하나마이크론(주) 전용]` + `[외주사 보안 모드]` 배지 표기.
+     - **탭 및 필터 바**: `[📋 당사(하나마이크론(주)) 접수/심의 현황판]` 탭 및 협력사 필터가 `하나마이크론(주) (당사 전용)`으로 고정 잠금.
+  4. **외주사용 클린 심의 결과 통보서 (Read-Only Official SQE Notification)**:
+     - 티켓 클릭 시 본사용 내부 심의 폼/결정 버튼 대신 **"라모스테크놀러지 품질본부(SQE) 공식 심의 결과 통보서"** 패널 표출.
+     - SQE 담당 심의관(`김성중 Senior Pro`), 공식 심의 완료일, 사내 8D Case 연계 번호, SQE 종합 심의 의견 및 조건부 승인 지침을 품격 높은 공문 형태로 렌더링.
+     - 하단에는 `[🖨️ A4 심의 통보 공문 출력]` 및 `[확인 완료 (닫기)]` 버튼만 제공하여 내부 권한 침해 원천 방지.
+  5. **신규 접수 폼 자동 바인딩 및 조작 방지 (Lock)**:
+     - `📥 신규 4M PCN / 품질이상 접수` 탭 진입 시 협력사 상호(`하나마이크론(주)`), 공장(`아산 사업장 PKG Line 3`), 담당자(`박민우 과장`), 연락처, 이메일이 자동 입력되고 수정 불가(readonly/disabled) 잠금 처리.
+  6. **전체 E2E 브라우저 테스트 100% PASS 및 실사 스크린샷 2종 검증 완료**:
+     - `python tests/run_full_e2e.py` 실행 결과: 4/4 전 스위트 100% 통과 (사이드바, 라이트/다크 테마, 코어 스모크, 외주 포털 & 협력사 모드).
+     - 산출 검증 스크린샷:
+       - `verify_supplier_account_view.png` (외주사 전용 관제탑 및 엄격한 데이터 격리 화면)
+       - `verify_supplier_account_modal.png` (외주사용 클린 SQE 공식 심의 통보서 모달)
 
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-09 08:35] 외주 협력사 전용 계정(`mwpark`) 및 보안 모드·데이터 격리 관제 시스템 구축 완료
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **작업 대상 폴더**: `G:\내 드라이브\AI_Place\Work\11_AI_Customer_Nonconformance_8D_System_Antigravity`
+* **원인**: 사용자 요청("일단 외주 계정으로 1개 만들어줘!! 외주 계정으로 접속하였을 때, 어떻게 보이는지를 좀 보려고!!")에 따라, 협력사가 타사 정보를 침해하지 않고 자사 건만 조회/접수할 수 있는 안전하고 품격 있는 외주사 전용 모드 및 계정 체계 구축.
+* **수정 내용**:
+  1. `js/data.js`:
+     - `PRESET_USERS`에 외주 협력사 계정(`username: 'mwpark'`, 성명: `박민우 과장`, 소속: `하나마이크론(주)`, `isSupplier: true`, `userType: 'SUPPLIER'`) 추가.
+     - `authenticateUser`에 `['supplier', '외주', '외주사', 'mwpark', '박민우']` 한글/영문 앨리어스 및 기본 PW `1` 지원.
+     - `getUserPendingTasks`에 외주사용 긴급 To-Do(SQE 심의 대기 및 4M 승인 통보) 독립 라우팅 분기 구축.
+     - `window.CURRENT_USER` 전역 동기화 보장.
+  2. `js/app.js`:
+     - 상단 헤더 페르소나 드롭다운에 `🏭 [외주] 박민우 과장 (하나마이크론)` 등록.
+     - 헤더 상단에 `[🏭 하나마이크론(주) 전용 접속 모드]` 뱃지 및 `[🔄 본사 SQE 전환]` 원클릭 스위처 탑재.
+     - 사이드바 상단에 외주사 보안 모드 안내 배너 및 하단 프로필 오렌지색 전용 테마 적용.
+     - 외주 계정 로그인/전환 시 `외주 품질 & PCN 관제` 포털로 자동 라우팅.
+  3. `js/views/supplier_portal.js`:
+     - `renderSupplierWatchtower`: 타 협력사(ASE Korea, 대덕전자) 데이터 엄격 격리 차단, 당사 데이터만 표출.
+     - `openSupplierTicketModal`: 본사 내부 심의 폼/버튼을 비활성화하고 공식 **"라모스테크놀러지 품질본부(SQE) 공식 심의 결과 통보서"** 및 A4 공문 출력 버튼 제공.
+     - `renderSupplierSubmitForm`: 신규 접수 시 당사 상호명, 공장, 담당자, 연락처, 이메일 자동 바인딩 및 잠금(readonly).
+  4. `index.html` & `css/styles.css`:
+     - 로그인 화면에 `[🏭 박민우 과장 | 외주(하나마이크론)]` 퀵 로그인 칩 추가.
+     - 외주사 전용 뱃지, 모드 안내 헤더, 오렌지 테마 브랜드 CSS 스타일 추가.
+  5. `tests/test_supplier_portal_e2e.cjs` & `tests/run_full_e2e.py`:
+     - Step 8 외주 계정 로그인, 데이터 격리, 심의 결과 확인 모달 자동화 시나리오 편입 및 4개 전 스위트 100% PASS 검증.
+* **검증 결과**:
+  - `python tests/run_full_e2e.py` 4/4 ALL PASS.
+  - `verify_supplier_account_view.png`, `verify_supplier_account_modal.png` 실사 검증 완료.
 
 ### 🗓️ [2026-09-07 12:25] 11_1_AI_Customer_Nonconformance_8D_System_Antigravity 폴더 전체 백업 완료 및 CODEX_HANDOFF.md 인수인계 체계 구축
 * **Git 브랜치**: `antigravity/step01-intake-agent`

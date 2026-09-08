@@ -279,6 +279,60 @@ async function send(method, params = {}, sessionId) {
   assert.equal(currentStage, 'D2', 'Should navigate to D2 stage upon escalation');
   console.log('✓ PASS: Successfully escalated to 8D Case and navigated to D2 workspace');
 
+    // 8. Test Subcontractor Account Login & Dedicated External View (mwpark / 하나마이크론)
+  console.log('--- Step 8: Testing Subcontractor Account View (mwpark - 하나마이크론) ---');
+  
+  // Switch to subcontractor account mwpark
+  await call('Runtime.evaluate', { expression: `onUserSwitch('박민우');` });
+  await delay(500);
+
+  // Assert user is supplier
+  const isSupplierUser = (await call('Runtime.evaluate', { expression: `Boolean(CURRENT_USER.isSupplier)`, returnByValue: true })).result.value;
+  assert.ok(isSupplierUser, 'Logged in user should have isSupplier flag true');
+
+  const supplierCompany = (await call('Runtime.evaluate', { expression: `CURRENT_USER.company`, returnByValue: true })).result.value;
+  assert.equal(supplierCompany, '하나마이크론(주)', 'Subcontractor company should be 하나마이크론(주)');
+
+  // Verify external portal header
+  const brandTitle = (await call('Runtime.evaluate', { expression: `document.querySelector('.portal-brand-title').innerText`, returnByValue: true })).result.value;
+  assert.ok(brandTitle.includes('하나마이크론'), 'Portal brand title should reflect 하나마이크론');
+
+  // Verify data isolation: Only Hana Micron tickets are visible
+  const supplierRows = (await call('Runtime.evaluate', { expression: `document.querySelectorAll('.supplier-grid-table tbody tr').length`, returnByValue: true })).result.value;
+  assert.ok(supplierRows >= 1, 'Hana Micron tickets should be rendered');
+  
+  const hasASEKorea = (await call('Runtime.evaluate', { expression: `document.querySelector('.supplier-grid-table').innerText.includes('ASE Korea')`, returnByValue: true })).result.value;
+  assert.equal(hasASEKorea, false, 'ASE Korea tickets must NOT be visible to Hana Micron subcontractor');
+  console.log('✓ PASS: Strict Subcontractor Data Isolation verified (ASE Korea tickets hidden)');
+
+  // Capture Subcontractor View Screenshot
+  const suppViewShot = await call('Page.captureScreenshot', { format: 'png' });
+  fs.writeFileSync(path.join(outDir, 'verify_supplier_account_view.png'), Buffer.from(suppViewShot.data, 'base64'));
+  console.log('✓ PASS: Subcontractor account watchtower view verified -> verify_supplier_account_view.png');
+
+  // Open Hana Micron ticket review modal in subcontractor mode
+  await call('Runtime.evaluate', { expression: `openSupplierTicketModal('PCN-2026-001');` });
+  await delay(400);
+
+  const hasOfficialNotice = (await call('Runtime.evaluate', { expression: `document.body.innerText.includes('라모스테크놀러지 품질본부(SQE) 공식 심의 결과 통보')`, returnByValue: true })).result.value;
+  assert.ok(hasOfficialNotice, 'Review modal should display official SQE decision notification for subcontractor');
+
+  const hasInternalSaveBtn = (await call('Runtime.evaluate', { expression: `Boolean(document.getElementById('modalDecision'))`, returnByValue: true })).result.value;
+  assert.equal(hasInternalSaveBtn, false, 'Subcontractor must NOT have internal decision edit controls');
+  console.log('✓ PASS: Subcontractor Review Modal is clean read-only official notice');
+
+  const suppModalShot = await call('Page.captureScreenshot', { format: 'png' });
+  fs.writeFileSync(path.join(outDir, 'verify_supplier_account_modal.png'), Buffer.from(suppModalShot.data, 'base64'));
+  console.log('✓ PASS: Subcontractor review modal verified -> verify_supplier_account_modal.png');
+
+  await call('Runtime.evaluate', { expression: `closeModal();` });
+  await delay(200);
+
+  // Switch back to internal SQE
+  await call('Runtime.evaluate', { expression: `onUserSwitch('김성중');` });
+  await delay(400);
+  console.log('✓ PASS: Successfully switched back to Internal SQE Master account');
+
   try { socket.close(); } catch {}
   try { proc.kill(); } catch {}
   console.log('\n=================================================');

@@ -1399,25 +1399,44 @@
       { name: '이성우', position: '팀장_P.Pro', dept: 'Flash 개발3팀', email: 'fog1007@ramostek.com', roleDesc: 'D1 CFT 엔지니어 / 공정기술' },
       { name: '신덕용', position: '팀장_P.Pro', dept: 'DRAM 개발2팀', email: 'satiou@ramostek.com', roleDesc: '8D Leader (DRAM 개발)' },
       { name: '박정훈', position: '부문장_전무', dept: '알앤디부문', email: 'gh8229@ramostek.com', roleDesc: '연구소장 / R&D 총괄' },
-      { name: '조장호', position: '대표이사', dept: '대표이사', email: 'jh.choue66@ramostek.com', roleDesc: 'CEO / 최고 의사결정권자' }
+      { name: '조장호', position: '대표이사', dept: '대표이사', email: 'jh.choue66@ramostek.com', roleDesc: 'CEO / 최고 의사결정권자' },
+      {
+        username: 'mwpark',
+        name: '박민우',
+        position: '과장',
+        dept: '하나마이크론(주)',
+        company: '하나마이크론(주)',
+        supplierId: 'SUP-HANA',
+        supplierCategory: 'OSAT_PKG',
+        plant: '아산 사업장 PKG Line 3',
+        email: 'mwpark@hana.com',
+        phone: '010-3344-5566',
+        roleDesc: '외주 협력사 품질보증 책임자 (하나마이크론 OSAT)',
+        userType: 'SUPPLIER',
+        isSupplier: true,
+        isMaster: false
+      }
     ];
 
     let CURRENT_USER = PRESET_USERS[0]; // Default: 김성중 S.Pro
+    if (typeof window !== 'undefined') window.CURRENT_USER = CURRENT_USER;
 
     function setCurrentUser(userName) {
-      const found = PRESET_USERS.find(u => u.name === userName);
+      const found = PRESET_USERS.find(u => u.name === userName || u.username === userName || u.email === userName);
       if (found) {
         CURRENT_USER = found;
-        localStorage.setItem('RAMOS_CURRENT_USER', userName);
+        if (typeof window !== 'undefined') window.CURRENT_USER = found;
+        localStorage.setItem('RAMOS_CURRENT_USER', found.name);
       }
     }
 
     function loadCurrentUser() {
       const saved = localStorage.getItem('RAMOS_CURRENT_USER');
       if (saved) {
-        const found = PRESET_USERS.find(u => u.name === saved);
+        const found = PRESET_USERS.find(u => u.name === saved || u.username === saved);
         if (found) CURRENT_USER = found;
       }
+      if (typeof window !== 'undefined') window.CURRENT_USER = CURRENT_USER;
     }
     loadCurrentUser();
 
@@ -1462,6 +1481,11 @@
       const cleanPassword = String(password || '').trim();
       if (!cleanUser || cleanPassword !== '1') return null;
 
+      if (['supplier', '외주', '외주사', 'mwpark', '박민우'].includes(cleanUser)) {
+        const sup = PRESET_USERS.find(u => u.username === 'mwpark');
+        if (sup) return { ...sup, password: '1' };
+      }
+
       return ALL_USER_ACCOUNTS.find(account =>
         account.username.toLowerCase() === cleanUser ||
         account.email.toLowerCase() === cleanUser ||
@@ -1475,6 +1499,42 @@
 
     function getUserPendingTasks(user = CURRENT_USER) {
       const tasks = [];
+      if (user?.isSupplier) {
+        if (typeof loadSupplierRecords === 'function') {
+          try {
+            const suppRecords = loadSupplierRecords();
+            suppRecords
+              .filter(r => r.supplier?.companyName === user.company || r.supplier?.email === user.email)
+              .forEach(r => {
+                if (r.status === 'Under_Review') {
+                  tasks.push({
+                    caseId: r.ticketId,
+                    customer: r.targetProduct?.customer || 'LGE DTV',
+                    targetStage: 'supplier-portal',
+                    stageCode: '성적서 심의',
+                    urgency: 'high',
+                    isApproval: false,
+                    title: `[SQE 성적서 심의 중] ${r.details?.title || r.ticketId}`,
+                    desc: `라모스 SQE 검토의견: "${r.sqeReview?.comment || '추가 신뢰성 데이터 교차 검증 중'}"`
+                  });
+                } else if (r.status === 'Approved') {
+                  tasks.push({
+                    caseId: r.ticketId,
+                    customer: r.targetProduct?.customer || 'LGE DTV',
+                    targetStage: 'supplier-portal',
+                    stageCode: '승인 완료',
+                    urgency: 'normal',
+                    isApproval: false,
+                    title: `[4M 변경 승인 완료] ${r.details?.title || r.ticketId}`,
+                    desc: `양산 적용 승인되었습니다. A4 심의 통보서를 확인하세요.`
+                  });
+                }
+              });
+          } catch (_) {}
+        }
+        return tasks;
+      }
+
       const cases = (appData && Array.isArray(appData.cases)) ? appData.cases : INITIAL_CASES;
       const intakeQueue = (appData && Array.isArray(appData.intakeQueue)) ? appData.intakeQueue : [];
       const canReviewIntake = hasMasterAuthority(user) || user?.dept === '품질혁신팀';

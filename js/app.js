@@ -13,6 +13,7 @@ function initApp() {
     }
 
     hideLoginScreen();
+    if (typeof window !== 'undefined') window.CURRENT_USER = CURRENT_USER;
     const activeCase = getActiveCase();
     if (!activeCase) {
       appData = loadStoredAppData();
@@ -112,6 +113,7 @@ function checkAuthSession() {
     const account = authenticateUser(sessionUser, '1');
     if (account) {
       CURRENT_USER = account;
+      if (typeof window !== 'undefined') window.CURRENT_USER = account;
       return true;
     }
   }
@@ -147,10 +149,18 @@ function handleLoginSubmit(e) {
   if (account) {
     if (errorMsg) errorMsg.style.display = 'none';
     CURRENT_USER = account;
+    if (typeof window !== 'undefined') window.CURRENT_USER = account;
     sessionStorage.setItem('RAMOS_AUTH_USER', account.username);
     localStorage.setItem('RAMOS_CURRENT_USER', account.name);
     isBannerDismissed = false;
     initApp();
+
+    if (account.isSupplier) {
+      setTimeout(() => {
+        if (typeof switchSupplierTab === 'function') switchSupplierTab('watchtower');
+        if (typeof switchNav === 'function') switchNav('supplier-portal');
+      }, 100);
+    }
 
     // Check if user has urgent pending approvals and trigger modal
     setTimeout(() => {
@@ -188,7 +198,7 @@ function renderUserSwitcherHeader() {
 
   select.innerHTML = PRESET_USERS.map(u => `
     <option value="${u.name}" ${u.name === CURRENT_USER.name ? 'selected' : ''}>
-      ${u.name} ${u.position}${u.isMaster ? ' - MASTER' : ''}
+      ${u.isSupplier ? '🏭 [외주] ' : ''}${u.name} ${u.position}${u.isMaster ? ' - MASTER' : ''}${u.isSupplier ? ' (' + (u.company || '하나마이크론') + ')' : ''}
     </option>
   `).join('');
   select.title = `${CURRENT_USER.name} ${CURRENT_USER.position} · ${CURRENT_USER.dept}${typeof hasMasterAuthority === 'function' && hasMasterAuthority(CURRENT_USER) ? ' · MASTER' : ''}`;
@@ -198,15 +208,97 @@ function renderUserSwitcherHeader() {
   const footerName = document.querySelector('.sidebar > div:last-child > div:last-child > div:first-child');
   if (footerAvatar && footerName) {
     footerAvatar.innerText = CURRENT_USER.name.length > 2 ? CURRENT_USER.name.slice(-2) : CURRENT_USER.name;
-    footerName.innerHTML = `${CURRENT_USER.name} ${CURRENT_USER.position} <span style="font-size:0.68rem; color:#60a5fa; font-weight:600;">(${CURRENT_USER.dept})</span>${typeof hasMasterAuthority === 'function' && hasMasterAuthority(CURRENT_USER) ? ' <span class="badge-pill badge-warn" style="font-size:0.6rem;">MASTER</span>' : ''}`;
+    if (CURRENT_USER.isSupplier) {
+      footerAvatar.style.background = 'linear-gradient(135deg, #f97316, #ea580c)';
+      footerAvatar.style.boxShadow = '0 2px 8px rgba(249, 115, 22, 0.4)';
+      footerName.innerHTML = `${CURRENT_USER.name} ${CURRENT_USER.position} <span style="font-size:0.68rem; color:#fb923c; font-weight:700;">(${CURRENT_USER.company || CURRENT_USER.dept})</span> <span class="badge-pill" style="background:#f97316; color:#ffffff; font-size:0.58rem; padding:1px 5px; font-weight:800;">외주 협력사</span>`;
+    } else {
+      footerAvatar.style.background = '';
+      footerAvatar.style.boxShadow = '';
+      footerName.innerHTML = `${CURRENT_USER.name} ${CURRENT_USER.position} <span style="font-size:0.68rem; color:#60a5fa; font-weight:600;">(${CURRENT_USER.dept})</span>${typeof hasMasterAuthority === 'function' && hasMasterAuthority(CURRENT_USER) ? ' <span class="badge-pill badge-warn" style="font-size:0.6rem;">MASTER</span>' : ''}`;
+    }
+  }
+
+  // Header Mode Notice for Supplier
+  let modeBadge = document.getElementById('supplierModeHeaderBadge');
+  if (CURRENT_USER.isSupplier) {
+    if (!modeBadge) {
+      modeBadge = document.createElement('div');
+      modeBadge.id = 'supplierModeHeaderBadge';
+      const headerActions = document.querySelector('.header-actions');
+      if (headerActions) headerActions.prepend(modeBadge);
+    }
+    modeBadge.style.display = 'inline-flex';
+    modeBadge.innerHTML = `
+      <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(249,115,22,0.15); border:1px solid rgba(249,115,22,0.45); border-radius:6px; padding:3px 10px; font-size:0.75rem; color:#fb923c;">
+        <i data-lucide="building-2" style="width:13px; height:13px;"></i>
+        <span><b>${CURRENT_USER.company || '하나마이크론'}</b> 전용 접속 모드</span>
+        <button type="button" class="btn btn-xs" onclick="onUserSwitch('김성중')" style="margin-left:6px; background:#2563eb; color:#fff; border:none; padding:1px 6px; font-size:0.68rem; cursor:pointer; font-weight:700;" title="라모스 본사 SQE 계정으로 즉시 전환">
+          🔄 본사 SQE 전환
+        </button>
+      </div>
+    `;
+  } else {
+    if (modeBadge) modeBadge.style.display = 'none';
+  }
+
+  // Adapt sidebar view for Supplier
+  adaptSidebarForUser();
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
+}
+
+function adaptSidebarForUser() {
+  const sidebarMenu = document.getElementById('sidebarMenuView');
+  if (!sidebarMenu) return;
+
+  let banner = document.getElementById('sidebarSupplierNoticeBanner');
+  if (CURRENT_USER.isSupplier) {
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'sidebarSupplierNoticeBanner';
+      banner.style.cssText = `
+        margin: 10px 14px;
+        padding: 10px 12px;
+        background: rgba(249, 115, 22, 0.12);
+        border: 1px solid rgba(249, 115, 22, 0.35);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      `;
+      sidebarMenu.prepend(banner);
+    }
+    banner.style.display = 'flex';
+    banner.innerHTML = `
+      <div style="display:flex; align-items:center; gap:6px; color:#f97316; font-size:0.75rem; font-weight:800;">
+        <i data-lucide="shield" style="width:14px; height:14px;"></i>
+        <span>외주사 보안 모드 가동</span>
+      </div>
+      <div style="font-size:0.7rem; color:var(--text-secondary); line-height:1.35;">
+        <b>${CURRENT_USER.company || '하나마이크론(주)'}</b> 계정입니다.<br>
+        <span style="color:#fb923c;">'외주 품질 & PCN 관제'</span>에서 당사 접수 건을 확인하세요.
+      </div>
+    `;
+  } else {
+    if (banner) banner.style.display = 'none';
   }
 }
 
 function onUserSwitch(userName) {
   if (typeof persistCurrentEditor === 'function' && !persistCurrentEditor()) return;
   setCurrentUser(userName);
+  if (typeof window !== 'undefined') window.CURRENT_USER = CURRENT_USER;
   sessionStorage.setItem('RAMOS_AUTH_USER', CURRENT_USER.username || CURRENT_USER.email.split('@')[0]);
   isBannerDismissed = false;
+
+  if (CURRENT_USER.isSupplier) {
+    if (typeof supplierPortalState !== 'undefined') supplierPortalState.activeTab = 'watchtower';
+    switchNav('supplier-portal');
+  }
+
   renderUserSwitcherHeader();
   updateNotificationBadge();
   renderCurrentView();

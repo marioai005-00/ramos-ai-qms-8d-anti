@@ -130,8 +130,21 @@ function updateComparisonField(index, field, value) {
   }
 }
 
+function getSupplierActiveUser() {
+  if (typeof CURRENT_USER !== 'undefined' && CURRENT_USER) return CURRENT_USER;
+  if (typeof window !== 'undefined' && window.CURRENT_USER) return window.CURRENT_USER;
+  return null;
+}
+
 function renderSupplierPortalView() {
-  const records = loadSupplierRecords();
+  const activeUser = getSupplierActiveUser();
+  const isSupplier = Boolean(activeUser && activeUser.isSupplier);
+  const supplierCompany = isSupplier ? (activeUser.company || '하나마이크론(주)') : null;
+
+  let records = loadSupplierRecords();
+  if (isSupplier && supplierCompany) {
+    records = records.filter(r => r.supplier && (r.supplier.companyName === supplierCompany || r.supplier.email === (activeUser ? activeUser.email : '')));
+  }
 
   const totalCount = records.length;
   const newCount = records.filter(r => r.status === 'Submitted').length;
@@ -140,21 +153,26 @@ function renderSupplierPortalView() {
   const escalatedCount = records.filter(r => r.status === '8D_Escalated').length;
 
   return `
-    <div class="supplier-portal-container">
+    <div class="supplier-portal-container ${isSupplier ? 'supplier-portal-external-mode' : ''}">
       <!-- Portal Top Header -->
-      <div class="supplier-portal-header">
+      <div class="supplier-portal-header ${isSupplier ? 'supplier-header-orange' : ''}">
         <div class="portal-brand">
-          <div class="portal-brand-icon">
-            <i data-lucide="network" style="width:24px; height:24px;"></i>
+          <div class="portal-brand-icon" style="${isSupplier ? 'background:linear-gradient(135deg, #f97316, #ea580c); box-shadow:0 4px 12px rgba(249,115,22,0.35);' : ''}">
+            <i data-lucide="${isSupplier ? 'building-2' : 'network'}" style="width:24px; height:24px;"></i>
           </div>
           <div>
             <div class="portal-brand-title">
-              외주사 품질 이슈 & 4M PCN 관제 센터
-              <span class="portal-tag">SQE Portal</span>
-              <span class="portal-live-pulse">Live Gateway</span>
+              ${isSupplier ? `외주 협력사 품질 & 4M PCN 접수 포털` : `외주사 품질 이슈 & 4M PCN 관제 센터`}
+              ${isSupplier
+                ? `<span class="portal-tag" style="background:rgba(249,115,22,0.15); color:#f97316; border-color:rgba(249,115,22,0.3); font-weight:800;">🏭 ${supplierCompany} 전용</span>
+                   <span class="portal-live-pulse" style="background:rgba(56,189,248,0.15); color:#38bdf8; border-color:rgba(56,189,248,0.3);">외주사 보안 모드</span>`
+                : `<span class="portal-tag">SQE Portal</span>
+                   <span class="portal-live-pulse">Live Gateway</span>`}
             </div>
             <div class="portal-brand-subtitle">
-              외주 협력사(OSAT·SMT·PKG·PCB·부품사) 공정 이상 통보(SCAR) 및 4M 변경 승인(PCN) 실시간 수신·심의·8D 연계 허브
+              ${isSupplier
+                ? `${supplierCompany} (${activeUser ? activeUser.name : '박민우'} ${activeUser ? activeUser.position : '과장'}) 전용 4M 변경 사전 승인(PCN) 신청 및 공정 품질이상(SCAR) 긴급통보 온라인 창구`
+                : `외주 협력사(OSAT·SMT·PKG·PCB·부품사) 공정 이상 통보(SCAR) 및 4M 변경 승인(PCN) 실시간 수신·심의·8D 연계 허브`}
             </div>
           </div>
         </div>
@@ -163,11 +181,11 @@ function renderSupplierPortalView() {
         <div class="supplier-tab-nav">
           <button class="supplier-tab-btn ${supplierPortalState.activeTab === 'watchtower' ? 'active' : ''}" onclick="switchSupplierTab('watchtower')">
             <i data-lucide="clipboard-list" style="width:16px; height:16px;"></i>
-            <span>📋 사내 SQE 실시간 관제 현황판</span>
+            <span>${isSupplier ? `📋 당사(${supplierCompany}) 접수/심의 현황판` : `📋 사내 SQE 실시간 관제 현황판`}</span>
           </button>
           <button class="supplier-tab-btn ${supplierPortalState.activeTab === 'intake' ? 'active' : ''}" onclick="switchSupplierTab('intake')">
             <i data-lucide="send" style="width:16px; height:16px;"></i>
-            <span>📥 협력사 전용 접수 창구</span>
+            <span>${isSupplier ? `📥 신규 4M PCN / 품질이상 접수` : `📥 협력사 전용 접수 창구`}</span>
           </button>
         </div>
       </div>
@@ -175,15 +193,19 @@ function renderSupplierPortalView() {
       <!-- Tab Body -->
       <div id="supplierTabContent">
         ${supplierPortalState.activeTab === 'watchtower'
-          ? renderSupplierWatchtower(records, { totalCount, newCount, underReviewCount, approvedCount, escalatedCount })
-          : renderSupplierSubmitForm()}
+          ? renderSupplierWatchtower(records, { totalCount, newCount, underReviewCount, approvedCount, escalatedCount }, isSupplier)
+          : renderSupplierSubmitForm(isSupplier)}
       </div>
     </div>
   `;
 }
 
-function renderSupplierWatchtower(records, kpi) {
+function renderSupplierWatchtower(records, kpi, isSupplier = false) {
+  const activeUser = getSupplierActiveUser();
   let filtered = [...records];
+  if (isSupplier && activeUser && activeUser.company) {
+    filtered = filtered.filter(r => r.supplier && (r.supplier.companyName === activeUser.company || r.supplier.email === activeUser.email));
+  }
 
   if (supplierPortalState.filterSupplier !== 'ALL') {
     filtered = filtered.filter(r => r.supplier.category === supplierPortalState.filterSupplier);
@@ -240,15 +262,25 @@ function renderSupplierWatchtower(records, kpi) {
 
     <!-- Filter & Action Bar -->
     <div class="supplier-filter-bar">
-      <div class="filter-item">
-        <label>협력사 필터</label>
-        <select onchange="supplierPortalState.filterSupplier = this.value; renderCurrentView();">
-          <option value="ALL" ${supplierPortalState.filterSupplier === 'ALL' ? 'selected' : ''}>전체 협력사 (All)</option>
-          ${Object.entries(SUPPLIER_CATEGORIES).map(([k, v]) => `
-            <option value="${k}" ${supplierPortalState.filterSupplier === k ? 'selected' : ''}>${v}</option>
-          `).join('')}
-        </select>
-      </div>
+      ${isSupplier ? `
+        <div class="filter-item">
+          <label>접수 협력사</label>
+          <div style="height:36px; padding:0 12px; font-size:0.8rem; font-weight:700; color:#f97316; background:rgba(249,115,22,0.1); border:1px solid rgba(249,115,22,0.3); border-radius:6px; display:flex; align-items:center; gap:6px;">
+            <i data-lucide="building-2" style="width:14px; height:14px;"></i>
+            <span>${window.CURRENT_USER.company} (당사 전용)</span>
+          </div>
+        </div>
+      ` : `
+        <div class="filter-item">
+          <label>협력사 필터</label>
+          <select onchange="supplierPortalState.filterSupplier = this.value; renderCurrentView();">
+            <option value="ALL" ${supplierPortalState.filterSupplier === 'ALL' ? 'selected' : ''}>전체 협력사 (All)</option>
+            ${Object.entries(SUPPLIER_CATEGORIES).map(([k, v]) => `
+              <option value="${k}" ${supplierPortalState.filterSupplier === k ? 'selected' : ''}>${v}</option>
+            `).join('')}
+          </select>
+        </div>
+      `}
 
       <div class="filter-item">
         <label>접수 유형</label>
@@ -311,7 +343,7 @@ function renderSupplierWatchtower(records, kpi) {
             <th style="width:28%;">제목 및 대상 P/N / Lot No</th>
             <th style="width:6%; text-align:center;">위험도</th>
             <th style="width:9%; text-align:center;">심의상태</th>
-            <th style="width:11%; text-align:center;">SQE 액션</th>
+            <th style="width:11%; text-align:center;">${isSupplier ? "심의결과 / 증빙" : "SQE 액션"}</th>
           </tr>
         </thead>
         <tbody>
@@ -378,12 +410,18 @@ function renderSupplierWatchtower(records, kpi) {
                 </td>
                 <td style="text-align:center;">
                   <div style="display:inline-flex; gap:4px;">
-                    <button class="btn btn-secondary btn-sm" onclick="openSupplierTicketModal('${item.ticketId}')" style="padding:3px 8px; font-size:0.72rem;">
-                      심의
-                    </button>
-                    <button class="btn btn-danger btn-sm" onclick="handleEscalateTo8D('${item.ticketId}')" style="padding:3px 8px; font-size:0.72rem;">
-                      8D연계
-                    </button>
+                    ${isSupplier ? `
+                      <button class="btn btn-primary btn-sm" onclick="openSupplierTicketModal('${item.ticketId}')" style="padding:4px 10px; font-size:0.75rem; font-weight:700;">
+                        📋 심의결과 확인
+                      </button>
+                    ` : `
+                      <button class="btn btn-secondary btn-sm" onclick="openSupplierTicketModal('${item.ticketId}')" style="padding:3px 8px; font-size:0.72rem;">
+                        심의
+                      </button>
+                      <button class="btn btn-danger btn-sm" onclick="handleEscalateTo8D('${item.ticketId}')" style="padding:3px 8px; font-size:0.72rem;">
+                        8D연계
+                      </button>
+                    `}
                   </div>
                 </td>
               </tr>
@@ -412,7 +450,18 @@ function getSupplierStatusBadge(status) {
   }
 }
 
-function renderSupplierSubmitForm() {
+function renderSupplierSubmitForm(isSupplier = false) {
+  const activeUser = getSupplierActiveUser();
+  const isSupplierUser = Boolean(isSupplier || (activeUser && activeUser.isSupplier));
+  if (isSupplierUser && activeUser) {
+    if (activeUser.company) supplierPortalState.intakeForm.companyName = activeUser.company;
+    if (activeUser.plant) supplierPortalState.intakeForm.plant = activeUser.plant;
+    if (activeUser.name) supplierPortalState.intakeForm.submitter = `${activeUser.name} ${activeUser.position || '과장'}`;
+    if (activeUser.email) supplierPortalState.intakeForm.email = activeUser.email;
+    if (activeUser.phone) supplierPortalState.intakeForm.phone = activeUser.phone;
+    if (activeUser.supplierCategory) supplierPortalState.intakeForm.supplierCategory = activeUser.supplierCategory;
+    if (activeUser.supplierId) supplierPortalState.intakeForm.supplierId = activeUser.supplierId;
+  }
   const f = supplierPortalState.intakeForm;
   const isPCN = (f.ticketType === 'PCN');
 
@@ -434,11 +483,12 @@ function renderSupplierSubmitForm() {
         <!-- 1. 협력사 기본 정보 -->
         <div class="form-section-title">
           <span>1. 협력사 및 제출자 기본 정보</span>
+          ${isSupplierUser ? `<span style="margin-left:auto; font-size:0.72rem; color:#f97316; font-weight:800;">🔒 [외주사 보안 모드] 당사 계정 정보 자동 바인딩 및 잠금</span>` : ''}
         </div>
         <div class="supplier-field-grid col-3">
           <div class="form-group">
             <label class="form-label">협력사 선택 (프리셋)</label>
-            <select class="form-control" onchange="onSupplierMasterSelect(this.value)">
+            <select class="form-control" onchange="onSupplierMasterSelect(this.value)" ${isSupplierUser ? 'disabled style="background:var(--bg-card-subtle); color:var(--text-secondary);"' : ''}>
               ${MASTER_SUPPLIERS.map(s => `
                 <option value="${s.id}" ${f.supplierId === s.id ? 'selected' : ''}>${s.name} (${s.plant})</option>
               `).join('')}
@@ -447,7 +497,7 @@ function renderSupplierSubmitForm() {
           </div>
           <div class="form-group">
             <label class="form-label">협력사 분류</label>
-            <select class="form-control" name="supplierCategory" id="formSuppCategory">
+            <select class="form-control" name="supplierCategory" id="formSuppCategory" ${isSupplierUser ? 'disabled style="background:var(--bg-card-subtle); color:var(--text-secondary);"' : ''}>
               ${Object.entries(SUPPLIER_CATEGORIES).map(([k, v]) => `
                 <option value="${k}" ${f.supplierCategory === k ? 'selected' : ''}>${v}</option>
               `).join('')}
@@ -455,21 +505,21 @@ function renderSupplierSubmitForm() {
           </div>
           <div class="form-group">
             <label class="form-label">협력사 상호명</label>
-            <input type="text" class="form-control" name="companyName" value="${f.companyName}" required>
+            <input type="text" class="form-control" name="companyName" value="${f.companyName}" ${isSupplierUser ? 'readonly style="background:var(--bg-card-subtle); font-weight:700;"' : ''} required>
           </div>
           <div class="form-group">
             <label class="form-label">해당 공장 / 라인</label>
-            <input type="text" class="form-control" name="plant" value="${f.plant}" placeholder="예: 아산 사업장 PKG Line 3" required>
+            <input type="text" class="form-control" name="plant" value="${f.plant}" placeholder="예: 아산 사업장 PKG Line 3" ${isSupplierUser ? 'readonly style="background:var(--bg-card-subtle); font-weight:700;"' : ''} required>
           </div>
           <div class="form-group">
             <label class="form-label">제출 담당자 (성명/직급)</label>
-            <input type="text" class="form-control" name="submitter" value="${f.submitter}" placeholder="예: 홍길동 과장" required>
+            <input type="text" class="form-control" name="submitter" value="${f.submitter}" placeholder="예: 홍길동 과장" ${isSupplierUser ? 'readonly style="background:var(--bg-card-subtle); font-weight:700;"' : ''} required>
           </div>
           <div class="form-group">
             <label class="form-label">연락처 / 이메일</label>
             <div style="display:flex; gap:6px;">
-              <input type="text" class="form-control" name="phone" value="${f.phone}" placeholder="010-0000-0000" style="width:45%;" required>
-              <input type="email" class="form-control" name="email" value="${f.email}" placeholder="name@company.com" style="width:55%;" required>
+              <input type="text" class="form-control" name="phone" value="${f.phone}" placeholder="010-0000-0000" style="width:45%; ${isSupplierUser ? 'background:var(--bg-card-subtle); font-weight:700;' : ''}" ${isSupplierUser ? 'readonly' : ''} required>
+              <input type="email" class="form-control" name="email" value="${f.email}" placeholder="name@company.com" style="width:55%; ${isSupplierUser ? 'background:var(--bg-card-subtle); font-weight:700;' : ''}" ${isSupplierUser ? 'readonly' : ''} required>
             </div>
           </div>
         </div>
@@ -904,6 +954,8 @@ function openSupplierTicketModal(ticketId) {
 
   const isMajor = ticket.classification?.riskLevel === 'MAJOR';
   const isPCN = (ticket.ticketType === 'PCN');
+  const activeUser = getSupplierActiveUser();
+  const isSupplier = Boolean(activeUser && activeUser.isSupplier);
   const modalContainer = document.getElementById('modalContainer');
   const globalModal = document.getElementById('globalModal');
   if (!modalContainer) return;
@@ -1010,34 +1062,66 @@ function openSupplierTicketModal(ticketId) {
           </div>
         </div>
 
-        <!-- SQE Review Form -->
-        <div style="border:1px solid #2563eb; border-radius:6px; padding:14px; background:rgba(37,99,235,0.04); margin-top:16px;">
-          <div style="font-weight:800; font-size:0.88rem; color:#2563eb; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
-            <i data-lucide="check-circle-2" style="width:16px; height:16px;"></i>
-            <span>사내 품질본부(SQE) 공식 심의 및 판정</span>
-          </div>
-
-          <div class="supplier-field-grid col-2">
-            <div class="form-group">
-              <label class="form-label">SQE 담당 심의자</label>
-              <input type="text" class="form-control" id="modalReviewer" value="${ticket.sqeReview?.reviewer || (window.CURRENT_USER ? window.CURRENT_USER.name : '김성중 Senior Pro')}" readonly>
+        ${isSupplier ? `
+          <!-- Official SQE Decision Notification Sheet (For Subcontractor View) -->
+          <div style="border:1px solid #10b981; border-radius:8px; padding:16px; background:rgba(16,185,129,0.05); margin-top:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(16,185,129,0.25); padding-bottom:8px;">
+              <div style="font-weight:800; font-size:0.92rem; color:#10b981; display:flex; align-items:center; gap:8px;">
+                <i data-lucide="shield-check" style="width:18px; height:18px;"></i>
+                <span>라모스테크놀러지 품질본부(SQE) 공식 심의 결과 통보</span>
+              </div>
+              <div>
+                ${getSupplierStatusBadge(ticket.status)}
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">심의 판정 선택</label>
-              <select class="form-control" id="modalDecision" style="font-weight:700;">
-                <option value="Under_Review" ${ticket.status === 'Under_Review' ? 'selected' : ''}>◐ 심의 중 (신뢰성 추가 성적서 보완 요구)</option>
-                <option value="Approved" ${ticket.status === 'Approved' ? 'selected' : ''}>✓ 최종 승인 (4M 변경 승인 및 양산 적용 허가)</option>
-                <option value="8D_Escalated" ${ticket.status === '8D_Escalated' ? 'selected' : ''}>⚡ 사내 8D Case 즉시 승격 (심각 품질 이슈)</option>
-                <option value="Rejected" ${ticket.status === 'Rejected' ? 'selected' : ''}>✕ 변경 반려 (품질/신뢰성 기준 미달)</option>
-              </select>
+
+            <div class="supplier-field-grid col-2" style="font-size:0.8rem; margin-bottom:10px;">
+              <div>• <b>SQE 담당 심의관:</b> <span style="color:#2563eb; font-weight:700;">${ticket.sqeReview?.reviewer || '품질혁신팀 SQE 심의위원회'}</span></div>
+              <div>• <b>공식 심의 완료일:</b> <span class="num-mono">${ticket.sqeReview?.reviewedAt || ticket.createdAt}</span></div>
+              ${ticket.sqeReview?.bound8DCaseId ? `
+                <div style="grid-column:span 2; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:4px; padding:6px 10px; color:#f87171; font-weight:700;">
+                  ⚡ <b>사내 8D Case 연계 번호:</b> <span class="num-mono">${ticket.sqeReview.bound8DCaseId}</span> (긴급 품질 대응 체계 가동)
+                </div>
+              ` : ''}
+            </div>
+
+            <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:12px;">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">SQE 종합 심의 의견 및 조건부 승인 지침</label>
+              <div style="font-size:0.84rem; color:var(--text-primary); margin-top:4px; line-height:1.5;">
+                ${ticket.sqeReview?.comment || '현재 라모스 품질혁신팀에서 제출된 4M 대조표 및 신뢰성 시험 성적서를 정밀 검토 중입니다. 추가 보완 사항 발생 시 유선 또는 본 포털을 통해 통보됩니다.'}
+              </div>
             </div>
           </div>
+        ` : `
+          <!-- SQE Review Form (For Internal SQE Reviewer) -->
+          <div style="border:1px solid #2563eb; border-radius:6px; padding:14px; background:rgba(37,99,235,0.04); margin-top:16px;">
+            <div style="font-weight:800; font-size:0.88rem; color:#2563eb; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="check-circle-2" style="width:16px; height:16px;"></i>
+              <span>사내 품질본부(SQE) 공식 심의 및 판정</span>
+            </div>
 
-          <div class="form-group" style="margin-top:10px;">
-            <label class="form-label">품질팀 심의 종합 의견 및 조건</label>
-            <textarea class="form-control" id="modalComment" rows="2" placeholder="심의 조건부 승인 사항, 신뢰성 시험 추가 요건 또는 반려 사유를 기술하십시오.">${ticket.sqeReview?.comment || ''}</textarea>
+            <div class="supplier-field-grid col-2">
+              <div class="form-group">
+                <label class="form-label">SQE 담당 심의자</label>
+                <input type="text" class="form-control" id="modalReviewer" value="${ticket.sqeReview?.reviewer || (activeUser ? activeUser.name : '김성중 Senior Pro')}" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">심의 판정 선택</label>
+                <select class="form-control" id="modalDecision" style="font-weight:700;">
+                  <option value="Under_Review" ${ticket.status === 'Under_Review' ? 'selected' : ''}>◐ 심의 중 (신뢰성 추가 성적서 보완 요구)</option>
+                  <option value="Approved" ${ticket.status === 'Approved' ? 'selected' : ''}>✓ 최종 승인 (4M 변경 승인 및 양산 적용 허가)</option>
+                  <option value="8D_Escalated" ${ticket.status === '8D_Escalated' ? 'selected' : ''}>⚡ 사내 8D Case 즉시 승격 (심각 품질 이슈)</option>
+                  <option value="Rejected" ${ticket.status === 'Rejected' ? 'selected' : ''}>✕ 변경 반려 (품질/신뢰성 기준 미달)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top:10px;">
+              <label class="form-label">품질팀 심의 종합 의견 및 조건</label>
+              <textarea class="form-control" id="modalComment" rows="2" placeholder="심의 조건부 승인 사항, 신뢰성 시험 추가 요건 또는 반려 사유를 기술하십시오.">${ticket.sqeReview?.comment || ''}</textarea>
+            </div>
           </div>
-        </div>
+        `}
       </div>
 
       <!-- Modal Footer -->
@@ -1048,14 +1132,20 @@ function openSupplierTicketModal(ticketId) {
         </button>
 
         <div style="display:flex; gap:8px;">
-          <button class="btn btn-danger btn-sm" onclick="handleEscalateTo8D('${ticket.ticketId}')" style="font-weight:700;">
-            <i data-lucide="zap" style="width:14px; height:14px;"></i>
-            <span>🚀 8D Case 즉시 연계</span>
-          </button>
-          <button class="btn btn-primary btn-sm" onclick="submitSupplierReviewDecision('${ticket.ticketId}')" style="font-weight:800; padding:6px 16px;">
-            <i data-lucide="save" style="width:14px; height:14px;"></i>
-            <span>💾 심의 결과 확정 저장</span>
-          </button>
+          ${isSupplier ? `
+            <button class="btn btn-primary btn-sm" onclick="closeModal()" style="font-weight:800; padding:6px 18px;">
+              확인 완료 (닫기)
+            </button>
+          ` : `
+            <button class="btn btn-danger btn-sm" onclick="handleEscalateTo8D('${ticket.ticketId}')" style="font-weight:700;">
+              <i data-lucide="zap" style="width:14px; height:14px;"></i>
+              <span>🚀 8D Case 즉시 연계</span>
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="submitSupplierReviewDecision('${ticket.ticketId}')" style="font-weight:800; padding:6px 16px;">
+              <i data-lucide="save" style="width:14px; height:14px;"></i>
+              <span>💾 심의 결과 확정 저장</span>
+            </button>
+          `}
         </div>
       </div>
     </div>
