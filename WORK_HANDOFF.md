@@ -6,38 +6,59 @@
 
 ## 📌 현재 활성 프로젝트 상태 (Latest Active Status)
 
-* **최근 업데이트 일시**: `2026-09-09 08:35 (KST)`
+* **최근 업데이트 일시**: `2026-09-09 08:47 (KST)`
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System_Antigravity`
-* **진행 상태 (Status)**: 🟢 `[COMPLETED]` / 🏭 `[DEDICATED_SUBCONTRACTOR_ACCOUNT_AND_SECURITY_MODE_DEPLOYED]`
+* **진행 상태 (Status)**: 🟢 `[COMPLETED]` / 🛡️ `[STRICT_SUBCONTRACTOR_NAVIGATION_ISOLATION_AND_RELOCATION_DEPLOYED]`
 * **작업 내용 요약**:
-  1. **외주 협력사 전용 계정 및 퀵 로그인·페르소나 체계 구축**:
-     - **사용자 요청**: "일단 외주 계정으로 1개 만들어줘!! 외주 계정으로 접속하였을 때, 어떻게 보이는지를 좀 보려고!!"
-     - **계정 정보**: ID `mwpark` (또는 한글 `외주`, `외주사`, `박민우`), PW `1` (성명: 박민우 과장, 소속: 하나마이크론(주) OSAT PKG).
-     - **로그인 화면 및 헤더 페르소나 칩 탑재**: `#loginScreen` 퀵 로그인 칩에 `[🏭 박민우 과장 | 외주(하나마이크론)]` 추가 및 헤더 페르소나 드롭다운에 `🏭 [외주] 박민우 과장 (하나마이크론)` 등록.
-  2. **철저한 협력사 데이터 격리 (Subcontractor Data Isolation)**:
-     - 타사(ASE Korea, 대덕전자 등)의 영업 비밀 및 공정 이상 내역 완전 차단/은닉.
-     - 오직 당사(`하나마이크론(주)`)의 4M PCN 및 품질 이슈 티켓만 관제 테이블에 렌더링.
-     - 상단 4대 KPI 지표(총 접수 건수, 신규, 심의 중, 8D 승격 등) 역시 당사 데이터만을 기준으로 자동 집계.
-  3. **외주사 전용 보안 모드 시각화 & UX 최적화**:
-     - **헤더 모드 배지**: `[🏭 하나마이크론(주) 전용 접속 모드] [🔄 본사 SQE 전환]` 버튼 탑재 (1-Click으로 본사/외주 간 즉각 전환 테스트 가능).
-     - **좌측 사이드바**: 상단에 오렌지색 외주사 보안 모드 안내 배너 및 하단 오렌지 그라데이션 외주 협력사 전용 프로필 뱃지 표출.
-     - **포털 브랜드 타이틀**: `외주 협력사 품질 & 4M PCN 접수 포털` + `[🏭 하나마이크론(주) 전용]` + `[외주사 보안 모드]` 배지 표기.
-     - **탭 및 필터 바**: `[📋 당사(하나마이크론(주)) 접수/심의 현황판]` 탭 및 협력사 필터가 `하나마이크론(주) (당사 전용)`으로 고정 잠금.
-  4. **외주사용 클린 심의 결과 통보서 (Read-Only Official SQE Notification)**:
-     - 티켓 클릭 시 본사용 내부 심의 폼/결정 버튼 대신 **"라모스테크놀러지 품질본부(SQE) 공식 심의 결과 통보서"** 패널 표출.
-     - SQE 담당 심의관(`김성중 Senior Pro`), 공식 심의 완료일, 사내 8D Case 연계 번호, SQE 종합 심의 의견 및 조건부 승인 지침을 품격 높은 공문 형태로 렌더링.
-     - 하단에는 `[🖨️ A4 심의 통보 공문 출력]` 및 `[확인 완료 (닫기)]` 버튼만 제공하여 내부 권한 침해 원천 방지.
-  5. **신규 접수 폼 자동 바인딩 및 조작 방지 (Lock)**:
-     - `📥 신규 4M PCN / 품질이상 접수` 탭 진입 시 협력사 상호(`하나마이크론(주)`), 공장(`아산 사업장 PKG Line 3`), 담당자(`박민우 과장`), 연락처, 이메일이 자동 입력되고 수정 불가(readonly/disabled) 잠금 처리.
-  6. **전체 E2E 브라우저 테스트 100% PASS 및 실사 스크린샷 2종 검증 완료**:
-     - `python tests/run_full_e2e.py` 실행 결과: 4/4 전 스위트 100% 통과 (사이드바, 라이트/다크 테마, 코어 스모크, 외주 포털 & 협력사 모드).
-     - 산출 검증 스크린샷:
-       - `verify_supplier_account_view.png` (외주사 전용 관제탑 및 엄격한 데이터 격리 화면)
-       - `verify_supplier_account_modal.png` (외주사용 클린 SQE 공식 심의 통보서 모달)
+  1. **외주 품질 & PCN 관제 메뉴 위치를 종합 관제탑(Dashboard) 바로 아래로 전진 배치**:
+     - **사용자 요청**: "이 부분을 대시보드 있는곳으로 종합 관제탑 아래로 올리고!!"
+     - 기존 사이드바 맨 하단에 분리되어 있던 `외주 품질 & PCN 관제` 메뉴를 상단 `Dashboard & Overview` 카테고리 내부로 이동하여, `종합 관제탑 (Dashboard)` 바로 아래에 직관적으로 배치.
+  2. **외주사 계정 접속 시 사내 모든 8D 메뉴 및 내부 정보 100% 완전 은닉 격리**:
+     - **사용자 요청**: "외주사계정으로 접속 하였을 때, 다른 부분이 다 비활성화 되어서 보이지 않는 것이 당연한거고!! 저부분도 안보일 수 있게 해줘!! 딱 외주 협력사 품질 & 4M PCN 접수 포털 이것만 보이게 해줘!! 너무 우리회사의 다른 정보들까지 제공할 필요는 없는거니까!!"
+     - **은닉 처리된 사내 기밀 요소**:
+       - `종합 관제탑 (Dashboard)`: 사내 종합 품질 지표 및 클레임/불량 통계 은닉.
+       - `Nonconformance & Cases`: STEP 01 접수, STEP 02 Triage, 진행 Case 관리 은닉.
+       - `8D Problem Solving Flow`: Case Overview 및 D1~D8 전체 단계 워크스페이스 은닉.
+       - `Evidence & Actions`: 증거 매트릭스, 통합 액션 트래커 은닉.
+       - `Official 8D Reports`: 공식 8D 리포트 출력 센터 은닉.
+       - `RAmos 조직도`: 사내 62명 임직원 조직도 및 이메일 탭 전체 은닉.
+       - 상단 헤더: 사내 `CASE` 선택 셀렉터, `AI 검토`, `8D 리포트`, `초기화` 버튼 은닉.
+     - **외주사 계정(`mwpark`) 사이드바 단독 노출 규격**:
+       - 카테고리: `외주 협력사 포털 (하나마이크론(주))`
+       - 메뉴 항목: **`[🏭 외주 협력사 품질 & 4M PCN 접수 포털]` (단독 활성화)**
+  3. **라우팅 및 조작 원천 차단 (Navigation Guards)**:
+     - `switchNav()` 및 `switchStage()`에 외주사 보안 가드를 적용하여, URL/스크립트/단축키 등으로 사내 뷰 진입 시도시 즉각 차단.
+     - 본사 SQE 계정(`김성중`)으로 복귀 시 모든 사내 8D 메뉴 및 조직도가 100% 정상 원상 복구.
+  4. **전체 E2E 브라우저 테스트 100% 통과 (4/4 PASS)**:
+     - `tests/test_supplier_portal_e2e.cjs`에 사이드바 격리 및 헤더 차단 자동 검증 시나리오 반영.
+     - `python tests/run_full_e2e.py` 전 스위트 100% PASS 확인.
+     - 실사 검증 스크린샷 갱신: `verify_supplier_account_view.png` (완전 격리된 외주사 전용 단독 메뉴 뷰).
 
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-09 08:47] 외주 포털 메뉴 위치 이동(종합 관제탑 하단) 및 사내 8D 정보 100% 완전 은닉 격리
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **작업 대상 폴더**: `G:\내 드라이브\AI_Place\Work\11_AI_Customer_Nonconformance_8D_System_Antigravity`
+* **수정 내용**:
+  1. `index.html`:
+     - `#sidebarMenuView` 상단 `종합 관제탑 (Dashboard)` 바로 아래로 `#nav-supplier-portal` 이동.
+     - 사내 전용 메뉴 전체를 `#internalCompanyNavSection`으로 그룹핑.
+     - 상단 헤더 사내 전용 버튼(`AI 검토`, `8D 리포트`, `초기화`)에 `header-internal-btn` 클래스 부여.
+     - CSS 캐시 버스터 `v=20260909_v45` 갱신.
+  2. `css/styles.css`:
+     - `body.supplier-mode` 셀렉터를 통해 `#internalCompanyNavSection`, `#navItemDashboard`, `.header-case-zone`, `.header-internal-btn`, `.sidebar-tabs`, `#sidebarOrgView`를 `display: none !important;` 처리.
+     - 외주사 활성 메뉴 오렌지 테마 하이라이트 스타일 추가.
+  3. `js/app.js`:
+     - `adaptSidebarForUser()`에서 외주 계정 시 사내 요소 즉시 은닉, 메뉴 라벨을 `외주 협력사 품질 & 4M PCN 접수 포털`로 동적 설정.
+     - `switchNav()` 및 `switchStage()`에 외주사 라우팅 가드 추가.
+     - `renderCurrentView()`에서 외주사 계정일 경우 `supplier-portal`로 자동 고정.
+  4. `tests/test_supplier_portal_e2e.cjs`:
+     - Step 8에 사내 메뉴/헤더 셀렉터 숨김 및 본사 복귀 시 정상 복구 검증 assertion 편입.
+* **검증 결과**:
+  - `python tests/run_full_e2e.py` 4/4 ALL PASS.
+  - 실사 스크린샷 `verify_supplier_account_view.png` 재산출 완료.
 
 ### 🗓️ [2026-09-09 08:35] 외주 협력사 전용 계정(`mwpark`) 및 보안 모드·데이터 격리 관제 시스템 구축 완료
 * **Git 브랜치**: `antigravity/step01-intake-agent`

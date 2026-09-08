@@ -251,38 +251,38 @@ function renderUserSwitcherHeader() {
 }
 
 function adaptSidebarForUser() {
-  const sidebarMenu = document.getElementById('sidebarMenuView');
-  if (!sidebarMenu) return;
+  const isSupplier = Boolean(CURRENT_USER && CURRENT_USER.isSupplier);
+  const internalNav = document.getElementById('internalCompanyNavSection');
+  const dashboardNav = document.getElementById('navItemDashboard');
+  const supplierNav = document.getElementById('nav-supplier-portal');
+  const supplierNavText = document.getElementById('navSupplierPortalText');
+  const menuCatOverview = document.getElementById('menuCatOverview');
+  const sidebarTabs = document.querySelector('.sidebar-tabs');
 
-  let banner = document.getElementById('sidebarSupplierNoticeBanner');
-  if (CURRENT_USER.isSupplier) {
-    if (!banner) {
-      banner = document.createElement('div');
-      banner.id = 'sidebarSupplierNoticeBanner';
-      banner.style.cssText = `
-        margin: 10px 14px;
-        padding: 10px 12px;
-        background: rgba(249, 115, 22, 0.12);
-        border: 1px solid rgba(249, 115, 22, 0.35);
-        border-radius: 8px;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      `;
-      sidebarMenu.prepend(banner);
-    }
-    banner.style.display = 'flex';
-    banner.innerHTML = `
-      <div style="display:flex; align-items:center; gap:6px; color:#f97316; font-size:0.75rem; font-weight:800;">
-        <i data-lucide="shield" style="width:14px; height:14px;"></i>
-        <span>외주사 보안 모드 가동</span>
-      </div>
-      <div style="font-size:0.7rem; color:var(--text-secondary); line-height:1.35;">
-        <b>${CURRENT_USER.company || '하나마이크론(주)'}</b> 계정입니다.<br>
-        <span style="color:#fb923c;">'외주 품질 & PCN 관제'</span>에서 당사 접수 건을 확인하세요.
-      </div>
-    `;
+  if (isSupplier) {
+    document.body.classList.add('supplier-mode');
+    if (internalNav) internalNav.style.display = 'none';
+    if (dashboardNav) dashboardNav.style.display = 'none';
+    if (sidebarTabs) sidebarTabs.style.display = 'none';
+    if (menuCatOverview) menuCatOverview.innerText = `외주 협력사 포털 (${CURRENT_USER.company || '하나마이크론'})`;
+    if (supplierNavText) supplierNavText.innerText = '외주 협력사 품질 & 4M PCN 접수 포털';
+    if (supplierNav) supplierNav.classList.add('active');
+
+    const orgView = document.getElementById('sidebarOrgView');
+    const menuView = document.getElementById('sidebarMenuView');
+    if (orgView) orgView.style.display = 'none';
+    if (menuView) menuView.style.display = 'block';
+
+    const banner = document.getElementById('sidebarSupplierNoticeBanner');
+    if (banner) banner.style.display = 'none';
   } else {
+    document.body.classList.remove('supplier-mode');
+    if (internalNav) internalNav.style.display = '';
+    if (dashboardNav) dashboardNav.style.display = '';
+    if (sidebarTabs) sidebarTabs.style.display = '';
+    if (menuCatOverview) menuCatOverview.innerText = 'Dashboard & Overview';
+    if (supplierNavText) supplierNavText.innerText = '외주 품질 & PCN 관제';
+    const banner = document.getElementById('sidebarSupplierNoticeBanner');
     if (banner) banner.style.display = 'none';
   }
 }
@@ -361,6 +361,9 @@ function onCaseChange(caseId) {
 
 function switchNav(viewName, el) {
   if (typeof persistCurrentEditor === 'function' && !persistCurrentEditor()) return;
+  if (CURRENT_USER && CURRENT_USER.isSupplier && viewName !== 'supplier-portal') {
+    return;
+  }
   appData.currentView = viewName;
   saveAppData();
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -369,6 +372,9 @@ function switchNav(viewName, el) {
 }
 
 function switchStage(stageName) {
+  if (CURRENT_USER && CURRENT_USER.isSupplier) {
+    return;
+  }
   if (typeof persistCurrentEditor === 'function' && !persistCurrentEditor()) return;
   const activeCase = getActiveCase();
   if (typeof canEnterQualityStage === 'function' && activeCase) {
@@ -512,6 +518,10 @@ function openNotificationModal() {
 function renderCurrentView() {
   const container = document.getElementById('mainContentContainer');
   if (!container) return;
+
+  if (CURRENT_USER && CURRENT_USER.isSupplier && appData.currentView !== 'supplier-portal') {
+    appData.currentView = 'supplier-portal';
+  }
 
   const c = getActiveCase();
   const bannerHtml = renderUserTaskBannerHTML();

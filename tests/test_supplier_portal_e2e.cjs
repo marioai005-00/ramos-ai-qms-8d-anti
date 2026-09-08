@@ -328,10 +328,30 @@ async function send(method, params = {}, sessionId) {
   await call('Runtime.evaluate', { expression: `closeModal();` });
   await delay(200);
 
+  // Verify strict sidebar and header isolation for subcontractor
+  const internalNavDisplay = (await call('Runtime.evaluate', { expression: `getComputedStyle(document.getElementById('internalCompanyNavSection')).display`, returnByValue: true })).result.value;
+  assert.equal(internalNavDisplay, 'none', 'Internal 8D sections must be completely hidden from subcontractor sidebar');
+
+  const dashboardNavDisplay = (await call('Runtime.evaluate', { expression: `getComputedStyle(document.getElementById('navItemDashboard')).display`, returnByValue: true })).result.value;
+  assert.equal(dashboardNavDisplay, 'none', 'Internal Dashboard must be completely hidden from subcontractor sidebar');
+
+  const sidebarTabsDisplay = (await call('Runtime.evaluate', { expression: `getComputedStyle(document.querySelector('.sidebar-tabs')).display`, returnByValue: true })).result.value;
+  assert.equal(sidebarTabsDisplay, 'none', 'Sidebar tabs (8D / RAmos Org) must be completely hidden from subcontractor');
+
+  const caseZoneDisplay = (await call('Runtime.evaluate', { expression: `getComputedStyle(document.querySelector('.header-case-zone')).display`, returnByValue: true })).result.value;
+  assert.equal(caseZoneDisplay, 'none', 'Header internal case zone must be completely hidden from subcontractor');
+
+  const supplierNavItemText = (await call('Runtime.evaluate', { expression: `document.getElementById('navSupplierPortalText').innerText`, returnByValue: true })).result.value;
+  assert.ok(supplierNavItemText.includes('외주 협력사 품질 & 4M PCN 접수 포털'), 'Supplier portal nav label should be 외주 협력사 품질 & 4M PCN 접수 포털');
+  console.log('✓ PASS: All internal 8D menus, dashboard, org tree, and case selector strictly hidden from subcontractor');
+
   // Switch back to internal SQE
   await call('Runtime.evaluate', { expression: `onUserSwitch('김성중');` });
   await delay(400);
-  console.log('✓ PASS: Successfully switched back to Internal SQE Master account');
+
+  const internalNavRestored = (await call('Runtime.evaluate', { expression: `getComputedStyle(document.getElementById('internalCompanyNavSection')).display`, returnByValue: true })).result.value;
+  assert.notEqual(internalNavRestored, 'none', 'Internal 8D sections must be restored when switching back to SQE master');
+  console.log('✓ PASS: Successfully switched back to Internal SQE Master account & restored internal menus');
 
   try { socket.close(); } catch {}
   try { proc.kill(); } catch {}

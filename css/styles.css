@@ -35248,3 +35248,29 @@ html[data-theme="light"] .content-body {
   border-color: #38bdf8;
   transform: translateY(-1px);
 }
+
+/* ========================================================================= */
+/* SUBCONTRACTOR ISOLATION RULES (외주 협력사 로그인 시 사내 8D 정보 완전 은닉) */
+/* ========================================================================= */
+body.supplier-mode #internalCompanyNavSection,
+body.supplier-mode #navItemDashboard,
+body.supplier-mode .header-case-zone,
+body.supplier-mode .header-internal-btn,
+body.supplier-mode .sidebar-tabs,
+body.supplier-mode #sidebarOrgView {
+  display: none !important;
+}
+
+body.supplier-mode #nav-supplier-portal {
+  background: rgba(249, 115, 22, 0.12) !important;
+  border-left: 3px solid #f97316 !important;
+  color: #fb923c !important;
+  font-weight: 800 !important;
+  padding: 10px 14px;
+}
+
+body.supplier-mode #menuCatOverview {
+  color: #f97316;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}

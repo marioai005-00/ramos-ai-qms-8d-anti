@@ -13,7 +13,7 @@
   <script src="js/vendor/xlsx.full.min.js"></script>
 
   <!-- Modular Portal Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20260909_v44">
+  <link rel="stylesheet" href="css/styles.css?v=20260909_v45">
   <script>
     (function() {
       try {
@@ -136,17 +136,23 @@
 
     <!-- TAB 1: 8D WORKSPACE MENU -->
     <div class="sidebar-content" id="sidebarMenuView">
-      <div class="menu-cat">Dashboard & Overview</div>
-      <a class="nav-item active" onclick="switchNav('dashboard', this)">
+      <div class="menu-cat" id="menuCatOverview">Dashboard & Overview</div>
+      <a class="nav-item active" id="navItemDashboard" onclick="switchNav('dashboard', this)">
         <i data-lucide="layout-dashboard" style="width: 16px; height: 16px;"></i>
         <span>종합 관제탑 (Dashboard)</span>
       </a>
-
-      <div class="menu-cat">Nonconformance & Cases</div>
-      <a class="nav-item" onclick="switchNav('new-case', this)">
-        <i data-lucide="plus-circle" style="width: 16px; height: 16px; color: #38bdf8;"></i>
-        <span>STEP 01. 신규 부적합 접수</span>
+      <a class="nav-item" id="nav-supplier-portal" onclick="switchNav('supplier-portal', this)">
+        <i data-lucide="factory" style="width: 16px; height: 16px; color: #f97316;"></i>
+        <span id="navSupplierPortalText">외주 품질 & PCN 관제</span>
       </a>
+
+      <!-- Company Internal 8D Sections (Hidden for Subcontractor Account) -->
+      <div id="internalCompanyNavSection">
+        <div class="menu-cat">Nonconformance & Cases</div>
+        <a class="nav-item" onclick="switchNav('new-case', this)">
+          <i data-lucide="plus-circle" style="width: 16px; height: 16px; color: #38bdf8;"></i>
+          <span>STEP 01. 신규 부적합 접수</span>
+        </a>
       <a class="nav-item" onclick="switchNav('intake-triage', this)">
         <i data-lucide="clipboard-search" style="width: 16px; height: 16px; color: #f59e0b;"></i>
         <span>STEP 02. 품질 검토 대기</span>
@@ -280,13 +286,8 @@
         <i data-lucide="printer" style="width: 16px; height: 16px; color: #34d399;"></i>
         <span>공식 8D 리포트 출력 센터</span>
       </a>
-
-      <div class="menu-cat">Supplier & SCM Quality</div>
-      <a class="nav-item" onclick="switchNav('supplier-portal', this)" id="nav-supplier-portal">
-        <i data-lucide="factory" style="width: 16px; height: 16px; color: #f97316;"></i>
-        <span>외주 품질 & PCN 관제</span>
-      </a>
-    </div>
+      </div> <!-- /internalCompanyNavSection -->
+    </div> <!-- /sidebarMenuView -->
 
     <!-- TAB 2: RAMOS ORG TREE -->
     <div class="sidebar-content" id="sidebarOrgView" style="display: none;">
@@ -356,19 +357,19 @@
           <span class="notif-badge-count" id="headerNotifBadge">0</span>
         </button>
 
-        <button class="header-action-button" onclick="openAIAssistantModal()" title="AI 품질 검토">
+        <button class="header-action-button header-internal-btn" onclick="openAIAssistantModal()" title="AI 품질 검토">
           <i data-lucide="sparkles"></i>
           <span>AI 검토</span>
         </button>
-        <button class="header-action-button primary" onclick="switchNav('reports-hub')" title="8D 리포트 및 결재">
+        <button class="header-action-button primary header-internal-btn" onclick="switchNav('reports-hub')" title="8D 리포트 및 결재">
           <i data-lucide="file-text"></i>
           <span>8D 리포트</span>
         </button>
-        <button class="header-action-button" onclick="switchNav('supplier-portal')" title="외주사 품질 및 4M PCN 관제">
+        <button class="header-action-button header-internal-btn" onclick="switchNav('supplier-portal')" title="외주사 품질 및 4M PCN 관제">
           <i data-lucide="factory"></i>
           <span>외주 PCN</span>
         </button>
-        <button class="header-action-button" onclick="if(confirm('진짜 회사 16GB 기준 데이터로 화면을 깨끗하게 새로고침하시겠습니까?')) resetToReal16GBData()" title="16GB 기준 데이터 초기화">
+        <button class="header-action-button header-internal-btn" onclick="if(confirm('진짜 회사 16GB 기준 데이터로 화면을 깨끗하게 새로고침하시겠습니까?')) resetToReal16GBData()" title="16GB 기준 데이터 초기화">
           <i data-lucide="rotate-ccw"></i>
           <span>초기화</span>
         </button>
