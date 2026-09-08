@@ -2,7 +2,20 @@
     /* MASTER DATA STORE & BENCHMARK CASES (PHILOSOPHY ALIGNED)                   */
     /* ========================================================================= */
     // V4 strictly enforces LGE DTV eMMC B2B dedicated benchmark cases.
-    const STORAGE_KEY = 'AI_QMS_8D_DATA_V7_D3_COMPLETED_BENCHMARK';
+    const STORAGE_KEY = 'AI_QMS_8D_DATA_V8_D8_COMPLETED_FULL_BENCHMARK';
+    const STORAGE_TAB_KEY = 'RAMOS_QMS_STORAGE_TAB_ID';
+    const STORAGE_TAB_ID = (() => {
+      try {
+        const existing = sessionStorage.getItem(STORAGE_TAB_KEY);
+        if (existing) return existing;
+        const created = globalThis.crypto?.randomUUID?.() || `tab-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        sessionStorage.setItem(STORAGE_TAB_KEY, created);
+        return created;
+      } catch (_) {
+        return `tab-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      }
+    })();
+    let externalStorageRevision = 0;
 
     const INITIAL_CASES = [
       {
@@ -26,13 +39,13 @@
         defectQty: 12,
         inspectQty: 10000,
         ppm: 1200,
-        claimTitle: 'DTV Main Board SMT 후 Power-on 시 Boot CID Read Timeout 및 CMD1 Error',
+        claimTitle: 'DTV Main Board SMT 후 Power-on 시 Boot CID Read Timeout 및 CMD1 Error (D1~D8 완결 모범사례)',
         severityLevel: 'Critical', // Critical, Major, Minor
         lineStop: true,
         safetyRisk: false,
         recurrentDefect: false,
-        currentStage: 'D4', // D1~D3 완료 -> D4 검증 직행 케이스!
-        status: 'In Progress', // Draft, In Progress, Under Review, Approved, Closed
+        currentStage: 'D8', // D1~D8 전 단계 작성 및 결재 100% 완결 모범사례!
+        status: 'Closed', // Draft, In Progress, Under Review, Approved, Closed
 
         // D1 Confirmation & RACI Gate Cleared
         cftRecommendation: {
@@ -142,8 +155,8 @@
               verified: true,
               evidence: 'MES-WIP-HLD-01',
               processStocks: [
-                { process: 'SHORT TEST', lot: '0QH321200A02', currentQty: 1458, holdQty: 1458, status: 'HOLD완료', evidence: 'MES-WIP-01' },
-                { process: 'BI 1차', lot: '0QH321200A02', currentQty: 150, holdQty: 150, status: 'HOLD완료', evidence: 'MES-WIP-02' }
+                { process: 'SHORT TEST', lot: '0QH321200A02', currentQty: 1458, holdQty: 1458, status: 'Hold', evidence: 'MES-WIP-01' },
+                { process: 'BI 1차', lot: '0QH321200A02', currentQty: 150, holdQty: 150, status: 'Hold', evidence: 'MES-WIP-02' }
               ]
             }
           },
@@ -180,41 +193,127 @@
           effectivenessStatement: '확인된 Affected Lot(#0QH321200A02-LPAGA00) 및 관리대상 재고 전량(100,000ea)에 대한 출하 차단·격리·선별 조치 완료. 공정 및 완제품 단계 유출 방지 조치 완결됨.'
         },
 
-        // D4: Root Cause Analysis (Occurrence & Escape, 5-Why, FA Data)
+                // D4: Root Cause Analysis (Occurrence & Escape & System, 5-Why, 8 Tools, FA Data - APPROVED)
         d4: {
-          faMatrix: [
-            { test: 'IV Curve 측정', sample: '#01~#12', lab: 'QRT 공인분석원', result: 'VCC-VSS 간 0.8Ω 저항 (완전 단락/Short)', status: 'Done', evidenceId: 'EVD-04' },
-            { test: '3D X-Ray 비파괴검사', sample: '#01', lab: 'ART Lab', result: 'BGA Solder Ball Bridging/Void 특이사항 없음', status: 'Done', evidenceId: 'EVD-05' },
-            { test: 'Decap 화학적 개봉', sample: '#01', lab: 'ART Lab', result: 'Substrate 내부 MLCC(#C102) 상단 Burnt 흔적 확인', status: 'Done', evidenceId: 'EVD-06' },
-            { test: 'MLCC 제거 전/후 측정', sample: '#01', lab: 'RAMOS FA실', result: 'MLCC 제거 전: 0.8Ω Short -> MLCC 제거 후: > 10MΩ Open 정상 회복', status: 'Done', evidenceId: 'EVD-07' },
-            { test: 'Cross Section (CS) 단면 SEM', sample: '#01, #02', lab: 'QRT', result: 'MLCC 내부 세라믹 Dielectric Layer 수직 Crack 발생 확인', status: 'Done', evidenceId: 'EVD-08' }
+          approval: {
+            status: 'Approved',
+            humanConfirmed: true,
+            approvedAt: '2026-09-02 18:00',
+            approvedBy: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com' }
+          },
+          analysisProfile: {
+            failureMode: 'electrical',
+            pattern: 'lot-cluster',
+            dataScope: 'continuous',
+            productionModel: 'outsourced',
+            escapeConcern: 'yes'
+          },
+          selectedTools: [
+            {
+              id: 'timeline',
+              source: 'AI',
+              hypothesis: 'LGE SMT 불량 발생 전후 공정 변경점 및 마지막 정상 LOT 확인',
+              evidence: '생산/출하 Timeline, EVD-01',
+              finding: '8/28 야간조 외주 SMT 3라인 자재 투입 배치 #W-2608 이후 최초 검출 확인',
+              owner: '김성중 S.Pro',
+              status: 'Confirmed',
+              verified: true,
+              artifact: { humanConfirmed: true, rows: [{ time: '08-31 22:15', event: 'LGE 3라인 12대 CID Timeout 검출', note: '초동 12ea NG 격리' }] }
+            },
+            {
+              id: 'process-flow',
+              source: 'AI',
+              hypothesis: '불량 발생 및 검출 가능 공정 위치 분리',
+              evidence: '외주 SMT/PKG Flow, ICT/FT 검사 기준서',
+              finding: 'Reflow 260℃ 열이력에서 세라믹 Crack 발생, 상온 FT 통전에서 유출 가능 구조 확인',
+              owner: '이성우 팀장_P.Pro',
+              status: 'Confirmed',
+              verified: true,
+              artifact: { humanConfirmed: true, rows: [{ step: 'Reflow (260℃)', risk: '열응력 발생', escape: '상온 FT' }] }
+            },
+            {
+              id: 'change-point',
+              source: 'AI',
+              hypothesis: '정상 LOT(#A01) 대비 변경 요소(4M) 추적',
+              evidence: '4M Change Notice, BOM Review 시트',
+              finding: 'C102 MLCC 부품이 기존 125℃ 등급에서 85℃ X5R 규격으로 BOM 선정 누락 변경됨',
+              owner: '김현수 실장_상무',
+              status: 'Confirmed',
+              verified: true,
+              artifact: { humanConfirmed: true, rows: [{ item: 'C102 Capacitor', before: '125℃ Grade', after: '85℃ X5R' }] }
+            },
+            {
+              id: 'fishbone',
+              source: 'AI',
+              hypothesis: '4M1E 특성요인도 기반 8대 가설 분해',
+              evidence: 'CFT 원인분석 Fishbone 회의록',
+              finding: 'Material(내열 부족), Machine(Reflow 프로파일), Measurement(상온 FT) 3대 요인으로 압축',
+              owner: '박재환 팀장_S.Pro',
+              status: 'Confirmed',
+              verified: true,
+              artifact: { humanConfirmed: true, rows: [{ axis: 'Material', cause: 'X5R MLCC 내열 마진 부족' }] }
+            },
+            {
+              id: 'five-why',
+              source: 'AI',
+              hypothesis: '발생·유출·시스템 3-Track 인과관계 수렴',
+              evidence: '3-Track 5-Why Sheet (EVD-04~EVD-08)',
+              finding: '발생원인(X5R 내열 부족 Crack), 유출원인(상온 FT 미검출), 시스템원인(BOM 검증 게이트 누락) 확정',
+              owner: '박재환 팀장_S.Pro',
+              status: 'Confirmed',
+              verified: true,
+              artifact: { humanConfirmed: true, rows: [{ track: 'Occurrence', root: 'X5R MLCC 125℃ 스트레스 한계 초과' }] }
+            },
+            {
+              id: 'physical-fa',
+              source: 'CFT',
+              hypothesis: 'MLCC C102 내부 물리적 파손 및 전기적 Short 메커니즘 입증',
+              evidence: 'QRT 성적서 EVD-04, Decap EVD-06, SEM 단면 EVD-08',
+              finding: 'MLCC 제거 시 저항 0.8Ω -> 10MΩ 이상 정상 회복 및 SEM 단면 세라믹 유전체 수직 Crack 100% 입증',
+              owner: '박재환 팀장_S.Pro',
+              status: 'Confirmed',
+              verified: true,
+              artifact: { humanConfirmed: true, rows: [{ test: 'SEM CS', finding: 'Dielectric Vertical Crack', result: '입증 완결' }] }
+            }
           ],
-
-          occurrence5Why: [
-            { why: 'Problem: LGE 실장 라인에서 eMMC VCC-VSS Short 및 Boot Fail 발생', evidence: 'EVD-04 (0.8Ω 측정)' },
-            { why: 'Why 1: eMMC 기판 내부 C102 MLCC 내부 단락(Short) 발생', evidence: 'EVD-07 (MLCC 탈거 후 정상 회복)' },
-            { why: 'Why 2: C102 MLCC 세라믹 유전체 내부에 수직 Crack 발생', evidence: 'EVD-08 (SEM CS 단면 Crack)' },
-            { why: 'Why 3: Reflow 최고 온도(260℃) 및 HTOL 고온 시험 시 열팽창 스트레스 누적', evidence: 'HTOL Profile & Reflow Data' },
-            { why: 'Why 4: 적용된 MLCC Spec이 85℃ 보증 등급(X5R)으로 125℃ HTOL 스트레스 마진 부족', evidence: 'BOM Spec 시트' },
-            { why: 'Root Cause (Occurrence): 고온 내구성이 부족한 X5R MLCC가 BOM 승인 단계에서 선정되어 실장 열응력에 의해 Crack 발생', evidence: 'BOM Review Log #BOM-2608', isRoot: true }
-          ],
-
-          escape5Why: [
-            { why: 'Problem: 내열 취약 MLCC 적용 제품이 사전에 검출되지 않고 LGE에 출하됨', evidence: '출하검사 성적서' },
-            { why: 'Why 1: 양산 전 최종 출하 검사(FT) 단계에서 상온 Test만 수행하여 초기 Crack 미검출', evidence: 'FT Test Program Rev.1' },
-            { why: 'Why 2: BOM 승인 및 부품 Qualification 시 온도 등급 크로스체크 프로세스 부재', evidence: 'BOM Review Checklist' },
-            { why: 'Root Cause (Escape): 부품 선정 시 공정/신뢰성 평가 온도와 단품 부품 Rating 간 Cross Check Checklist 누락', evidence: 'FMEA Process Gap #Q-GAP-04', isRoot: true }
-          ],
-
+          rootCauses: {
+            Occurrence: {
+              type: 'Occurrence',
+              statement: 'C102 MLCC가 85℃ 보증 X5R 부품으로 선정되어 SMT Reflow(최고 260℃) 열팽창 스트레스 누적으로 세라믹 유전체 수직 Crack 단락이 발생함.',
+              evidence: 'EVD-04, EVD-07, EVD-08',
+              contraryEvidence: 'BGA Solder Bridging 및 FW 가설은 3D X-Ray 및 Decap 탈거 시험을 통해 완전히 기각됨.',
+              validationMethod: 'MLCC 탈거 시 저항 10MΩ 정상 복구, SEM 수직 Crack 입증, X7R 대체품 재현 시험 0 Fail 검증 완료.',
+              status: 'Confirmed',
+              checks: { reproduced: true, removed: true, boundary: true, evidence: true }
+            },
+            Escape: {
+              type: 'Escape',
+              statement: '외주 양산 Final Test(FT)가 상온(25℃) 기능시험만 수행하여 열응력 잠재 Crack을 출하 단계에서 검출하지 못함.',
+              evidence: 'FT Test Program Rev.1, FMEA Process Gap #Q-GAP-04',
+              contraryEvidence: '상온 출하검사 성적서는 전수 PASS 판정이었으나 고온 동작 가속 스트레스 검사항목이 결여됨.',
+              validationMethod: '125℃ Stress 후 상온 재검사 모의 시험 시 100% 검출 확인.',
+              status: 'Confirmed',
+              checks: { reproduced: true, removed: true, boundary: true, evidence: true }
+            },
+            System: {
+              type: 'System',
+              statement: '신규 부품 BOM 승인 및 변경 통제 시 공정/신뢰성 시험 온도(125℃)와 단품 부품 Rating 간 Cross Check 시스템 및 기준서 누락.',
+              evidence: 'SOP-RD-044, FMEA-EM51-01',
+              contraryEvidence: '일반 외관·기능 체크리스트는 존재하였으나 소자 내열 온도 등급 교차 검증 게이트가 부재함.',
+              validationMethod: '개정된 BOM 승인 Checklist 모의 심사 시 X5R 부품 자동 차단 확인 완료.',
+              status: 'Confirmed',
+              checks: { reproduced: true, removed: true, boundary: true, evidence: true }
+            }
+          },
           candidateCauses: [
             {
               id: 'RC-01',
               type: 'Occurrence',
               title: 'MLCC X5R 내열 마진 부족 및 Reflow 열응력에 의한 유전체 Crack',
-              status: 'Confirmed', // Candidate vs Confirmed
+              status: 'Confirmed',
               supportingEvidence: ['EVD-04', 'EVD-07', 'EVD-08'],
-              contradictingEvidence: '없음 (정상 시료 비교 검증 완료)',
-              missingEvidence: '없음 (물리적/전기적 증거 및 메커니즘 입증 완결)'
+              contradictingEvidence: '정상 시료 비교 검증 완료',
+              missingEvidence: '없음 (물리적/전기적 증거 입증 완결)'
             },
             {
               id: 'RC-02',
@@ -224,114 +323,197 @@
               supportingEvidence: ['BOM Review Checklist', 'FMEA Process Gap'],
               contradictingEvidence: '없음',
               missingEvidence: '없음'
+            },
+            {
+              id: 'RC-03',
+              type: 'System',
+              title: '부품 Qualification Gate 내 고온 신뢰성 매핑 및 수입검사 기준 부재',
+              status: 'Confirmed',
+              supportingEvidence: ['SOP-RD-044', 'FMEA-EM51-01'],
+              contradictingEvidence: '없음',
+              missingEvidence: '없음'
             }
+          ],
+          faMatrix: [
+            { test: 'IV Curve 측정', sample: '#01~#12', lab: 'QRT 공인분석원', result: 'VCC-VSS 간 0.8Ω 저항 (완전 단락/Short)', status: 'Done', evidenceId: 'EVD-04' },
+            { test: '3D X-Ray 비파괴검사', sample: '#01', lab: 'ART Lab', result: 'BGA Solder Ball Bridging/Void 특이사항 없음', status: 'Done', evidenceId: 'EVD-05' },
+            { test: 'Decap 화학적 개봉', sample: '#01', lab: 'ART Lab', result: 'Substrate 내부 MLCC(#C102) 상단 Burnt 흔적 확인', status: 'Done', evidenceId: 'EVD-06' },
+            { test: 'MLCC 제거 전/후 측정', sample: '#01', lab: 'RAMOS FA실', result: 'MLCC 제거 전: 0.8Ω Short -> MLCC 제거 후: > 10MΩ Open 정상 회복', status: 'Done', evidenceId: 'EVD-07' },
+            { test: 'Cross Section (CS) 단면 SEM', sample: '#01, #02', lab: 'QRT', result: 'MLCC 내부 세라믹 Dielectric Layer 수직 Crack 발생 확인', status: 'Done', evidenceId: 'EVD-08' }
+          ],
+          occurrence5Why: [
+            { why: 'Problem: LGE 실장 라인에서 eMMC VCC-VSS Short 및 Boot Fail 발생', evidence: 'EVD-04 (0.8Ω 측정)' },
+            { why: 'Why 1: eMMC 기판 내부 C102 MLCC 내부 단락(Short) 발생', evidence: 'EVD-07 (MLCC 탈거 후 정상 회복)' },
+            { why: 'Why 2: C102 MLCC 세라믹 유전체 내부에 수직 Crack 발생', evidence: 'EVD-08 (SEM CS 단면 Crack)' },
+            { why: 'Why 3: Reflow 최고 온도(260℃) 및 HTOL 고온 시험 시 열팽창 스트레스 누적', evidence: 'HTOL Profile & Reflow Data' },
+            { why: 'Why 4: 적용된 MLCC Spec이 85℃ 보증 등급(X5R)으로 125℃ HTOL 스트레스 마진 부족', evidence: 'BOM Spec 시트' },
+            { why: 'Root Cause (Occurrence): 고온 내구성이 부족한 X5R MLCC가 BOM 승인 단계에서 선정되어 실장 열응력에 의해 Crack 발생', evidence: 'BOM Review Log #BOM-2608', isRoot: true }
+          ],
+          escape5Why: [
+            { why: 'Problem: 내열 취약 MLCC 적용 제품이 사전에 검출되지 않고 LGE에 출하됨', evidence: '출하검사 성적서' },
+            { why: 'Why 1: 양산 전 최종 출하 검사(FT) 단계에서 상온 Test만 수행하여 초기 Crack 미검출', evidence: 'FT Test Program Rev.1' },
+            { why: 'Why 2: BOM 승인 및 부품 Qualification 시 온도 등급 크로스체크 프로세스 부재', evidence: 'BOM Review Checklist' },
+            { why: 'Root Cause (Escape): 부품 선정 시 공정/신뢰성 평가 온도와 단품 부품 Rating 간 Cross Check Checklist 누락', evidence: 'FMEA Process Gap #Q-GAP-04', isRoot: true }
           ]
         },
 
-        // D5: Permanent Corrective Actions (PCA Candidates & Selection)
+        // D5: Permanent Corrective Actions (PCA Candidates & Selection - APPROVED)
         d5: {
+          approval: {
+            status: 'Approved',
+            humanConfirmed: true,
+            approvedAt: '2026-09-04 17:00',
+            approvedBy: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com' }
+          },
           candidates: [
             {
               id: 'PCA-01',
+              causeType: 'Occurrence',
               title: 'C102 MLCC 부품 변경: X5R(85℃) → X7R(125℃ 고온 보증 등급) 100% 교체',
               rootCauseElimination: 'High (100% 근본 원인 해결)',
               feasibility: 'High (동일 Size 0603 Footprint 호환)',
               costImpact: 'Low (+0.002$/ea)',
               riskLevel: 'Low',
               selected: true,
-              rationale: '물리적 Crack 유발 원인인 열팽창 스트레스 마진을 125℃까지 완벽 확보'
+              rationale: '물리적 Crack 유발 원인인 열팽창 스트레스 마진을 125℃까지 완벽 확보',
+              owner: '이성우 팀장_P.Pro',
+              due: '2026-09-04',
+              verificationPlan: '동일 Footprint 샘플 실장 및 고온 내열성 평가 (504h HTOL)',
+              evidence: 'EVD-09'
             },
             {
               id: 'PCA-02',
-              title: 'BOM 승인 절차 개정: 고온 신뢰성(HTOL 125℃) 부품 Cross Check 필수화',
+              causeType: 'Escape',
+              title: 'BOM 승인 절차 및 수입검사 개정: 고온 신뢰성(HTOL 125℃) 부품 Cross Check 필수화 및 X7R 내열 수입검사 신설',
               rootCauseElimination: 'High (Escape 원인 방지)',
               feasibility: 'High (체크리스트 즉시 적용)',
               costImpact: 'Zero',
               riskLevel: 'Low',
               selected: true,
-              rationale: 'BOM Review Gate에 온도 등급 대조 항목 강제 신설'
+              rationale: 'BOM Review Gate에 온도 등급 대조 항목 강제 신설 및 입고검사 게이트웨이 추가',
+              owner: '김성중 S.Pro',
+              due: '2026-09-04',
+              verificationPlan: 'BOM 승인 체크리스트 실무 적용 검증',
+              evidence: 'SOP-RD-044'
             },
             {
               id: 'PCA-03',
-              title: 'Reflow Profile 최고 온도 하향 조정 (260℃ → 240℃)',
-              rootCauseElimination: 'Low (Lead-free 솔더 접합 불량 리스크 발생)',
-              feasibility: 'Medium',
-              costImpact: 'Low',
-              riskLevel: 'High',
-              selected: false,
-              rationale: 'BGA Solder Ball Un-melt 결함 유발 위험으로 기각됨'
+              causeType: 'System',
+              title: '사내 개발 거버넌스 개정: FMEA 및 Control Plan 내 고온 정격 매핑 게이트 신설',
+              rootCauseElimination: 'High (시스템 재발 방지)',
+              feasibility: 'High (표준 매뉴얼 즉시 개정)',
+              costImpact: 'Zero',
+              riskLevel: 'Low',
+              selected: true,
+              rationale: '신규 부품 Qualification Gate에 공정/신뢰성 시험 온도와 부품 Rating 간 Cross Check 필수화',
+              owner: '김현수 실장_상무',
+              due: '2026-09-05',
+              verificationPlan: '신규 개발 프로세스 Gate Review 심의',
+              evidence: 'FMEA-EM51-01'
             }
           ],
           pcnEcn: {
             ecnNumber: 'ECN-260901-01',
             pcnRequired: true,
             customerApprovalStatus: 'Approved by LGE (2026.09.04)',
+            evidence: 'EVD-09',
             appliedLot: 'EM2609-001 (Rev.B 양산 Lot)'
           }
         },
 
-        // D6: Implementation & Validation (Before vs After)
+        // D6: Implementation & Validation (Before vs After - APPROVED)
         d6: {
+          approval: {
+            status: 'Approved',
+            humanConfirmed: true,
+            approvedAt: '2026-09-12 14:00',
+            approvedBy: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com' }
+          },
           implementationDetails: {
             bomRevision: 'Rev.A (X5R) → Rev.B (X7R 125℃)',
             appliedLot: 'EM2609-001',
             startDate: '2026.09.05',
-            productionSite: '오창 1공장 Line 3'
+            productionSite: 'RAMOS 오창 1공장 (SMT/PKG Line 3)',
+            evidence: 'EVD-09'
           },
           validationTests: [
-            { testName: 'Final Test (FT) 상온', condition: '25℃ 3.3V/1.8V', sampleSize: 231, failQty: 0, result: 'PASS' },
-            { testName: 'DC Electrical Test', condition: 'VCC-VSS Resistance Check', sampleSize: 231, failQty: 0, result: 'PASS' },
-            { testName: 'HTOL 신뢰성 가속 수명 시험', condition: '125℃ / 1.2 x VCC / 504 Hours', sampleSize: 231, failQty: 0, result: 'PASS' },
-            { testName: 'THB 내습 시험', condition: '85℃ / 85% RH / 168 Hours', sampleSize: 75, failQty: 0, result: 'PASS' },
-            { testName: 'LGE DTV 실장 파일럿 시험', condition: 'LGE SMT Line 500ea 실장 후 Boot Test', sampleSize: 500, failQty: 0, result: 'PASS' }
+            { id: 'D6-VT-01', actionId: 'PCA-01', testName: 'Final Test (FT) 상온', condition: '25℃ 3.3V/1.8V VCC 통전', acceptanceCriteria: '0.8Ω Short 무검출 & Boot CID 정상 판독', sampleSize: 231, failQty: 0, result: 'PASS', owner: '박재환 팀장_S.Pro', completedAt: '2026-09-06', evidence: 'EVD-10' },
+            { id: 'D6-VT-02', actionId: 'PCA-01', testName: 'DC Electrical Test', condition: 'VCC-VSS Resistance Check', acceptanceCriteria: 'VCC-VSS 저항 > 10MΩ 만족', sampleSize: 231, failQty: 0, result: 'PASS', owner: '박재환 팀장_S.Pro', completedAt: '2026-09-06', evidence: 'EVD-10' },
+            { id: 'D6-VT-03', actionId: 'PCA-01', testName: 'HTOL 신뢰성 가속 수명 시험', condition: '125℃ / 1.2 x VCC / 504 Hours', acceptanceCriteria: '0 Fail (JEDEC JESD22-A108 표준)', sampleSize: 231, failQty: 0, result: 'PASS', owner: '박재환 팀장_S.Pro', completedAt: '2026-09-12', evidence: 'EVD-10' },
+            { id: 'D6-VT-04', actionId: 'PCA-02', testName: 'THB 내습 시험', condition: '85℃ / 85% RH / 168 Hours', acceptanceCriteria: '절연 저항 열화 및 유전체 열화 0건', sampleSize: 75, failQty: 0, result: 'PASS', owner: '이성우 팀장_P.Pro', completedAt: '2026-09-12', evidence: 'EVD-10' },
+            { id: 'D6-VT-05', actionId: 'PCA-03', testName: 'LGE DTV 실장 파일럿 시험', condition: 'LGE 평택 SMT Line 500ea 실장 후 Boot Test', acceptanceCriteria: 'Power-on 시 CID Read 100% 통과 (0 Defect)', sampleSize: 500, failQty: 0, result: 'PASS', owner: '김성중 S.Pro', completedAt: '2026-09-12', evidence: 'EVD-10' }
           ],
           beforeAfter: {
             beforeMetric: '12 / 10,000ea (1,200 PPM) - Boot CID Fail',
-            afterMetric: '0 / 10,000ea (0 PPM) - 0 Defect Achieved',
-            validationPeriod: '2026.09.05 ~ 2026.09.12 (신규 Lot 전수 검증)'
+            afterMetric: '0 / 10,000ea (0 PPM) - 0 Defect Achieved (Cpk 1.82)',
+            validationPeriod: '2026.09.05 ~ 2026.09.12 (신규 Lot 전수 검증)',
+            evidence: 'EVD-10'
+          },
+          containmentRelease: {
+            decision: 'Released',
+            rationale: 'Rev.B 신규 양산 Lot 500ea 실장 0 Fail 및 HTOL 504h 무결함 통과로 긴급 봉쇄 전면 해제',
+            evidence: 'EVD-10'
           }
         },
 
-        // D7: Prevent Recurrence (System Changes & Horizontal Deployment)
+        // D7: Prevent Recurrence (System Changes & Horizontal Deployment - APPROVED)
         d7: {
+          approval: {
+            status: 'Approved',
+            humanConfirmed: true,
+            approvedAt: '2026-09-12 15:00',
+            approvedBy: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com' }
+          },
           systemUpdates: [
-            { docName: 'DFMEA (설계 FMEA)', docNo: 'FMEA-EM51-01', rev: 'Rev.1.2', changeContent: 'C102 Capacitor 고온 스트레스 Crack RPN 평가치 180 -> 24 하향', status: 'Completed', owner: '정동진 수석' },
-            { docName: 'PFMEA (공정 FMEA)', docNo: 'PFMEA-SMT-03', rev: 'Rev.2.1', changeContent: '부품 실장 열충격 취약 소자 관리 기준 등록', status: 'Completed', owner: '김성중 수석' },
-            { docName: 'Control Plan (관리계획서)', docNo: 'CP-EM51-064', rev: 'Rev.2.0', changeContent: 'X7R 125℃ 부품 입고 수입검사 정전용량 및 내열성 전수 체크 추가', status: 'Completed', owner: '공아름 선임' },
-            { docName: 'BOM Review Checklist', docNo: 'SOP-RD-044', rev: 'Rev.3.0', changeContent: '신규 부품 승인 시 HTOL/환경시험 온도와 부품 Spec 일치 검증 게이트 신설', status: 'Completed', owner: '이창민 상무' }
+            { id: 'D7-SU-01', actionId: 'PCA-01', docName: 'DFMEA (설계 FMEA)', docNo: 'FMEA-EM51-01', rev: 'Rev.1.2', changeContent: 'C102 Capacitor 고온 스트레스 Crack RPN 평가치 180 -> 24 하향', status: 'Completed', owner: '김현수 실장_상무', due: '2026-09-08', evidence: 'FMEA-EM51-01-Rev1.2' },
+            { id: 'D7-SU-02', actionId: 'PCA-01', docName: 'PFMEA (공정 FMEA)', docNo: 'PFMEA-SMT-03', rev: 'Rev.2.1', changeContent: '부품 실장 열충격 취약 소자 관리 기준 등록', status: 'Completed', owner: '이성우 팀장_P.Pro', due: '2026-09-08', evidence: 'PFMEA-SMT-03-Rev2.1' },
+            { id: 'D7-SU-03', actionId: 'PCA-02', docName: 'Control Plan (관리계획서)', docNo: 'CP-EM51-064', rev: 'Rev.2.0', changeContent: 'X7R 125℃ 부품 입고 수입검사 정전용량 및 내열성 전수 체크 추가', status: 'Completed', owner: '공아름 그룹장_P.Pro', due: '2026-09-09', evidence: 'CP-EM51-064-Rev2.0' },
+            { id: 'D7-SU-04', actionId: 'PCA-03', docName: 'BOM Review Checklist', docNo: 'SOP-RD-044', rev: 'Rev.3.0', changeContent: '신규 부품 승인 시 HTOL/환경시험 온도와 부품 Spec 일치 검증 게이트 신설', status: 'Completed', owner: '김성중 S.Pro', due: '2026-09-09', evidence: 'SOP-RD-044-Rev3.0' }
           ],
           horizontalDeployment: [
-            { product: 'DTV eMMC 5.1 16GB (BGA153) (RM-EM51-032G)', samePartUsed: 'Yes (X5R 적용 확인)', sameRisk: 'Yes (High)', action: 'BOM Rev.B로 즉시 X7R 변경 완료', status: 'Closed' },
-            { product: 'DTV eMMC 5.1 16GB (BGA153) (RM-EM51-064G)', samePartUsed: 'Yes (개선 대상)', sameRisk: 'Yes (High)', action: 'ECN-260901 적용 완결', status: 'Closed' },
-            { product: 'eMMC 5.1 128GB (RM-EM51-128G)', samePartUsed: 'No (기존 X7R 적용 중)', sameRisk: 'None', action: '이상 없음 확인', status: 'Closed' },
-            { product: 'NVMe SSD 512GB (RM-SSD-512G)', samePartUsed: 'No (별도 고온 부품군)', sameRisk: 'Low', action: 'BOM Cross Check 완료', status: 'Closed' }
+            { id: 'D7-HD-01', actionId: 'PCA-01', product: 'DTV eMMC 5.1 32GB (RM-EM51-032G)', samePartUsed: 'Yes (X5R 적용 확인)', sameRisk: 'Yes (High)', action: 'BOM Rev.B로 즉시 X7R 변경 완료', owner: '이성우 팀장_P.Pro', status: 'Completed', evidence: 'ECN-260901-02' },
+            { id: 'D7-HD-02', actionId: 'PCA-01', product: 'DTV eMMC 5.1 64GB (RM-EM51-064G)', samePartUsed: 'Yes (개선 대상)', sameRisk: 'Yes (High)', action: 'ECN-260901 적용 완결', owner: '이성우 팀장_P.Pro', status: 'Completed', evidence: 'ECN-260901-03' },
+            { id: 'D7-HD-03', actionId: 'PCA-02', product: 'eMMC 5.1 128GB (RM-EM51-128G)', samePartUsed: 'No (기존 X7R 적용 중)', sameRisk: 'None', action: '기존 X7R 고온 부품 설계 확인 완료', owner: '박재환 팀장_S.Pro', status: 'Completed', evidence: 'BOM-Audit-128G' },
+            { id: 'D7-HD-04', actionId: 'PCA-03', product: 'NVMe SSD 512GB (RM-SSD-512G)', samePartUsed: 'No (별도 고온 부품군)', sameRisk: 'Low', action: 'BOM Cross Check 완료 및 이상 없음', owner: '김현수 실장_상무', status: 'Completed', evidence: 'BOM-Audit-SSD' }
           ]
         },
 
-        // D8: Closure & Multi-stage Approval
+        // D8: Closure & Multi-stage Approval - APPROVED & CLOSED
         d8: {
+          approval: {
+            status: 'Approved',
+            humanConfirmed: true,
+            approvedAt: '2026-09-12 17:30',
+            approvedBy: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com' }
+          },
           checklist: [
-            { cat: 'Root Cause', item: 'Occurrence Root Cause 입증 완료 (MLCC X7R 내열 취약 Crack)', checked: true },
-            { cat: 'Root Cause', item: 'Escape Root Cause 입증 완료 (BOM Review 크로스체크 누락)', checked: true },
-            { cat: 'Action', item: 'D3 봉쇄 조치 및 격리 재고 전량 선별 완료', checked: true },
-            { cat: 'Action', item: 'D5 PCA (X7R 변경 및 ECN 배포) 완료', checked: true },
-            { cat: 'Action', item: 'D6 신뢰성 504h HTOL 및 파일럿 500ea 0 Defect 검증 완료', checked: true },
-            { cat: 'Action', item: 'D7 유사 라인업(32GB) 수평전개 및 BOM 변경 완료', checked: true },
-            { cat: 'Documentation', item: 'PFMEA, Control Plan, BOM Checklist 개정 완료', checked: true },
-            { cat: 'Customer', item: 'LGE 품질보증팀 최종 8D Report 제출 및 정식 승인 완료', checked: true }
+            { cat: 'Root Cause', item: 'Occurrence Root Cause 입증 완료 (MLCC X7R 내열 취약 Crack)', evidence: 'EVD-08 (SEM CS 단면사진)', checked: true },
+            { cat: 'Root Cause', item: 'Escape Root Cause 입증 완료 (BOM Review 크로스체크 누락)', evidence: 'FMEA-EM51-01 (Gate Review)', checked: true },
+            { cat: 'Action', item: 'D3 봉쇄 조치 및 격리 재고 전량 선별 완료', evidence: 'EVD-02 (선별 성적서)', checked: true },
+            { cat: 'Action', item: 'D5 PCA (X7R 변경 및 ECN 배포) 완료', evidence: 'EVD-09 (ECN 승인서)', checked: true },
+            { cat: 'Action', item: 'D6 신뢰성 504h HTOL 및 파일럿 500ea 0 Defect 검증 완료', evidence: 'EVD-10 (HTOL 시험성적서)', checked: true },
+            { cat: 'Action', item: 'D7 유사 라인업(32GB/64GB) 수평전개 및 BOM 변경 완료', evidence: 'ECN-260901-02/03', checked: true },
+            { cat: 'Documentation', item: 'PFMEA, Control Plan, BOM Checklist 개정 완료', evidence: 'SOP-RD-044-Rev3.0', checked: true },
+            { cat: 'Customer', item: 'LGE 품질보증팀 최종 8D Report 제출 및 정식 승인 완료', evidence: 'LGE-8D-SIGN-260913', checked: true }
           ],
+          closure: {
+            remainingRisk: 'X7R 125℃ 교체 및 수입검사 내열성 게이트 신설로 잔여 리스크 0건 완결',
+            customerAcceptance: 'LGE 품질보증팀 최종 8D 보고서 승인 접수 및 양산 재개',
+            evidence: 'LGE-8D-SIGN-260913'
+          },
           approvalFlow: [
-            { step: '1. 8D Leader 작성', approver: '김성중 S.Pro (품질혁신팀)', date: '2026.09.12 14:00', status: 'Approved' },
-            { step: '2. FA/기술 검증', approver: '박재환 책임 (FA분석실)', date: '2026.09.12 15:30', status: 'Approved' },
-            { step: '3. 제조기술 승인', approver: '서태웅 수석 (제조기술)', date: '2026.09.12 16:10', status: 'Approved' },
-            { step: '4. 품질총괄 최종 승인', approver: '이창민 상무 (품질총괄)', date: '2026.09.12 17:00', status: 'Approved' },
-            { step: '5. 고객사 접수 및 종결', approver: '최영수 책임 (LGE DTV품질)', date: '2026.09.13 10:00', status: 'Approved' }
+            { step: '1. 8D 작성/기안', approver: '김성중 S.Pro (품질혁신팀)', date: '2026.09.12 14:00', status: 'Approved' },
+            { step: '2. FA/기술 검증', approver: '박재환 팀장_S.Pro (Flash개발2팀 FA Lead)', date: '2026.09.12 15:30', status: 'Approved' },
+            { step: '3. 공정/제조기술 승인', approver: '이성우 팀장_P.Pro (Flash개발3팀)', date: '2026.09.12 16:10', status: 'Approved' },
+            { step: '4. 8D Leader 승인', approver: '김현수 실장_상무 (Flash개발실장)', date: '2026.09.12 17:00', status: 'Approved' },
+            { step: '5. 8D Champion 최종 승인 및 고객 송부', approver: '황승안 팀장_상무 (품질혁신팀장)', date: '2026.09.12 17:30', status: 'Approved' },
+            { step: '6. 고객사 접수 및 종결', approver: '최영수 책임 (LGE DTV품질보증팀)', date: '2026.09.13 10:00', status: 'Approved' }
           ],
-          closureDate: '2026.09.13',
+          closureDate: '2026-09-13',
           teamAppreciation: '신속한 24h D3 초동 격리 및 72h 내 물리적 Root Cause 규명으로 LGE TV 라인 Stop을 최소화한 CFT 팀원 전원에게 품질 혁신 포상 수여.'
         },
 
-        // 3-Step Sign-Off History (D1, D2, D3 Approved!)
+        // 3-Step Sign-Off History (D1~D8 All 8 Stages 100% Approved!)
         signOffHistory: {
           D1: {
             status: 'Approved',
@@ -350,6 +532,36 @@
             drafter: { name: '김성중 S.Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', signedAt: '2026-09-01 13:00' },
             leader: { name: '김현수 실장_상무', dept: 'Flash 개발실', email: 'hskim@ramostek.com', signedAt: '2026-09-01 13:30' },
             champion: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com', signedAt: '2026-09-01 14:00' }
+          },
+          D4: {
+            status: 'Approved',
+            drafter: { name: '김성중 S.Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', signedAt: '2026-09-02 16:00' },
+            leader: { name: '김현수 실장_상무', dept: 'Flash 개발실', email: 'hskim@ramostek.com', signedAt: '2026-09-02 17:00' },
+            champion: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com', signedAt: '2026-09-02 18:00' }
+          },
+          D5: {
+            status: 'Approved',
+            drafter: { name: '김성중 S.Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', signedAt: '2026-09-04 15:00' },
+            leader: { name: '김현수 실장_상무', dept: 'Flash 개발실', email: 'hskim@ramostek.com', signedAt: '2026-09-04 16:00' },
+            champion: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com', signedAt: '2026-09-04 17:00' }
+          },
+          D6: {
+            status: 'Approved',
+            drafter: { name: '김성중 S.Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', signedAt: '2026-09-12 11:00' },
+            leader: { name: '김현수 실장_상무', dept: 'Flash 개발실', email: 'hskim@ramostek.com', signedAt: '2026-09-12 13:00' },
+            champion: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com', signedAt: '2026-09-12 14:00' }
+          },
+          D7: {
+            status: 'Approved',
+            drafter: { name: '김성중 S.Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', signedAt: '2026-09-12 14:00' },
+            leader: { name: '김현수 실장_상무', dept: 'Flash 개발실', email: 'hskim@ramostek.com', signedAt: '2026-09-12 14:30' },
+            champion: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com', signedAt: '2026-09-12 15:00' }
+          },
+          D8: {
+            status: 'Approved',
+            drafter: { name: '김성중 S.Pro', dept: '품질혁신팀', email: 'sjkim@ramostek.com', signedAt: '2026-09-12 16:00' },
+            leader: { name: '김현수 실장_상무', dept: 'Flash 개발실', email: 'hskim@ramostek.com', signedAt: '2026-09-12 17:00' },
+            champion: { name: '황승안 팀장_상무', dept: '품질혁신팀', email: 'sahwang@ramostek.com', signedAt: '2026-09-12 17:30' }
           }
         },
 
@@ -1063,7 +1275,10 @@
 ];
 
     // Bulletproof Data State Management (Prevents any corrupt localStorage or blank screen)
+    let storageReadError = null;
+
     function loadStoredAppData() {
+      storageReadError = null;
       const defaultState = {
         cases: JSON.parse(JSON.stringify(INITIAL_CASES)),
         intakeQueue: [],
@@ -1071,7 +1286,10 @@
         activeCaseId: INITIAL_CASES[0]?.id || null,
         currentView: 'dashboard',
         activeStage: 'overview',
-        sidebarTab: 'menu'
+        sidebarTab: 'menu',
+        _storageRevision: 0,
+        _storageWriter: '',
+        _savedAt: ''
       };
 
       try {
@@ -1082,16 +1300,7 @@
         }
         const parsed = JSON.parse(raw);
 
-        // Auto-migration: If stored data contains outdated third-party customers (Samsung/Hynix/Automotive), reset to clean LGE DTV state!
-        const hasOutdatedData = parsed && Array.isArray(parsed.cases) && parsed.cases.some(c =>
-          c.customer && (c.customer.includes('Samsung') || c.customer.includes('hynix') || c.customer.includes('삼성') || c.customer.includes('하이닉스') || c.customer.includes('전장') || c.customer.includes('Automotive'))
-        );
-
-        if (hasOutdatedData) {
-          console.log('[AI-QMS] Outdated benchmark data detected. Auto-migrating to LGE DTV eMMC benchmark state.');
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultState));
-          return defaultState;
-        }
+        // Customer names are business data, never a migration/reset criterion.
 
         // Case A: Parsed is legacy array of cases
         if (Array.isArray(parsed)) {
@@ -1105,17 +1314,6 @@
         if (parsed && typeof parsed === 'object') {
           const validCases = Array.isArray(parsed.cases) ? parsed.cases : [];
 
-          // Strictly sanitize all gates across all cases to remove customer sign-off
-          validCases.forEach(c => {
-            if (c.gates) {
-              ['gate3D', 'gate5D', 'gate8D'].forEach(gk => {
-                if (c.gates[gk] && Array.isArray(c.gates[gk].approvers)) {
-                  c.gates[gk].approvers = c.gates[gk].approvers.filter(a => !a.role.includes('고객사')).slice(0, 4);
-                }
-              });
-            }
-          });
-
           const validActiveId = validCases.some(c => c.id === parsed.activeCaseId) ? parsed.activeCaseId : (validCases[0]?.id || null);
           return {
             cases: validCases,
@@ -1124,11 +1322,16 @@
             activeCaseId: validActiveId,
             currentView: parsed.currentView || 'dashboard',
             activeStage: parsed.activeStage || 'overview',
-            sidebarTab: parsed.sidebarTab || 'menu'
+            sidebarTab: parsed.sidebarTab || 'menu',
+            _storageRevision: Number(parsed._storageRevision) || 0,
+            _storageWriter: typeof parsed._storageWriter === 'string' ? parsed._storageWriter : '',
+            _savedAt: typeof parsed._savedAt === 'string' ? parsed._savedAt : ''
           };
         }
+        throw new Error('저장 데이터 형식을 확인할 수 없습니다.');
       } catch (err) {
-        console.warn('Recovered from corrupted localStorage state:', err);
+        storageReadError = err;
+        console.error('Stored data retained; saving disabled until recovery:', err);
       }
       return defaultState;
     }
@@ -1137,10 +1340,43 @@
 
     function saveAppData() {
       try {
+        if (storageReadError) throw new Error('기존 저장 데이터를 읽지 못했습니다. 원본을 보존하기 위해 덮어쓰기를 중단합니다.');
+        const storedState = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+        const storedRevision = Number(storedState?._storageRevision) || 0;
+        const currentRevision = Number(appData._storageRevision) || 0;
+        if ((externalStorageRevision > currentRevision || storedRevision > currentRevision)
+            && storedState?._storageWriter !== STORAGE_TAB_ID) {
+          throw new Error('다른 탭에서 더 최신 데이터가 저장되었습니다. 이 탭을 새로고침한 뒤 계속 작성해 주세요.');
+        }
+        if (typeof reconcileApprovalChanges === 'function') {
+          const previousCases = Array.isArray(storedState) ? storedState : storedState?.cases || [];
+          appData.cases.forEach(c => reconcileApprovalChanges(c, previousCases.find(old => old.id === c.id)));
+        }
+        appData._storageRevision = Math.max(currentRevision, storedRevision) + 1;
+        appData._storageWriter = STORAGE_TAB_ID;
+        appData._savedAt = new Date().toISOString();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+        externalStorageRevision = 0;
       } catch (e) {
         console.error('Failed to save to localStorage', e);
+        alert('저장하지 못했습니다. 현재 화면을 유지하고 저장소 상태를 확인해 주세요.\n' + e.message);
+        throw e;
       }
+    }
+
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('storage', event => {
+        if (event.key !== STORAGE_KEY || !event.newValue) return;
+        try {
+          const incoming = JSON.parse(event.newValue);
+          const revision = Number(incoming?._storageRevision) || 0;
+          if (incoming?._storageWriter !== STORAGE_TAB_ID && revision > (Number(appData?._storageRevision) || 0)) {
+            externalStorageRevision = revision;
+          }
+        } catch (_) {
+          // Invalid external state is ignored and never overwrites the current in-memory data.
+        }
+      });
     }
 
     function getActiveCase() {
@@ -1270,17 +1506,30 @@
         }
         const gates = c.gates || {};
 
+        if (typeof stageApprover === 'function') {
+          Object.entries(c.signOffHistory || {}).forEach(([stage, sign]) => {
+            const role = {Submitted:'leader', LeaderApproved:'champion'}[sign.status];
+            const assigned = role ? stageApprover(c, role) : null;
+            if (assigned?.email === user.email) tasks.push({
+              caseId:c.id, customer:c.customer, targetStage:stage, stageCode:`${stage} 결재`,
+              urgency:'high', isApproval:true, title:`[단계 결재 대기] ${stage} ${role} 검토`,
+              desc:'기안 시점 내용을 확인하고 본인 계정으로 서명해 주세요.'
+            });
+          });
+        }
+
         // A. DIRECT ELECTRONIC SIGN-OFF & APPROVAL TASKS (우선순위 최고: 1차/2차/3차 내부결재 및 4차 고객송부)
         ['gate3D', 'gate5D', 'gate8D'].forEach(gk => {
           const g = gates[gk];
           if (!g || !Array.isArray(g.approvers)) return;
+          if (typeof reportReviewError === 'function' && reportReviewError(c,gk)) return;
 
           // Find the active pending approver
           for (let i = 0; i < g.approvers.length; i++) {
             const appr = g.approvers[i];
             if (appr.status !== 'Approved') {
               // If this pending step is for the current user
-              if (appr.name.includes(user.name) || (i === 3 && user.name === '김성중')) {
+              if (typeof reportApprover === 'function' && reportApprover(appr)?.email === user.email) {
                 const isDispatch = (i === 3);
                 tasks.push({
                   caseId: c.id,
@@ -1396,6 +1645,7 @@
       localStorage.removeItem('AI_QMS_8D_DATA_V5_REAL_16GB');
       localStorage.removeItem('AI_QMS_8D_DATA_V6_REAL_SCM_ACTION');
       localStorage.removeItem('AI_QMS_8D_DATA_V7_D3_COMPLETED_BENCHMARK');
+      localStorage.removeItem('AI_QMS_8D_DATA_V8_D8_COMPLETED_FULL_BENCHMARK');
       localStorage.removeItem('AI_QMS_8D_DATA_V3');
       location.reload();
     };

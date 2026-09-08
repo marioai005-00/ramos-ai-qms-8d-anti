@@ -6,7 +6,7 @@
       return `
         <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
           <div>
-            <h1 style="font-size: 1.35rem; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
+            <h1 style="font-size: 1.35rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
               <i data-lucide="layers" style="color: #38bdf8;"></i> AI 8D 부적합 문제 해결 관제 보드 (D1 ~ D8 GAP Tracker)
             </h1>
             <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
@@ -107,13 +107,13 @@
       const missingGaps = stagesInfo.filter(s => s.gapText && !s.isDone && s.gapText !== '최종 결재 미완료');
 
       return `
-        <div class="card" style="margin-bottom:0; border: 1px solid ${c.severityLevel === 'Critical' ? '#ef4444' : '#3b82f6'}; background: rgba(13, 21, 39, 0.75);">
+        <div class="card" style="margin-bottom:0; border: 1px solid ${c.severityLevel === 'Critical' ? '#ef4444' : '#3b82f6'}; background: var(--bg-card);">
           
           <!-- Top Row: Case Title, Customer, PPM, SLA Due & Action Button -->
           <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:12px; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
               <span class="num-mono" style="font-size:1.05rem; font-weight:800; color:#60a5fa;">${c.id}</span>
-              <span style="font-weight:700; font-size:0.95rem; color:#f8fafc;">${c.customer}</span>
+              <span style="font-weight:700; font-size:0.95rem; color:var(--text-primary);">${c.customer}</span>
               <span class="badge-pill ${c.severityLevel === 'Critical' ? 'badge-fail' : 'badge-purple'}">${c.severityLevel}</span>
               <span class="badge-pill badge-warn" style="font-size:0.72rem;">현재: <b>${c.currentStage} 단계</b></span>
               ${c.lineStop ? `<span class="badge-pill badge-fail" style="font-size:0.7rem;"><i data-lucide="flame" style="width:11px;height:11px;"></i> Line Stop</span>` : ''}
@@ -131,31 +131,31 @@
           </div>
 
           <!-- Middle Row: Product, Lot, PPM & Claim Description -->
-          <div class="grid-4" style="font-size:0.8rem; margin-bottom:10px; color:#cbd5e1; gap:10px;">
-            <div><span style="color:var(--text-muted);">제품/Part:</span> <b style="color:#f8fafc;">${c.product}</b></div>
+          <div class="grid-4" style="font-size:0.8rem; margin-bottom:10px; color:var(--text-secondary); gap:10px;">
+            <div><span style="color:var(--text-muted);">제품/Part:</span> <b style="color:var(--text-primary);">${c.product}</b></div>
             <div><span style="color:var(--text-muted);">Lot Number:</span> <b class="num-mono" style="color:#93c5fd;">${c.lotNumber}</b></div>
             <div><span style="color:var(--text-muted);">불량률:</span> <b class="num-mono" style="color:${c.ppm > 1000 ? '#f87171' : '#fbbf24'};">${c.defectQty} / ${c.inspectQty ? c.inspectQty.toLocaleString() : '10,000'}ea (${c.ppm} PPM)</b></div>
             <div><span style="color:var(--text-muted);">발생처:</span> <b>${c.incidentSite || '고객사 실장 라인'}</b></div>
           </div>
 
-          <div style="font-size:0.78rem; color:#cbd5e1; background:rgba(15,23,42,0.6); padding:8px 12px; border-radius:4px; margin-bottom:14px; border-left:3px solid #3b82f6;">
+          <div style="font-size:0.78rem; color:var(--text-secondary); background:var(--bg-card-subtle); padding:8px 12px; border-radius:4px; margin-bottom:14px; border-left:3px solid #3b82f6;">
             <b style="color:#60a5fa;">불량 현상 (Claim Symptom):</b> ${c.claimTitle}
           </div>
 
           <!-- Bottom Row: Complete D1 ~ D8 Progression & GAP Check Status -->
-          <div style="background:#070d19; border:1px solid rgba(59,130,246,0.25); border-radius:6px; padding:12px;">
-            <div style="font-size:0.74rem; font-weight:700; color:#94a3b8; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+          <div class="dashboard-gap-tracker-box">
+            <div style="font-size:0.74rem; font-weight:700; color:var(--text-secondary); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
               <div style="display:flex; align-items:center; gap:6px;">
                 <i data-lucide="git-commit" style="width:14px; height:14px; color:#38bdf8;"></i>
                 <span>D1 ~ D8 문제 해결 단계별 진행 & 누락(GAP) 진단</span>
               </div>
               <div>
                 ${missingGaps.length > 0 ? `
-                  <span style="color:#f87171; font-weight:700; background:rgba(239,68,68,0.12); padding:2px 8px; border-radius:4px; border:1px solid rgba(239,68,68,0.3);">
+                  <span class="gap-status-pill gap-status-warn">
                     ⚠️ 누락/미완료 항목 ${missingGaps.length}건 보완 필요
                   </span>
                 ` : `
-                  <span style="color:#34d399; font-weight:700; background:rgba(16,185,129,0.12); padding:2px 8px; border-radius:4px; border:1px solid rgba(16,185,129,0.3);">
+                  <span class="gap-status-pill gap-status-ok">
                     ✔ 현 단계까지 누락 없이 정상 진행
                   </span>
                 `}
@@ -165,15 +165,15 @@
             <!-- 8D Stage Flow Bar Grid (8 Columns) -->
             <div style="display:grid; grid-template-columns: repeat(8, 1fr); gap:6px;">
               ${stagesInfo.map((s, sIdx) => `
-                <div style="background:${s.isDone ? 'rgba(16,185,129,0.1)' : (s.code === c.currentStage ? 'rgba(59,130,246,0.15)' : 'rgba(30,41,59,0.4)')}; border:1px solid ${s.isDone ? '#10b981' : (s.code === c.currentStage ? '#3b82f6' : 'rgba(255,255,255,0.06)')}; border-radius:5px; padding:8px 6px; text-align:center; cursor:pointer;" onclick="appData.activeCaseId='${c.id}'; switchStage('${s.code}');">
-                  <div style="font-size:0.75rem; font-weight:800; color:${s.isDone ? '#34d399' : (s.code === c.currentStage ? '#60a5fa' : '#94a3b8')};">
+                <div class="dashboard-gap-step-cell ${s.isDone ? 'is-done' : (s.code === c.currentStage ? 'is-current' : '')}" onclick="appData.activeCaseId='${c.id}'; switchStage('${s.code}');">
+                  <div class="gap-step-title">
                     ${s.code}. ${s.name}
                   </div>
-                  <div style="font-size:0.68rem; margin-top:4px; color:${s.isDone ? '#10b981' : (s.gapText ? '#f87171' : '#64748b')}; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                  <div class="gap-step-sub ${s.gapText ? 'is-gap' : ''}">
                     ${s.statusText}
                   </div>
                   ${s.gapText ? `
-                    <div style="font-size:0.6rem; color:#f87171; background:rgba(239,68,68,0.15); border-radius:3px; padding:1px 3px; margin-top:4px; line-height:1.1;">
+                    <div class="gap-step-badge">
                       누락: ${s.gapText}
                     </div>
                   ` : ''}

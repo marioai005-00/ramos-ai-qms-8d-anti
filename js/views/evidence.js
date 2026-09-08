@@ -4,7 +4,7 @@
       return `
         <div style="margin-bottom: 20px; display:flex; justify-content:space-between; align-items:center;">
           <div>
-            <h1 style="font-size: 1.3rem; font-weight: 800; color: #f8fafc; display:flex; align-items:center; gap:8px;">
+            <h1 style="font-size: 1.3rem; font-weight: 800; color: var(--text-primary); display:flex; align-items:center; gap:8px;">
               <i data-lucide="file-check-2" style="color: #a855f7;"></i> Evidence 중심 품질 증거 저장소 (Evidence Matrix)
             </h1>
             <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">
@@ -29,10 +29,10 @@
             <tbody>
               ${c.evidenceList.map(evd => `
                 <tr>
-                  <td class="num-mono" style="font-weight:700; color:#c084fc;">${evd.id}</td>
-                  <td style="font-weight:600; color:#f8fafc;">${evd.title}</td>
+                  <td class="num-mono" style="font-weight:700; color:var(--accent);">${evd.id}</td>
+                  <td style="font-weight:600; color:var(--text-primary);">${evd.title}</td>
                   <td><span class="badge-pill badge-purple">${evd.type}</span></td>
-                  <td class="num-mono" style="font-size:0.75rem; color:#94a3b8;">${evd.file}</td>
+                  <td class="num-mono" style="font-size:0.75rem; color:var(--text-secondary);">${evd.file}</td>
                   <td>
                     ${evd.linkedStages.map(st => `<span class="badge-pill badge-ok" style="margin-right:3px;">${st}</span>`).join('')}
                   </td>

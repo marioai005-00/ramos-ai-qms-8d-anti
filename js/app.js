@@ -5,6 +5,7 @@ let isBannerDismissed = false;
 
 function initApp() {
   try {
+    initTheme();
     const isLoggedIn = checkAuthSession();
     if (!isLoggedIn) {
       showLoginScreen();
@@ -42,6 +43,63 @@ function initApp() {
     renderCaseSelector();
     renderCurrentView();
     renderOrgTree();
+  }
+}
+
+// -------------------------------------------------------------------------
+// THEME CONTROLLER (LIGHT MODE / DARK MODE)
+// -------------------------------------------------------------------------
+function initTheme() {
+  const savedTheme = localStorage.getItem('RAMOS_THEME') || 'dark';
+  applyTheme(savedTheme);
+}
+
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  applyTheme(newTheme);
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  try {
+    localStorage.setItem('RAMOS_THEME', theme);
+  } catch (e) {}
+
+  const icon = document.getElementById('themeToggleIcon');
+  const text = document.getElementById('themeToggleText');
+  const btn = document.getElementById('themeToggleBtn');
+
+  if (btn) {
+    btn.setAttribute('data-current-theme', theme);
+  }
+
+  if (theme === 'light') {
+    if (icon) {
+      icon.setAttribute('data-lucide', 'moon');
+      icon.style.color = '#c4b5fd';
+    }
+    if (text) text.innerText = '다크 모드';
+    if (btn) {
+      btn.setAttribute('aria-label', 'Dark Theme로 전환');
+      btn.setAttribute('aria-pressed', 'true');
+      btn.title = '다크 모드로 전환 (현재: 라이트 모드)';
+    }
+  } else {
+    if (icon) {
+      icon.setAttribute('data-lucide', 'sun');
+      icon.style.color = '#fbbf24';
+    }
+    if (text) text.innerText = '라이트 모드';
+    if (btn) {
+      btn.setAttribute('aria-label', 'Light Theme로 전환');
+      btn.setAttribute('aria-pressed', 'false');
+      btn.title = '라이트 모드로 전환 (현재: 다크 모드)';
+    }
+  }
+
+  if (window.lucide) {
+    lucide.createIcons();
   }
 }
 
@@ -130,20 +188,22 @@ function renderUserSwitcherHeader() {
 
   select.innerHTML = PRESET_USERS.map(u => `
     <option value="${u.name}" ${u.name === CURRENT_USER.name ? 'selected' : ''}>
-      ${u.name} ${u.position} (${u.dept})
+      ${u.name} ${u.position}${u.isMaster ? ' - MASTER' : ''}
     </option>
   `).join('');
+  select.title = `${CURRENT_USER.name} ${CURRENT_USER.position} · ${CURRENT_USER.dept}${typeof hasMasterAuthority === 'function' && hasMasterAuthority(CURRENT_USER) ? ' · MASTER' : ''}`;
 
   // Update left sidebar footer user profile
   const footerAvatar = document.querySelector('.sidebar > div:last-child > div:first-child');
   const footerName = document.querySelector('.sidebar > div:last-child > div:last-child > div:first-child');
   if (footerAvatar && footerName) {
     footerAvatar.innerText = CURRENT_USER.name.length > 2 ? CURRENT_USER.name.slice(-2) : CURRENT_USER.name;
-    footerName.innerHTML = `${CURRENT_USER.name} ${CURRENT_USER.position} <span style="font-size:0.68rem; color:#60a5fa; font-weight:600;">(${CURRENT_USER.dept})</span>`;
+    footerName.innerHTML = `${CURRENT_USER.name} ${CURRENT_USER.position} <span style="font-size:0.68rem; color:#60a5fa; font-weight:600;">(${CURRENT_USER.dept})</span>${typeof hasMasterAuthority === 'function' && hasMasterAuthority(CURRENT_USER) ? ' <span class="badge-pill badge-warn" style="font-size:0.6rem;">MASTER</span>' : ''}`;
   }
 }
 
 function onUserSwitch(userName) {
+  if (typeof persistCurrentEditor === 'function' && !persistCurrentEditor()) return;
   setCurrentUser(userName);
   sessionStorage.setItem('RAMOS_AUTH_USER', CURRENT_USER.username || CURRENT_USER.email.split('@')[0]);
   isBannerDismissed = false;
@@ -186,17 +246,21 @@ function renderCaseSelector() {
   const c = getActiveCase();
   const badge = document.getElementById('headerStageBadge');
   if (badge && c) {
-    badge.className = `badge-pill ${c.severityLevel === 'Critical' ? 'badge-fail' : 'badge-warn'}`;
-    badge.innerHTML = `<i data-lucide="activity" style="width:12px;height:12px;"></i> ${c.currentStage} ${c.status || 'In-Progress'} (${c.severityLevel})`;
+    const isClosed = c.status === 'Closed';
+    const statusLabel = isClosed ? '완결' : (c.status === 'Draft' ? '초안' : '진행중');
+    badge.className = `header-stage-state ${isClosed ? 'completed' : (c.severityLevel === 'Critical' ? 'critical' : '')}`;
+    badge.innerHTML = `<i data-lucide="activity"></i><strong>${c.currentStage || 'D1'}</strong><span>${statusLabel}</span>`;
+    badge.title = `${c.currentStage || 'D1'} · ${c.status || 'In Progress'} · ${c.severityLevel || ''}`;
   } else if (badge) {
-    badge.className = 'badge-pill';
-    badge.innerHTML = '<i data-lucide="circle-dashed" style="width:12px;height:12px;"></i> 새 Workflow 준비 완료';
+    badge.className = 'header-stage-state';
+    badge.innerHTML = '<i data-lucide="circle-dashed"></i><span>대기</span>';
   }
   if (window.lucide) lucide.createIcons();
 }
 
 function onCaseChange(caseId) {
   if (!caseId) return;
+  if (typeof persistCurrentEditor === 'function' && !persistCurrentEditor()) return;
   appData.activeCaseId = caseId;
   saveAppData();
   renderCaseSelector();
@@ -204,6 +268,7 @@ function onCaseChange(caseId) {
 }
 
 function switchNav(viewName, el) {
+  if (typeof persistCurrentEditor === 'function' && !persistCurrentEditor()) return;
   appData.currentView = viewName;
   saveAppData();
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -212,6 +277,7 @@ function switchNav(viewName, el) {
 }
 
 function switchStage(stageName) {
+  if (typeof persistCurrentEditor === 'function' && !persistCurrentEditor()) return;
   const activeCase = getActiveCase();
   if (typeof canEnterQualityStage === 'function' && activeCase) {
     const gate = canEnterQualityStage(activeCase, stageName);
@@ -237,7 +303,7 @@ function renderUserTaskBannerHTML() {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
         <div style="display:flex; align-items:center; gap:8px;">
           <i data-lucide="bell-ring" style="width:16px; height:16px; color:#38bdf8;"></i>
-          <span style="font-size:0.86rem; font-weight:800; color:#f8fafc;">
+          <span style="font-size:0.86rem; font-weight:800; color:var(--text-primary);">
             👋 <b>${CURRENT_USER.name} ${CURRENT_USER.position}</b> (${CURRENT_USER.dept} — ${CURRENT_USER.roleDesc}) 님에게 할당된 긴급 To-Do
           </span>
           <span style="font-size:0.7rem; background:#ef4444; color:#fff; padding:1px 7px; border-radius:10px; font-weight:800;">
@@ -255,7 +321,7 @@ function renderUserTaskBannerHTML() {
             <div style="display:flex; align-items:center; gap:10px; min-width:0; flex:1;">
               <span class="num-mono" style="font-size:0.78rem; font-weight:800; color:#60a5fa; flex-shrink:0;">${t.caseId}</span>
               <span class="badge-pill ${t.urgency === 'critical' ? 'badge-fail' : 'badge-warn'}" style="font-size:0.65rem; flex-shrink:0;">${t.stageCode}</span>
-              <div style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.8rem; color:#f8fafc; font-weight:600;">
+              <div style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.8rem; color:var(--text-primary); font-weight:600;">
                 ${t.title}
                 <span style="font-size:0.72rem; color:#94a3b8; font-weight:400; margin-left:6px;">— ${t.desc}</span>
               </div>
@@ -293,16 +359,24 @@ function jumpToUserTask(caseId, targetStage, gateKey) {
   }
 }
 
+function closeModal() {
+  const modal = document.getElementById('globalModal');
+  if (modal) modal.style.display = 'none';
+}
+
 function openNotificationModal() {
   const tasks = getUserPendingTasks(CURRENT_USER);
   const modal = document.getElementById('globalModal');
+  const container = document.getElementById('modalContainer');
+  if (!modal || !container) return;
+  container.innerHTML = '<div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:14px;"><h3 id="modalTitle"></h3><button class="btn btn-secondary btn-sm" onclick="closeModal()">닫기</button></div><div id="modalBody"></div>';
   const modalTitle = document.getElementById('modalTitle');
   const modalBody = document.getElementById('modalBody');
 
   modalTitle.innerHTML = `<i data-lucide="bell" style="width:18px;height:18px;color:#38bdf8;"></i> [${CURRENT_USER.name} ${CURRENT_USER.position}] 님의 8D 개인 알림 센터`;
   
   modalBody.innerHTML = `
-    <div style="margin-bottom:14px; font-size:0.82rem; color:#cbd5e1; background:rgba(30,41,59,0.5); padding:10px 14px; border-radius:6px;">
+    <div style="margin-bottom:14px; font-size:0.82rem; color:var(--text-secondary); background:var(--bg-card-subtle); padding:10px 14px; border-radius:6px;">
       소속: <b>${CURRENT_USER.dept}</b> | 역할: <b>${CURRENT_USER.roleDesc}</b> | 이메일: <b>${CURRENT_USER.email}</b><br>
       현재 전사 8D 케이스 중 <b>${CURRENT_USER.name}</b> 님의 승인/검토/조치가 대기 중인 항목입니다.
     </div>
@@ -316,14 +390,14 @@ function openNotificationModal() {
     ` : `
       <div style="display:flex; flex-direction:column; gap:10px;">
         ${tasks.map(t => `
-          <div style="background:#0e172a; border:1px solid ${t.urgency === 'critical' ? '#ef4444' : '#3b82f6'}; border-radius:6px; padding:12px; display:flex; justify-content:space-between; align-items:center; gap:14px;">
+          <div style="background:var(--bg-card-subtle); border:1px solid ${t.urgency === 'critical' ? '#ef4444' : '#3b82f6'}; border-radius:6px; padding:12px; display:flex; justify-content:space-between; align-items:center; gap:14px;">
             <div style="flex:1;">
               <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
                 <span class="num-mono" style="font-weight:800; color:#60a5fa; font-size:0.88rem;">${t.caseId}</span>
-                <span style="font-weight:700; color:#f8fafc; font-size:0.84rem;">고객사: ${t.customer}</span>
+                <span style="font-weight:700; color:var(--text-primary); font-size:0.84rem;">고객사: ${t.customer}</span>
                 <span class="badge-pill ${t.urgency === 'critical' ? 'badge-fail' : 'badge-warn'}">${t.stageCode}</span>
               </div>
-              <div style="font-size:0.84rem; font-weight:700; color:#f8fafc; margin-bottom:2px;">
+              <div style="font-size:0.84rem; font-weight:700; color:var(--text-primary); margin-bottom:2px;">
                 ${t.title}
               </div>
               <div style="font-size:0.76rem; color:#94a3b8;">
@@ -339,7 +413,7 @@ function openNotificationModal() {
     `}
   `;
 
-  modal.classList.add('active');
+  modal.style.display = 'flex';
   if (window.lucide) lucide.createIcons();
 }
 
@@ -382,6 +456,12 @@ function renderCurrentView() {
   }
 
   container.innerHTML = bannerHtml + viewHtml;
+  if (appData.currentView === 'new-case' && typeof restoreIntakeDraft === 'function') {
+    restoreIntakeDraft();
+  }
+  if (appData.currentView === 'reports-hub' && typeof hydrateD4EvidenceAttachments === 'function') {
+    setTimeout(() => hydrateD4EvidenceAttachments(container), 0);
+  }
   updateNotificationBadge();
 
   // Update active sidebar nav highlight
@@ -395,10 +475,76 @@ function renderCurrentView() {
     }
   });
 
+  updateSidebarStageStatusIndicators(c);
+
   if (window.lucide) {
     lucide.createIcons();
   }
 }
+
+function updateSidebarStageStatusIndicators(activeCase) {
+  const stages = ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8'];
+  stages.forEach(stage => {
+    const el = document.getElementById(`stageIndicator-${stage}`);
+    if (!el) return;
+
+    if (!activeCase) {
+      el.innerHTML = '<span class="stage-badge-indicator not-started" title="미착수">○</span>';
+      return;
+    }
+
+    const isApproved = typeof hasCurrentStageApproval === 'function' ? hasCurrentStageApproval(activeCase, stage) : false;
+    const isCurrentActive = appData.currentView === 'stage' && appData.activeStage === stage;
+    const caseCurrentStage = activeCase.currentStage || 'D1';
+
+    if (isApproved) {
+      el.innerHTML = '<span class="stage-badge-indicator completed" title="승인 완료">✓</span>';
+    } else if (isCurrentActive || stage === caseCurrentStage) {
+      el.innerHTML = '<span class="stage-badge-indicator in-progress" title="진행 중">◐</span>';
+    } else {
+      const stageOrder = stages.indexOf(stage);
+      const currentOrder = stages.indexOf(caseCurrentStage);
+      if (stageOrder < currentOrder) {
+        el.innerHTML = '<span class="stage-badge-indicator in-progress" title="작성/검토 중">◐</span>';
+      } else {
+        el.innerHTML = '<span class="stage-badge-indicator not-started" title="미착수">○</span>';
+      }
+    }
+  });
+}
+
+function persistCurrentEditor(silent = false) {
+  try {
+    if (appData.currentView === 'new-case' && typeof saveIntakeDraft === 'function') {
+      saveIntakeDraft();
+    }
+    const c = getActiveCase();
+    let captured = false;
+    if (c && document.getElementById('d2QualityForm') && typeof captureD2Form === 'function') {
+      captureD2Form(c); captured = true;
+    }
+    if (c && document.getElementById('d3QualityForm') && typeof captureD3Form === 'function') {
+      captureD3Form(c); captured = true;
+    }
+    if (c && document.getElementById('d4QualityForm') && typeof captureD4Form === 'function') {
+      captureD4Form(c); captured = true;
+    }
+    const lateForm = document.getElementById('lateStageForm');
+    if (c && lateForm && typeof captureLateStageForm === 'function') {
+      captureLateStageForm(c, lateForm.dataset.stage); captured = true;
+    }
+    if (captured) saveAppData();
+    return true;
+  } catch (error) {
+    console.error('Current editor could not be persisted:', error);
+    if (!silent) alert(`화면 이동 전에 작성 내용을 저장하지 못했습니다.\n${error.message}`);
+    return false;
+  }
+}
+
+window.addEventListener('beforeunload', () => {
+  persistCurrentEditor(true);
+});
 
 function renderNoActiveCaseView(requestedArea = '8D Workspace') {
   return `

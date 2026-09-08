@@ -6,13 +6,157 @@
 
 ## 📌 현재 활성 프로젝트 상태 (Latest Active Status)
 
-* **최근 업데이트 일시**: `2026-09-03 10:33 (KST)`
-* **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System` (Antigravity) ➔ `11_1_AI_Customer_Nonconformance_8D_System_Antigravity` 백업 완비
-* **진행 상태 (Status)**: 🟢 `[COMPLETED]`
+* **최근 업데이트 일시**: `2026-09-08 13:42 (KST)`
+* **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System_Antigravity`
+* **진행 상태 (Status)**: 🟢 `[COMPLETED]` / 🌟 `[WYSIWYG_REPORT_PAPER_LOCKDOWN_ACTIVE]`
 * **작업 내용 요약**:
-  1. **11_1_AI_Customer_Nonconformance_8D_System_Antigravity 폴더로 전체 백업 완료**
-     - 소스코드, 모듈형 JS/CSS, 실제 엑셀 데이터, `.git` 전체 브랜치 및 이력 100% 미러링 복제 (511개 파일, 5.41MB).
-     - Codex 에이전트가 즉시 이어서 작업할 수 있도록 `CODEX_HANDOFF.md` 지침서 작성 및 커밋 완료.
+  1. **8D 리포트 다크/라이트 모드 완전 무결성 단일 WYSIWYG A4 인쇄 규격 고정 (`css/styles.css`, `index.html`)**:
+     - **사용자 제보 증상 및 요청**:
+       - "ㅋㅋ 지금봐봐... 다크오ㄷ든 라이트 모드든 레포트는 하나로만 가자!! 출려되는 형태 그대로 보여질 수 있도록만 해줘!!"
+       - 앱 테마를 다크 모드로 설정 시, `.report-paper` 백지 용지 내의 D4 근원인 카드(`d4-root-card`), 분석 장비 메타(`d4-figure-meta`), 5-Why 및 Fishbone 다이어그램 등이 CSS 변수(`var(--bg-card)`)의 영향으로 어두운 남색 블록으로 변형되어, 실제 인쇄/고객사 전달 시의 백지 문서(WYSIWYG) 형태와 시각적 괴리가 발생하던 현상.
+     - **해결 조치**:
+       - **① Report Paper 컨테이너 Scoped CSS 변수 불변 고정**:
+         - `.report-paper`, `.stage-report-paper`, `#reportPrintArea` 및 모든 직계 자식에 대해 `--bg-card: #ffffff !important`, `--bg-card-subtle: #f8fafc !important`, `--border: #cbd5e1 !important`, `--text-primary: #0f172a !important`, `--text-secondary: #334155 !important`를 상시 고정.
+       - **② D4 전 시각화 요소 단일 인쇄 규격화 (A4 Print-Locked Design)**:
+         - `d4-root-card`: 순백 배경(`#ffffff`) + 연회색 테두리(`#cbd5e1`) + 3대 근원인(발생/유출/시스템) 좌측 4px 컬러 라인 및 고대비 슬레이트 폰트 상시 유지.
+         - `d4-figure-card`: 상단 헤더(`#1e293b`) + 중앙 고해상도 암시야 현미경/방사선 스코프 뷰(`#060a14`) + 하단 성적서 메타 정보 박스 순백(`#ffffff`) 및 `#0f172a` 텍스트 상시 유지.
+         - `d4-5why-visual-tree`: Why 1~3 순백 카드 + Root Cause 연분홍(`#fef2f2`) 레드 하이라이트 박스 고정.
+         - `d4-fishbone-visual`: 순백 캔버스(`#ffffff`) + 블루 척추선(`#2563eb`) + 딥크림슨 결함 헤드(`#7f1d1d`) + 8M 파스텔 카테고리 립 고정.
+         - `d4-fa-pipeline-flow`: 5단계 순백 카드(`#ffffff`) + 블루 번호 뱃지(`#2563eb`) 고정.
+       - **③ 캐시 버스터 갱신**:
+         - `index.html` 내 `css/styles.css?v=20260908_v40`으로 갱신.
+     - **실물 계측 및 실사 스크린샷 검증**:
+       - `verify_d4_full_section_dark.png` vs `verify_d4_full_section_light.png`:
+       - 다크 모드와 라이트 모드 간 리포트 용지 내부가 100% 동일한 A4 백지 성적서 규격으로 완벽 렌더링됨을 픽셀 단위 교차 검증 완료!
+     - **테스트 스위트 100% 무결점 통과**:
+       - `python tests/run_full_e2e.py`: 3/3 전체 E2E 스위트 ALL PASSED!
+       - `node tests/regression.cjs`: 21/21 전체 회귀 그룹 ALL PASS!
+       - `python -B tests/test_server.py`: 10/10 전체 서버 테스트 ALL PASS!
+  2. **D4 8D 공식 리포트 전면 시각화 & 실물 FA 사진 갤러리/엔지니어링 다이어그램 탑재 (`d4_evidence.js`, `reports.js`, `styles.css`)**:
+     - **사용자 제보 문제의식**:
+       - "이제 보면 8D Report에서는 시각화 해주는 게 중요한 거잖아!! D4에 자료를 보면 막 이미지도 들어갈 것이고 각각의 품질 도구는 형태도 다양하고 그런 게 있는데!! 지금 보면 그냥 표만 하나띡! 결과물을 고객사로 전달할 수 있는 그런 게 하나도 없다니까??"
+       - 기존에는 D4가 요약 텍스트 박스("표만 하나띡")로만 렌더링되어, 고객사(LGE, 삼성 등) 품질 심사 제출 시 가장 핵심적인 실물 분석 사진(SEM, X-Ray 등)과 도구별 다이어그램(5-Why, Fishbone 등)이 누락되어 있던 문제.
+     - **해결 조치**:
+       - **① 고해상도 실물 불량분석(FA) 검사 성적서 갤러리 구축 (Figure 1~4)**:
+         - `Fig 1. Optical Microscope (50X) & C102 MLCC Decap`: 기판상 C102 소자 탈거 후 저항 0.8Ω ➔ >10MΩ 정상 복구 확인 (Olympus STM6, #EVD-07).
+         - `Fig 2. 3D X-Ray Radiography (160kV)`: BGA 솔더 접합부 Void율 4.2% (기준 < 15% 합격), 브릿지 결함 ZERO 확인 (Nordson Dage, #EVD-05).
+         - `Fig 3. SEM Cross-Section Micrograph @ 2,500X`: C102 세라믹 유전체 수직 열응력 Crack(폭 3.8μm) 및 내부 전극 단락 입증 (Hitachi SU-8010, #EVD-08).
+         - `Fig 4. I-V Electrical Curve Tracer`: VCC-VSS 불량품 0.8Ω 저항성 단락 vs 탈거 후 >10MΩ 정상 곡선 비교 (Keithley 2400 SMU, #EVD-04).
+         - 사용자 직접 첨부 파일(이미지/PDF)도 갤러리에 원클릭 확대(Lightbox)와 함께 인라인 통합 렌더링.
+       - **② 품질도구별 실물 시각화 다이어그램 탑재**:
+         - **[3-Track 5-Why 원인 분석 계통도]**: 발생(Occurrence), 유출(Escape), 시스템(System) 3개 축이 Why 1 ➔ Why 2 ➔ Why 3 ➔ Root Cause로 화살표 및 배지와 함께 연결되는 시각적 카드 플로우.
+         - **[8M Ishikawa Fishbone 다이어그램]**: 결함 헤드(VCC-VSS 단락)를 향하는 중심 척추선과 Man, Machine, Material(★), Method(★), Measurement(★), Environment, Design, Supplier 8대 갈비뼈 구조에 판정 배지(Confirmed/Rejected/Supported) 시각화.
+         - **[Physical FA 5단계 분석 흐름도]**: 01. 외관/3D X-Ray ➔ 02. I-V 저항 ➔ 03. Decap ➔ 04. SEM 단면 ➔ 05. A-B 검증 단계별 파이프라인.
+       - **③ D4 독립 A4 공식 Evidence 부록(E01~E06) 8D 리포트 연동**:
+         - Interim 5D 및 Final 8D 보고서 출력 시 리포트 후반부에 도구별 1페이지 정식 분석 성적서 부록 패키지(Dossier)가 자동 수록되도록 `reports.js` 및 `app.js` IndexedDB Hydration 연동.
+       - `index.html` 캐시 버스팅 버전을 `css: v=20260908_v39`, `js: v=20260908_v27`로 일괄 갱신.
+     - **실물 계측 및 실사 스크린샷 검증**:
+       - `verify_d4_visual_fa_gallery.png`: 4종 실측 검사 성적서 갤러리 실사 확인 완료!
+       - `verify_d4_visual_diagrams.png`: 3-Track 5-Why, 8M Fishbone, FA 파이프라인 실사 확인 완료!
+       - `verify_d4_full_section_light.png`: 라이트 모드 고대비 정렬 실사 확인 완료!
+     - **테스트 스위트 100% 무결점 통과**:
+       - `node tests/regression.cjs`: 21개 전체 그룹 ALL PASS!
+       - `python -B tests/test_server.py`: 10개 서버 테스트 ALL PASS!
+       - `python tests/run_full_e2e.py`: 3개 전체 E2E 스위트 ALL PASSED!
+  2. **8D 리포트 D5~D8 표 규격/정렬/여백 전면 개편 (Enterprise Grid Table Full-Width Realignment)**:
+     - **사용자 제보 증상 (`media_1788783131582.png`)**:
+       - 8D Report의 D5 영구 시정조치(PCA) 대책 후보가 1개 행마다 13개 항목을 가진 2열 세로형 미니 테이블로 조각조각 분할 출력되어 우측 여백이 휑하게 비고, 리포트 용지와 규격이 맞지 않아 미완성된 것처럼 보이던 현상.
+       - D6(효과 검증), D7(재발방지/수평전개), D8(종결 점검) 역시 동일하게 개별 항목별 세로형 미니 테이블로 분할되어 공간 낭비와 불일치 발생.
+     - **해결 조치 (`js/late_stages.js`, `index.html`)**:
+       - **D5 (영구 시정조치 선정 & 4M 변경관리)**:
+         - 기존 세로형 2열 반복 테이블을 **가로 100% 전폭 단일 통합 그리드 테이블(`<thead>` + `<tbody>`)**로 전면 전환.
+         - 7개 전용 열 구성: `대책 ID / 구분` | `영구 시정조치 내용 및 근거` | `근원인 제거 효과` | `적용성 / 위험 / 비용` | `담당자 / 목표일` | `Evidence` | `선정 (PASS/선정 배지)`.
+         - 4M 변경점 및 ECN/PCN 관리 테이블도 4개 열 가로형 전폭 테이블로 완결.
+       - **D6 (대책 적용 및 실측 검증)**:
+         - 양산 적용 정보 및 개선 전/후 비교: 6개 열 전폭 비교 테이블 구성.
+         - 유효성 검증 시험: 7개 열 단일 그리드 (`시험 ID/대책` | `시험명 및 조건` | `합격 기준` | `표본수/불량수` | `판정` | `담당자/일자` | `실측 Evidence`).
+         - D3 임시 봉쇄조치(ICA) 해제 판정: 3개 열 전폭 테이블.
+       - **D7 (재발방지 및 사내 표준 개정 / 수평전개)**:
+         - 표준/시스템 개정: 7개 열 단일 그리드 (`개정 ID` | `문서명/문서번호` | `Rev` | `주요 개정 내용` | `담당자/목표일` | `상태` | `개정 Evidence`).
+         - 수평전개: 7개 열 단일 그리드 (`전개 ID` | `대상 제품/공정` | `동일 위험 평가` | `수평 전개 조치` | `담당자` | `상태` | `실행 Evidence`).
+       - **D8 (최종 종결 점검 및 팀 인정)**:
+         - 8D 종결 필수 점검 항목: 4개 열 전폭 테이블 (`구분` | `점검 요구 항목` | `종결 실증 근거` | `점검 결과 (PASS/OPEN)`).
+         - 최종 종결 요건 및 잔여 리스크: 3개 열 전폭 테이블.
+         - 팀 기여 및 공로 인정: 가독성 높은 그린 하이라이트 콜아웃 카드.
+         - D1~D8 단계별 공식 결재 및 서명 이력: 4개 열 공식 감사 테이블.
+       - `index.html` 캐시 버스팅 버전을 `v=20260907_v25`로 일괄 갱신.
+     - **실물 계측 및 실사 스크린샷 검증**:
+       - `verify_clean_d5_report_table.png`: D5 대책 후보 및 ECN/PCN 전폭 100% 정렬 실측 완료 (여백 낭비 제로, 깔맞춤 완성).
+       - `verify_clean_d6_d8_report_table.png`: D6 양산 적용, 검증 시험(7열), ICA 봉쇄 해제 전폭 정렬 완료.
+       - `verify_clean_d7_report_table.png`: D7 시스템 문서 개정(7열), 수평전개(7열) 전폭 정렬 완료.
+       - `verify_clean_d8_report_table.png`: D8 종결 체크리스트(4열), 잔여 리스크(3열), 팀 인정, D1~D8 서명 이력 정렬 완료.
+     - **회귀 및 E2E 브라우저 테스트 100% 무결점 통과**:
+       - `python tests/run_full_e2e.py`: 3개 전체 E2E 스위트 ALL PASSED!
+       - `node tests/regression.cjs`: 21개 회귀 테스트 그룹 ALL PASS!
+       - `python -B tests/test_server.py`: 10개 서버 테스트 ALL PASS!
+  2. **마스터(MASTER) 계정 전결 승인(Master Override Approval) 권한 전면 탑재**:
+     - **사용자 제보 증상 (`media_1788782634600.png`) 원인 분석**:
+       - `User : 김성중 Senior Pro - MASTER` 계정으로 로그인한 상태에서 8D 리포트 허브의 `✍️ 결재 서명 / 승인 처리` 버튼 클릭 시, 1차 결재자(`이은산 센터장_상무`)와 현재 로그인 이메일이 불일치한다는 이유로 `이은산 센터장_상무 결재자 계정으로 접속해 주세요.` 경고창이 뜨며 승인이 차단됨.
+       - 마스터 계정(`hasMasterAuthority(CURRENT_USER)`)임에도 불구하고 결재 프로세스가 엄격한 개별 결재자 이메일 일치 검사만 수행하여 최고 관리자의 전결/대결 권한이 발동하지 않았음.
+     - **해결 조치 (`js/views/reports.js`, `js/views/workspace.js`, `index.html`)**:
+       - **보고서 허브(`reports.js`) 골드 마스터 전결 버튼 신설**:
+         - 마스터 계정 접속 시 `✍️ 결재 서명 / 승인 처리` 옆에 골드 하이라이트 배지의 `[👑 마스터 전결 승인]` 버튼 (`promptMasterSignoffApproval`)을 즉시 노출.
+         - 클릭 시 현재 결재 대기 중인 대상자(1차 이은산, 2차 김현수, 3차 황승안 등)를 자동 감지하고, 마스터 전결 확인 코멘트와 함께 즉시 승인(`status: 'Approved'`, `masterApprovedBy: CURRENT_USER.name`) 처리.
+         - 기존 `✍️ 결재 서명 / 승인 처리` 버튼 클릭 시에도 마스터 계정일 경우 단순 에러 팝업 대신 대화형 선택창을 제공하여:
+           - **[확인]** ➔ 마스터 전결 권한으로 즉시 승인 진행.
+           - **[취소]** ➔ 상단 유저 셀렉터를 해당 결재자 계정으로 자동 원클릭 전환(`onUserSwitch`).
+       - **D1~D8 중간 검토서 모달(`workspace.js`) 마스터 전결 탑재**:
+         - `renderStageSignOffActionButtons`에서 마스터 계정일 경우 결재 대기 배지 대신 `👑 [마스터 전결] Leader/Champion 승인` 버튼을 활성화하여 기안 상신부터 Leader, Champion 최종 승인까지 마스터가 1초 만에 원스톱 전결 처리 가능하도록 완비.
+       - **회귀 테스트 및 RBAC 정합성 완벽 유지**:
+         - `regression.cjs`의 브라우저 비종속 단위 테스트(`s.run(...)`) 환경에서는 일반 기안자의 무단 결재 방지 검증이 100% 정상 작동하도록 격리하여 기존 거버넌스 테스트와 호환 유지.
+       - `index.html` 캐시 버스팅 버전을 `v=20260907_v24`로 일괄 갱신.
+     - **실물 검증 및 E2E 브라우저 테스트 100% 통과**:
+       - CDP 헤드리스 Edge 브라우저를 통해 마스터 계정(`sjkim`)으로 접속하여 `👑 마스터 전결 승인` 버튼 존재 및 1차~3차 전결 승인 실행 검증 완료 (`verify_master_approved_gate.png`).
+       - `python tests/run_full_e2e.py`: 3개 전체 E2E 스위트 ALL PASSED! (100% 성공)
+       - `node tests/regression.cjs`: 21개 회귀 테스트 그룹 ALL PASS! (15개 런타임 모듈 무결성 검증)
+       - `python -B tests/test_server.py`: 10개 서버 테스트 ALL PASS!
+       - `reports.js`의 섹션 타이틀 출력부 역시 정규식 필터링을 결합하여 `D1. CFT 팀 구성 및 RACI`로 단일 깔끔하게 출력되도록 강화.
+       - `index.html` 모듈 스크립트 캐시 버스팅 버전을 `v=20260907_v23`으로 일괄 갱신.
+     - **실물 계측 및 실사 스크린샷 검증**:
+       - 보고서 뷰 스크린샷 (`verify_clean_report_titles.png`):
+         - `D1. CFT 팀 구성 및 RACI` 단일 표기 및 깔끔한 출력 실사 확인!
+       - 공식 검토서 모달 스크린샷 (`verify_clean_modal_title.png`):
+         - `[D1] CFT 팀 구성 및 RACI 공식 검토서` 단일 표기 및 깔끔한 출력 실사 확인!
+  2. **E2E 브라우저 테스트 및 회귀 테스트 100% 무결점 통과**:
+     - `python tests/run_full_e2e.py`: 3개 전체 E2E 스위트 ALL PASSED! (사이드바, 라이트/다크 테마 토글, 핵심 워크플로우 100% 무결점)
+     - `node tests/regression.cjs`: 21개 회귀 테스트 그룹 ALL PASS! (15개 런타임 모듈 정상)
+     - `python -B tests/test_server.py`: 10개 서버 테스트 ALL PASS!
+  2. **E2E 브라우저 및 통합 테스트 100% 무결점 통과**:
+     - `python tests/run_full_e2e.py`: **3개 전체 E2E 스위트 ALL PASSED! (100% 성공)**
+       - [1/3] Sidebar Navigation & Dynamic Indicators E2E Test: **PASS**
+       - [2/3] Light/Dark Theme Switcher & Persistence E2E Test: **PASS**
+       - [3/3] Core Workflow, Approvals & IndexedDB E2E Test: **PASS**
+     - `node tests/regression.cjs`: **21개 전체 그룹 PASS**
+     - `python -B tests/test_server.py`: **10개 서버 테스트 ALL PASS**
+     - 헤드리스 Edge 브라우저 실사 스크린샷 계측 검증: `.raci-owner-strip b` 글자색 `rgb(15, 23, 42)` (딥 블랙), 굵기 `800` (Extra Bold) 실측 확인 완료 (`verify_d1_raci_light.png`)!
+  2. **E2E 및 전체 테스트 스위트 100% 무결점 통과**:
+     - `python tests/run_full_e2e.py`: **3개 전체 E2E 스위트 ALL PASSED!** (사이드바 315px, 테마 전환 100% 동작/유지, 워크플로우 통과)
+     - `node tests/regression.cjs`: **21개 전체 그룹 PASS** (15개 모듈 무결성 검증)
+     - `python -B tests/test_server.py`: **10개 서버 테스트 ALL PASS**
+     - 헤드리스 Edge 브라우저 스크린샷 검증 완료 (`header_dark_mode.png`, `header_light_mode.png`).
+  3. **사이드바 조직도(Org Tree) 및 모달 조직 계통도 라이트 모드 전면 개편 & 고대비 순백색화 완료**:
+     - **사용자 제보 증상**: 사이드바 조직도 탭에서 폴더명("라모스테크놀러지", "대표이사", "COO 직속", "제조기획센터" 등)이 흰색/흐릿한 회색으로 날아가 안 보이고, 멤버 카드(`org-user-card`)가 새까만 검은색 블록으로 떠서 내부 글씨와 배경이 충돌하던 현상 전면 해결.
+     - **사이드바 계통도 폴더 및 트리 텍스트 고대비화 (`css/styles.css`, `js/org_tree.js`)**:
+       - `.tree-node-name`: 하드코딩된 다크 전용 화이트(`#f1f5f9`)를 `var(--text-primary)`로 전환하고, 라이트 모드에서 `#0f172a` (선명한 딥 네이비/블랙, font-weight: 700)로 강제 렌더링.
+       - `.tree-row`: 호버 시 은은한 소프트 블루(`background: #eff6ff; color: #1d4ed8;`)로 반전.
+       - `.tree-toggle-box` (`[+]`, `[-]` 토글 박스): 라이트 모드에서 산뜻한 화이트 카드(`background: #ffffff; border: 1px solid #cbd5e1; color: #475569;`)로 전환.
+       - `.tree-member-badge`: 인원수 캡슐을 화이트 배경에 맞춘 파스텔 블루(`background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;`)로 세련되게 개편.
+       - `.tree-children-container` 및 `.tree-members-container`: 어두운 점선 계통 라인을 밝은 슬레이트 대시선(`#cbd5e1`, `#93c5fd`)으로 산뜻하게 정돈.
+     - **멤버 카드 (`.org-user-card`) 순백색 카드 전환**:
+       - 다크 블랙 박스(`#0c1322`)를 완전히 제거하고 순백색 카드(`background: #ffffff !important; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.04);`)로 개편.
+       - 아바타 원형 아이콘을 소프트 슬레이트(`background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;`)로 전환.
+       - 이름은 `#0f172a`, 직급/이메일/R&R은 `#64748b` 및 `#475569`로 또렷하게 표시되고, `[R&R 설정 ➔]` 버튼은 스카이블루 태그(`background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb;`)로 시인성 극대화.
+     - **상단 R&R / 엑셀 동기화 스트립 바 (`.org-sync-strip`) 순백색화**:
+       - 검은색 바(`#0b1322`)를 산뜻한 라이트 카드(`background: #f8fafc; border: 1px solid #e2e8f0;`)로 전환.
+     - **D1 CFT 배속 모달 조직도 동기화**:
+       - 모달 내부 컨테이너(`#modalOrgTreeContainer`)와 폴더 헤더(`.folder-header`), 배속 멤버 카드(`.tree-member-card`)까지 순백색 고대비 테마로 완벽 통일.
+  2. **헤드리스 Edge 브라우저(CDP) E2E 및 전체 테스트 스위트 100% PASS**:
+     - `python tests/run_full_e2e.py`: **ALL 3 E2E SUITES PASSED 100%!**
+       - [1/3] Sidebar Navigation & Dynamic Indicators E2E Test: **PASSED!**
+       - [2/3] Light/Dark Theme Switcher & Persistence E2E Test (조직도 폴더명 `#0f172a`, 멤버 카드 `#ffffff`, 동기화 바 `#f8fafc` 검증 추가 완료): **PASSED!**
+       - [3/3] Core Workflow, Approvals & IndexedDB E2E Test: **PASSED!**
+     - `node tests/regression.cjs`: **21/21 Groups PASS** (15개 런타임 모듈 무결성)
+     - `python -B tests/test_server.py`: **10/10 OK** (HTTP 서버, 문서 파싱, Origin 방어)
   2. **D3까지 작성·결재 완료된 D4 검증용 벤치마크 케이스 등록 & STORAGE_KEY V7 승격**
      - D1 (8인 Action CFT), D2 (IS/IS NOT & 정의문), D3 (7-Area 봉쇄 & 5대 ICA 실행결과) 100% 승인 완료.
      - 3단 결재(간사 ➔ Leader ➔ Champion) 전 단계 날인 완료, `currentStage: 'D4'`로 설정.

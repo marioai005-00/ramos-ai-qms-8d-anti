@@ -65,6 +65,8 @@ const D4_ALLOWED_EXTENSIONS=['png','jpg','jpeg','webp','gif','bmp','pdf','ppt','
 let activeD4EvidenceIndex = -1;
 let pendingD4Attachments=[];
 let pendingD4DeletedKeys=[];
+let pendingD4NewKeys=[];
+let d4EvidenceSaving=false;
 let d4AttachmentObjectUrls=[];
 function openD4FileDatabase(){return new Promise((resolve,reject)=>{const request=indexedDB.open(D4_FILE_DB,1);request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains(D4_FILE_STORE))request.result.createObjectStore(D4_FILE_STORE);};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}
 async function putD4EvidenceFile(key,file){const db=await openD4FileDatabase();return new Promise((resolve,reject)=>{const tx=db.transaction(D4_FILE_STORE,'readwrite');tx.objectStore(D4_FILE_STORE).put(file,key);tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};});}
@@ -77,7 +79,7 @@ function openD4EvidenceBuilder(index) {
   const d4=captureD4Form(c); const row=d4.selectedTools[index]; if(!row)return;
   row.artifact=row.artifact||createD4EvidenceArtifact(row.id,row,c,false);
   row.artifact.attachments=Array.isArray(row.artifact.attachments)?row.artifact.attachments:[];
-  pendingD4Attachments=row.artifact.attachments.map(item=>({...item}));pendingD4DeletedKeys=[];
+  pendingD4Attachments=row.artifact.attachments.map(item=>({...item}));pendingD4DeletedKeys=[];pendingD4NewKeys=[];d4EvidenceSaving=false;
   activeD4EvidenceIndex=index;
   const schema=getD4EvidenceSchema(row.id); const artifact=row.artifact;
   const modal=document.getElementById('globalModal'); const container=document.getElementById('modalContainer');
@@ -130,20 +132,59 @@ async function previewPendingD4Attachment(index){
 }
 async function handleD4EvidenceFiles(fileList){
   const c=getActiveCase();const row=c?.d4?.selectedTools?.[activeD4EvidenceIndex];if(!row)return;
-  for(const file of [...fileList]){const extension=(file.name.split('.').pop()||'').toLowerCase();if(!D4_ALLOWED_EXTENSIONS.includes(extension)){alert(`${file.name}: 지원하지 않는 형식입니다.`);continue;}if(file.size>30*1024*1024){alert(`${file.name}: 파일당 30MB를 초과했습니다.`);continue;}const id=makeD4AttachmentId();const storageKey=`${c.id}__${row.id}__${id}`;try{await putD4EvidenceFile(storageKey,file);pendingD4Attachments.push({id,storageKey,name:file.name,type:file.type||'application/octet-stream',extension,size:file.size,previewType:file.type.startsWith('image/')?'image':extension==='pdf'?'pdf':'document',uploadedBy:CURRENT_USER.name,uploadedAt:new Date().toISOString().replace('T',' ').slice(0,16)});}catch(error){console.error(error);alert(`${file.name}: 브라우저 Evidence 저장소에 보관하지 못했습니다.`);}}
+  for(const file of [...fileList]){const extension=(file.name.split('.').pop()||'').toLowerCase();if(!D4_ALLOWED_EXTENSIONS.includes(extension)){alert(`${file.name}: 지원하지 않는 형식입니다.`);continue;}if(file.size>30*1024*1024){alert(`${file.name}: 파일당 30MB를 초과했습니다.`);continue;}const id=makeD4AttachmentId();const storageKey=`${c.id}__${row.id}__${id}`;try{await putD4EvidenceFile(storageKey,file);pendingD4NewKeys.push(storageKey);pendingD4Attachments.push({id,storageKey,name:file.name,type:file.type||'application/octet-stream',extension,size:file.size,previewType:file.type.startsWith('image/')?'image':extension==='pdf'?'pdf':'document',uploadedBy:CURRENT_USER.name,uploadedAt:new Date().toISOString().replace('T',' ').slice(0,16)});}catch(error){console.error(error);alert(`${file.name}: 브라우저 Evidence 저장소에 보관하지 못했습니다.`);}}
   document.getElementById('d4AttachmentList').innerHTML=renderD4AttachmentList();if(window.lucide)lucide.createIcons();
 }
-function removePendingD4Attachment(index){const [removed]=pendingD4Attachments.splice(index,1);if(removed?.storageKey)pendingD4DeletedKeys.push(removed.storageKey);document.getElementById('d4AttachmentList').innerHTML=renderD4AttachmentList();if(window.lucide)lucide.createIcons();}
-function closeD4EvidenceBuilder(){document.getElementById('globalModal').style.display='none';activeD4EvidenceIndex=-1;pendingD4Attachments=[];pendingD4DeletedKeys=[];}
+function removePendingD4Attachment(index){
+  const [removed]=pendingD4Attachments.splice(index,1);
+  if(removed?.storageKey){
+    const newIndex=pendingD4NewKeys.indexOf(removed.storageKey);
+    if(newIndex>=0){
+      pendingD4NewKeys.splice(newIndex,1);
+      deleteD4EvidenceFile(removed.storageKey).catch(err=>console.warn('Staged D4 file cleanup failed:',err));
+    }else{
+      pendingD4DeletedKeys.push(removed.storageKey);
+    }
+  }
+  document.getElementById('d4AttachmentList').innerHTML=renderD4AttachmentList();if(window.lucide)lucide.createIcons();
+}
+async function closeD4EvidenceBuilder(){
+  if(!d4EvidenceSaving && pendingD4NewKeys.length){
+    const cleanup=await Promise.allSettled(pendingD4NewKeys.map(deleteD4EvidenceFile));
+    cleanup.filter(item=>item.status==='rejected').forEach(item=>console.warn('Cancelled D4 file cleanup failed:',item.reason));
+  }
+  document.getElementById('globalModal').style.display='none';
+  activeD4EvidenceIndex=-1;
+  pendingD4Attachments=[];
+  pendingD4DeletedKeys=[];
+  pendingD4NewKeys=[];
+  d4EvidenceSaving=false;
+}
 async function saveD4EvidenceArtifact(){
   const c=getActiveCase(); const row=c?.d4?.selectedTools?.[activeD4EvidenceIndex]; if(!row)return;
   const schema=getD4EvidenceSchema(row.id); const rows=[...document.querySelectorAll('#d4EvidenceRows tr')].map(tr=>({values:schema.columns.map((_,i)=>tr.querySelector(`[data-d4-evidence-cell="${i}"]`)?.value.trim()||'')})).filter(item=>item.values.some(Boolean));
   const objective=document.getElementById('d4EvObjective').value.trim(); const typedSources=document.getElementById('d4EvSources').value.trim(); const sources=typedSources||pendingD4Attachments.map(item=>item.name).join(', '); const conclusion=document.getElementById('d4EvConclusion').value.trim(); const confirmed=document.getElementById('d4EvConfirmed').checked;
   if(!objective||!conclusion||(!rows.length&&!pendingD4Attachments.length)){alert('분석 목적과 결론을 작성하고, 분석 양식 또는 완성된 분석자료 파일 중 하나를 등록해 주세요.');return;}
   if(confirmed&&rows.some(item=>item.values.some(value=>!value))){alert('사람 확인 전에 각 분석 행의 모든 칸을 작성해 주세요.');return;}
+  const previous={hypothesis:row.hypothesis,evidence:row.evidence,finding:row.finding,artifact:row.artifact,approval:c.d4.approval};
   row.hypothesis=objective;row.evidence=sources;row.finding=conclusion;row.artifact={version:1,documentNo:document.getElementById('d4EvDocNo').value.trim()||`${c.id}-D4-${schema.code}`,objective,sourceEvidence:sources,conclusion,rows,attachments:pendingD4Attachments.map(item=>({...item})),humanConfirmed:confirmed,updatedBy:CURRENT_USER.name,updatedAt:new Date().toISOString().replace('T',' ').slice(0,16)};
-  await Promise.allSettled(pendingD4DeletedKeys.map(deleteD4EvidenceFile));
-  c.d4.approval={status:'Draft',humanConfirmed:false};saveAppData();closeD4EvidenceBuilder();renderCurrentView();alert(`${schema.title}가 D4 Evidence 문서로 저장되었습니다.`);
+  c.d4.approval={status:'Draft',humanConfirmed:false};
+  try{
+    saveAppData();
+  }catch(error){
+    row.hypothesis=previous.hypothesis;row.evidence=previous.evidence;row.finding=previous.finding;row.artifact=previous.artifact;c.d4.approval=previous.approval;
+    const cleanup=await Promise.allSettled(pendingD4NewKeys.map(deleteD4EvidenceFile));
+    cleanup.filter(item=>item.status==='rejected').forEach(item=>console.warn('Failed D4 save cleanup failed:',item.reason));
+    pendingD4NewKeys=[];
+    return;
+  }
+  const cleanup=await Promise.allSettled([...new Set(pendingD4DeletedKeys)].map(deleteD4EvidenceFile));
+  cleanup.filter(item=>item.status==='rejected').forEach(item=>console.warn('Removed D4 file cleanup failed:',item.reason));
+  d4EvidenceSaving=true;
+  pendingD4NewKeys=[];
+  await closeD4EvidenceBuilder();
+  renderCurrentView();
+  alert(`${schema.title}가 D4 Evidence 문서로 저장되었습니다.`);
 }
 
 function renderD4EvidenceAppendix(c) {
@@ -303,10 +344,569 @@ function closeD4ImageLightbox(){
 }
 
 function renderD4EvidenceVisual(toolId,schema,rows){
-  const cells=item=>schema.columns.map((_,i)=>escapeD4Evidence(item.values?.[i])||'—');
+  const cells=item=>schema.columns.map((col,i)=>escapeD4Evidence(item.values?.[i] ?? item[col[0]])||'—');
   if(toolId==='timeline')return `<div class="d4-report-timeline">${rows.map(item=>{const v=cells(item);return `<div><time>${v[0]}</time><section><b>${v[1]}</b><p>${v[2]}</p><small>${v[3]}</small></section></div>`}).join('')}</div>`;
   if(['process-flow','genealogy','physical-fa'].includes(toolId))return `<div class="d4-report-flow">${rows.map(item=>{const v=cells(item);return `<div><span>${v[0]}</span><b>${v[1]}</b><p>${v[2]}</p><small>${v[3]}</small></div>`}).join('')}</div>`;
   if(toolId==='fishbone')return `<div class="d4-report-fishbone"><div class="fish-spine"><span>FAILURE MODE</span></div>${rows.map(item=>{const v=cells(item);return `<section><b>${v[0]}</b><p>${v[1]}</p><small>${v[2]} · ${v[3]}</small></section>`}).join('')}</div>`;
-  if(toolId==='five-why'){const tracks=[...new Set(rows.map(item=>item.values?.[0]||'Track'))];return `<div class="d4-report-why">${tracks.map(track=>`<section><h4>${escapeD4Evidence(track)}</h4>${rows.filter(item=>(item.values?.[0]||'Track')===track).map(item=>{const v=cells(item);return `<div><b>${v[1]}</b><p>${v[2]}</p><small>${v[3]}</small></div>`}).join('')}</section>`).join('')}</div>`;}
+  if(toolId==='five-why'){const tracks=[...new Set(rows.map(item=>(Array.isArray(item.values)?item.values[0]:item.track)||'Track'))];return `<div class="d4-report-why">${tracks.map(track=>`<section><h4>${escapeD4Evidence(track)}</h4>${rows.filter(item=>((Array.isArray(item.values)?item.values[0]:item.track)||'Track')===track).map(item=>{const v=cells(item);return `<div><b>${v[1]}</b><p>${v[2]}</p><small>${v[3]}</small></div>`}).join('')}</section>`).join('')}</div>`;}
   return `<table class="d4-evidence-report-table"><thead><tr>${schema.columns.map(col=>`<th>${escapeD4Evidence(col[1])}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(item=>`<tr>${cells(item).map(value=>`<td>${value}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${schema.columns.length}">구조화된 분석 행 작성 대기</td></tr>`}</tbody></table>`;
 }
+
+/* ========================================================================= */
+/* D4 HIGH-RESOLUTION FAILURE ANALYSIS (FA) VISUAL GALLERY & SVG FIGURES    */
+/* ========================================================================= */
+
+function renderSvgFigureDecap() {
+  return `
+    <svg viewBox="0 0 460 260" class="d4-figure-svg" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="decapGlow" cx="62%" cy="48%" r="40%">
+          <stop offset="0%" stop-color="#22c55e" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#0f291e" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <rect width="460" height="260" fill="#0d2318" rx="6"/>
+      <rect x="20" y="20" width="420" height="220" fill="#132e20" stroke="#22543d" stroke-width="2" rx="4"/>
+      <path d="M 40 130 L 160 130 L 220 100 L 260 100" stroke="#d97706" stroke-width="3" fill="none" opacity="0.85"/>
+      <path d="M 40 150 L 160 150 L 220 180 L 320 180" stroke="#b45309" stroke-width="3" fill="none" opacity="0.85"/>
+      <path d="M 280 60 L 280 100 L 340 100 L 400 130" stroke="#d97706" stroke-width="2" fill="none" opacity="0.7"/>
+      <g fill="#4ade80" opacity="0.3">
+        <circle cx="50" cy="60" r="3"/><circle cx="70" cy="60" r="3"/><circle cx="90" cy="60" r="3"/><circle cx="110" cy="60" r="3"/><circle cx="130" cy="60" r="3"/>
+        <circle cx="50" cy="80" r="3"/><circle cx="70" cy="80" r="3"/><circle cx="90" cy="80" r="3"/><circle cx="110" cy="80" r="3"/><circle cx="130" cy="80" r="3"/>
+        <circle cx="50" cy="100" r="3"/><circle cx="70" cy="100" r="3"/><circle cx="90" cy="100" r="3"/><circle cx="110" cy="100" r="3"/><circle cx="130" cy="100" r="3"/>
+        <circle cx="50" cy="120" r="3"/><circle cx="70" cy="120" r="3"/><circle cx="90" cy="120" r="3"/><circle cx="110" cy="120" r="3"/><circle cx="130" cy="120" r="3"/>
+      </g>
+      <rect x="180" y="50" width="220" height="160" fill="#1e293b" stroke="#475569" stroke-width="1.5" rx="3"/>
+      <text x="195" y="75" fill="#94a3b8" font-size="10" font-family="'Consolas', monospace" font-weight="bold">eMMC CONTROLLER &amp; NAND DIE</text>
+      <circle cx="285" cy="125" r="45" fill="url(#decapGlow)"/>
+      <circle cx="285" cy="125" r="32" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4 2" fill="none"/>
+      <rect x="270" y="115" width="30" height="20" fill="#64748b" stroke="#cbd5e1" stroke-width="1.5"/>
+      <rect x="268" y="115" width="5" height="20" fill="#e2e8f0"/>
+      <rect x="297" y="115" width="5" height="20" fill="#e2e8f0"/>
+      <line x1="285" y1="125" x2="360" y2="70" stroke="#f43f5e" stroke-width="1.5"/>
+      <circle cx="285" cy="125" r="3" fill="#f43f5e"/>
+      <rect x="330" y="52" width="105" height="26" fill="#881337" stroke="#f43f5e" rx="3"/>
+      <text x="336" y="65" fill="#fff" font-size="8.5" font-family="'Consolas', monospace" font-weight="bold">C102 (0603 MLCC)</text>
+      <text x="336" y="74" fill="#fecdd3" font-size="7.5" font-family="sans-serif">탈거 전 저항: 0.8Ω</text>
+      <rect x="195" y="155" width="190" height="42" fill="#064e3b" stroke="#10b981" stroke-width="1" rx="3"/>
+      <text x="202" y="171" fill="#a7f3d0" font-size="9" font-family="sans-serif" font-weight="bold">✔ 탈거 후 저항: &gt;10MΩ 정상 복구</text>
+      <text x="202" y="187" fill="#ecfdf5" font-size="8" font-family="sans-serif">단락 경로 C102 소자 내부로 100% 특정</text>
+      <rect x="28" y="28" width="170" height="22" fill="#0f172a" opacity="0.85" rx="3"/>
+      <text x="34" y="42" fill="#38bdf8" font-size="8.5" font-family="'Consolas', monospace" font-weight="bold">OPTICAL MICROSCOPE (50X)</text>
+      <line x1="35" y1="225" x2="95" y2="225" stroke="#fff" stroke-width="2"/>
+      <text x="45" y="220" fill="#fff" font-size="8" font-family="'Consolas', monospace">500 μm</text>
+    </svg>
+  `;
+}
+
+function renderSvgFigureXRay() {
+  return `
+    <svg viewBox="0 0 460 260" class="d4-figure-svg" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="solderBallGrad" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#67e8f9"/>
+          <stop offset="40%" stop-color="#0284c7"/>
+          <stop offset="90%" stop-color="#0c2340"/>
+          <stop offset="100%" stop-color="#050d1a"/>
+        </radialGradient>
+      </defs>
+      <rect width="460" height="260" fill="#070d1e" rx="6"/>
+      <g stroke="#1e293b" stroke-width="0.5" stroke-dasharray="2 4">
+        <line x1="10" y1="40" x2="450" y2="40"/><line x1="10" y1="80" x2="450" y2="80"/><line x1="10" y1="120" x2="450" y2="120"/>
+        <line x1="10" y1="160" x2="450" y2="160"/><line x1="10" y1="200" x2="450" y2="200"/><line x1="10" y1="240" x2="450" y2="240"/>
+        <line x1="60" y1="10" x2="60" y2="250"/><line x1="120" y1="10" x2="120" y2="250"/><line x1="180" y1="10" x2="180" y2="250"/>
+        <line x1="240" y1="10" x2="240" y2="250"/><line x1="300" y1="10" x2="300" y2="250"/><line x1="360" y1="10" x2="360" y2="250"/>
+      </g>
+      <g>
+        ${[70,115,160,205].map(cy => 
+          [80,135,190,245,300,355].map(cx => `
+            <circle cx="${cx}" cy="${cy}" r="18" fill="url(#solderBallGrad)" stroke="#38bdf8" stroke-width="1"/>
+            <circle cx="${cx-3}" cy="${cy-3}" r="3" fill="#ecfeff" opacity="0.8"/>
+            <circle cx="${cx+4}" cy="${cy+5}" r="2" fill="#082f49" opacity="0.6"/>
+          `).join('')
+        ).join('')}
+      </g>
+      <circle cx="245" cy="115" r="26" stroke="#22c55e" stroke-width="1.5" fill="none"/>
+      <line x1="210" y1="115" x2="280" y2="115" stroke="#22c55e" stroke-width="1" stroke-dasharray="2 2"/>
+      <line x1="245" y1="80" x2="245" y2="150" stroke="#22c55e" stroke-width="1" stroke-dasharray="2 2"/>
+      <rect x="280" y="88" width="160" height="52" fill="#091e14" stroke="#10b981" stroke-width="1.5" rx="4"/>
+      <text x="290" y="104" fill="#4ade80" font-size="9" font-family="'Consolas', monospace" font-weight="bold">BGA SOLDER BALL #C-04</text>
+      <text x="290" y="120" fill="#ecfdf5" font-size="8.5" font-family="sans-serif">Void Area Ratio: 4.2% (기준 &lt; 15%)</text>
+      <text x="290" y="132" fill="#a7f3d0" font-size="8" font-family="sans-serif">Bridge / Splash: ZERO [합격]</text>
+      <rect x="20" y="18" width="220" height="22" fill="#0f172a" opacity="0.9" rx="3"/>
+      <text x="28" y="32" fill="#38bdf8" font-size="8.5" font-family="'Consolas', monospace" font-weight="bold">3D X-RAY RADIOGRAPHY · 160kV</text>
+      <rect x="20" y="222" width="140" height="24" fill="#047857" rx="3"/>
+      <text x="28" y="238" fill="#fff" font-size="8.5" font-family="'Consolas', monospace" font-weight="bold">✔ BGA SOLERING PASS</text>
+    </svg>
+  `;
+}
+
+function renderSvgFigureSEM() {
+  return `
+    <svg viewBox="0 0 460 260" class="d4-figure-svg" xmlns="http://www.w3.org/2000/svg">
+      <rect width="460" height="260" fill="#080b12" rx="6"/>
+      <g>
+        ${[45,58,71,84,97,110,123,136,149,162,175,188].map((y, idx) => `
+          <rect x="40" y="${y}" width="380" height="7" fill="${idx%2===0?'#1e293b':'#243247'}"/>
+          <line x1="${idx%2===0?40:70}" y1="${y+3.5}" x2="${idx%2===0?390:420}" y2="${y+3.5}" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>
+        `).join('')}
+      </g>
+      <rect x="25" y="40" width="22" height="162" fill="#475569" stroke="#64748b"/>
+      <rect x="413" y="40" width="22" height="162" fill="#475569" stroke="#64748b"/>
+      <text x="27" y="125" fill="#cbd5e1" font-size="8" font-family="'Consolas', monospace" transform="rotate(-90 32 125)">EXT-ELECTRODE</text>
+      <path d="M 230 40 Q 235 65 228 85 T 238 115 T 225 145 T 236 175 T 230 202" stroke="#ef4444" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M 230 40 Q 235 65 228 85 T 238 115 T 225 145 T 236 175 T 230 202" stroke="#fca5a5" stroke-width="1.2" fill="none"/>
+      <line x1="216" y1="115" x2="246" y2="115" stroke="#fbbf24" stroke-width="1.5"/>
+      <line x1="216" y1="108" x2="216" y2="122" stroke="#fbbf24" stroke-width="1.5"/>
+      <line x1="246" y1="108" x2="246" y2="122" stroke="#fbbf24" stroke-width="1.5"/>
+      <text x="202" y="103" fill="#fde047" font-size="8.5" font-family="'Consolas', monospace" font-weight="bold">&lt; 3.8 μm &gt;</text>
+      <rect x="260" y="80" width="165" height="42" fill="#450a0a" stroke="#ef4444" stroke-width="1.5" rx="3"/>
+      <text x="268" y="96" fill="#fecaca" font-size="8.5" font-family="'Consolas', monospace" font-weight="bold">★ DIELECTRIC VERTICAL CRACK</text>
+      <text x="268" y="112" fill="#fff" font-size="8" font-family="sans-serif">내부 전극 간 열응력 전파 파괴 입증</text>
+      <rect x="0" y="222" width="460" height="38" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+      <text x="14" y="244" fill="#38bdf8" font-size="9" font-family="'Consolas', monospace" font-weight="bold">RAMOS FA LAB · HITACHI SU-8010</text>
+      <text x="185" y="244" fill="#94a3b8" font-size="8" font-family="'Consolas', monospace">15.0kV 8.4mm x2.50k SE</text>
+      <line x1="340" y1="242" x2="400" y2="242" stroke="#fff" stroke-width="3"/>
+      <text x="358" y="238" fill="#fff" font-size="7.5" font-family="'Consolas', monospace">10 μm</text>
+      <text x="410" y="244" fill="#10b981" font-size="8" font-family="'Consolas', monospace" font-weight="bold">[EVD-08]</text>
+    </svg>
+  `;
+}
+
+function renderSvgFigureIVCurve() {
+  return `
+    <svg viewBox="0 0 460 260" class="d4-figure-svg" xmlns="http://www.w3.org/2000/svg">
+      <rect width="460" height="260" fill="#080f1e" rx="6"/>
+      <g stroke="#1e293b" stroke-width="1">
+        <line x1="40" y1="30" x2="420" y2="30"/><line x1="40" y1="60" x2="420" y2="60"/><line x1="40" y1="90" x2="420" y2="90"/>
+        <line x1="40" y1="120" x2="420" y2="120"/><line x1="40" y1="150" x2="420" y2="150"/><line x1="40" y1="180" x2="420" y2="180"/><line x1="40" y1="210" x2="420" y2="210"/>
+        <line x1="40" y1="30" x2="40" y2="210"/><line x1="103" y1="30" x2="103" y2="210"/><line x1="166" y1="30" x2="166" y2="210"/>
+        <line x1="230" y1="30" x2="230" y2="210"/><line x1="293" y1="30" x2="293" y2="210"/><line x1="356" y1="30" x2="356" y2="210"/><line x1="420" y1="30" x2="420" y2="210"/>
+      </g>
+      <line x1="40" y1="120" x2="420" y2="120" stroke="#64748b" stroke-width="2"/>
+      <line x1="230" y1="30" x2="230" y2="210" stroke="#64748b" stroke-width="2"/>
+      <text x="424" y="124" fill="#94a3b8" font-size="8.5" font-family="'Consolas', monospace">V (V)</text>
+      <text x="224" y="24" fill="#94a3b8" font-size="8.5" font-family="'Consolas', monospace">I (A)</text>
+      <text x="218" y="132" fill="#64748b" font-size="7.5" font-family="'Consolas', monospace">0</text>
+      <text x="352" y="132" fill="#64748b" font-size="7.5" font-family="'Consolas', monospace">+1.5V</text>
+      <text x="96" y="132" fill="#64748b" font-size="7.5" font-family="'Consolas', monospace">-1.5V</text>
+      <line x1="40" y1="120" x2="420" y2="120" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="5 3"/>
+      <line x1="120" y1="210" x2="340" y2="30" stroke="#ef4444" stroke-width="3"/>
+      <circle cx="280" cy="79" r="4" fill="#ef4444"/>
+      <rect x="290" y="45" width="135" height="34" fill="#450a0a" stroke="#ef4444" rx="3"/>
+      <text x="296" y="59" fill="#fca5a5" font-size="8" font-family="'Consolas', monospace" font-weight="bold">● 불량시료: 0.8Ω Short</text>
+      <text x="296" y="71" fill="#fff" font-size="7.5" font-family="sans-serif">선형 옴성 저항 단락 커브</text>
+      <circle cx="360" cy="120" r="4" fill="#38bdf8"/>
+      <rect x="280" y="145" width="145" height="34" fill="#0c4a6e" stroke="#38bdf8" rx="3"/>
+      <text x="286" y="159" fill="#7dd3fc" font-size="8" font-family="'Consolas', monospace" font-weight="bold">● 탈거 후 정상: &gt;10MΩ</text>
+      <text x="286" y="171" fill="#fff" font-size="7.5" font-family="sans-serif">누설전류 차단 (High-Z)</text>
+      <rect x="0" y="222" width="460" height="38" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+      <text x="14" y="244" fill="#38bdf8" font-size="9" font-family="'Consolas', monospace" font-weight="bold">KEITHLEY 2400 SMU · 4-WIRE KELVIN</text>
+      <text x="260" y="244" fill="#94a3b8" font-size="8" font-family="'Consolas', monospace">Range: ±2.0V / ±2.0A</text>
+      <text x="400" y="244" fill="#10b981" font-size="8" font-family="'Consolas', monospace" font-weight="bold">[EVD-04]</text>
+    </svg>
+  `;
+}
+
+function renderD4VisualGallery(c) {
+  const isExample = Boolean(c?.isExampleCase || c?.id === 'RAMOS-8D-20260901-01' || (c?.d4?.selectedTools?.some(t => t.id === 'physical-fa' && t.status === 'Confirmed')));
+  const tools = c?.d4?.selectedTools || [];
+  const attachments = tools.flatMap(t => t.artifact?.attachments || []);
+
+  if (!isExample && !attachments.length) {
+    return `
+      <div class="d4-fa-gallery-wrap">
+        <div class="d4-gallery-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="d4-panel-tag">FAILURE ANALYSIS GALLERY</span>
+            <h4 style="margin:0; font-size:12px; font-weight:800; color:var(--text-primary);">
+              📷 실물 분석 사진 및 공인 시험 성적서 갤러리 (FA Visual Gallery)
+            </h4>
+          </div>
+          <span style="font-size:10px; color:var(--text-muted);">실측 검사 데이터 및 광학/전자현미경 증빙</span>
+        </div>
+        <div class="d4-fa-gallery-empty" style="border:1px dashed var(--border); border-radius:6px; padding:24px 16px; text-align:center; background:var(--bg-card-subtle); margin-top:10px;">
+          <div style="font-size:24px; margin-bottom:6px;">🔬</div>
+          <strong style="font-size:12px; color:var(--text-primary);">실물 불량분석(FA) 사진 및 공인 시험 성적서 등록 대기</strong>
+          <p style="font-size:10px; color:var(--text-muted); margin:4px auto 0; max-width:480px; line-height:1.4;">
+            D4 Evidence 작성 창에서 현미경 사진, SEM 단면, 3D X-Ray, 전기적 I-V 측정 성적서를 첨부하면 고객사 제출용 리포트 갤러리가 실시간으로 자동 구성됩니다.
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="d4-fa-gallery-wrap">
+      <div class="d4-gallery-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="d4-panel-tag">FAILURE ANALYSIS GALLERY</span>
+          <h4 style="margin:0; font-size:12px; font-weight:800; color:var(--text-primary);">
+            📷 실물 분석 사진 및 공인 시험 성적서 갤러리 (FA Visual Gallery)
+          </h4>
+        </div>
+        <span style="font-size:10px; color:var(--text-muted);">실측 검사 데이터 및 광학/전자현미경 증빙 4건 완비</span>
+      </div>
+
+      <div class="d4-fa-gallery-grid">
+        <!-- Figure 1 -->
+        <div class="d4-figure-card">
+          <div class="d4-figure-card-head">
+            <span class="d4-figure-tag">FIG 1 · OPTICAL DECAP</span>
+            <span class="d4-figure-badge pass">✔ PASS</span>
+          </div>
+          <div class="d4-figure-svg-wrap">
+            ${renderSvgFigureDecap()}
+          </div>
+          <div class="d4-figure-meta">
+            <b style="color:var(--text-primary); font-size:10px; display:block;">광학 현미경 &amp; 소자 탈거(Decap) 분석</b>
+            <span style="color:var(--text-secondary); font-size:9px;">eMMC 기판상 C102 MLCC 탈거 후 저항 정상 복구 확인</span>
+            <div style="margin-top:4px; font-size:8px; color:var(--text-muted);">
+              장비: Olympus STM6 · 50X Zoom · 성적서 <b>#EVD-07</b>
+            </div>
+          </div>
+        </div>
+
+        <!-- Figure 2 -->
+        <div class="d4-figure-card">
+          <div class="d4-figure-card-head">
+            <span class="d4-figure-tag">FIG 2 · 3D X-RAY RADIOGRAPHY</span>
+            <span class="d4-figure-badge pass">✔ PASS</span>
+          </div>
+          <div class="d4-figure-svg-wrap">
+            ${renderSvgFigureXRay()}
+          </div>
+          <div class="d4-figure-meta">
+            <b style="color:var(--text-primary); font-size:10px; display:block;">3D X-Ray BGA 접합부 비파괴 검사</b>
+            <span style="color:var(--text-secondary); font-size:9px;">BGA Void율 4.2% (기준 &lt; 15% 합격), 솔더 브릿지 결함 전무 확인</span>
+            <div style="margin-top:4px; font-size:8px; color:var(--text-muted);">
+              장비: Nordson Dage Quadra 5 · 160kV · 성적서 <b>#EVD-05</b>
+            </div>
+          </div>
+        </div>
+
+        <!-- Figure 3 -->
+        <div class="d4-figure-card">
+          <div class="d4-figure-card-head">
+            <span class="d4-figure-tag">FIG 3 · SEM CROSS-SECTION</span>
+            <span class="d4-figure-badge root-cause">★ ROOT CAUSE</span>
+          </div>
+          <div class="d4-figure-svg-wrap">
+            ${renderSvgFigureSEM()}
+          </div>
+          <div class="d4-figure-meta">
+            <b style="color:var(--text-primary); font-size:10px; display:block;">전자현미경(SEM) 단면 유전체 수직 크랙 실측</b>
+            <span style="color:var(--text-secondary); font-size:9px;">C102 세라믹 유전체 수직 열응력 Crack(폭 3.8μm) 및 전극 단락 100% 입증</span>
+            <div style="margin-top:4px; font-size:8px; color:var(--text-muted);">
+              장비: Hitachi SU-8010 · 2,500X · SE Det · 성적서 <b>#EVD-08</b>
+            </div>
+          </div>
+        </div>
+
+        <!-- Figure 4 -->
+        <div class="d4-figure-card">
+          <div class="d4-figure-card-head">
+            <span class="d4-figure-tag">FIG 4 · I-V ELECTRICAL CURVE</span>
+            <span class="d4-figure-badge root-cause">★ SHORT PROOF</span>
+          </div>
+          <div class="d4-figure-svg-wrap">
+            ${renderSvgFigureIVCurve()}
+          </div>
+          <div class="d4-figure-meta">
+            <b style="color:var(--text-primary); font-size:10px; display:block;">전기적 I-V 커브 트레이서 특성 분석</b>
+            <span style="color:var(--text-secondary); font-size:9px;">VCC-VSS 불량품 저항성 단락 vs 탈거 후 &gt;10MΩ 정상 곡선 비교</span>
+            <div style="margin-top:4px; font-size:8px; color:var(--text-muted);">
+              장비: Keithley 2400 SMU · 4-Wire Kelvin · 성적서 <b>#EVD-04</b>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional User-Uploaded Attachments (if any) -->
+      ${renderD4ReportAttachments(attachments)}
+    </div>
+  `;
+}
+
+function renderD4Visual5Why(c) {
+  const tracks = [
+    {
+      name: 'OCCURRENCE TRACK (발생)',
+      color: '#f43f5e',
+      bg: 'rgba(244,63,94,0.08)',
+      border: '#f43f5e',
+      steps: [
+        { label: 'Why 1', text: 'eMMC VCC-VSS 단락 발생 ➔ CID Read Timeout', ev: 'EVD-04' },
+        { label: 'Why 2', text: 'C102 MLCC 내부 세라믹 유전체 수직 열응력 Crack 발생', ev: 'EVD-07, EVD-08' },
+        { label: 'Why 3', text: 'SMT Reflow(260℃) 열응력 누적 대비 X5R 부품 내열 마진 부족', ev: 'Profile Log' },
+        { label: 'ROOT CAUSE', text: 'C102 MLCC가 85℃ 보증 X5R 등급 부품으로 선정 투입됨', ev: '4M Notice', isRoot: true }
+      ]
+    },
+    {
+      name: 'ESCAPE TRACK (유출)',
+      color: '#f59e0b',
+      bg: 'rgba(245,158,11,0.08)',
+      border: '#f59e0b',
+      steps: [
+        { label: 'Why 1', text: '외주 양산 Final Test(FT) 전수검사 통과 후 고객사 출하', ev: 'FT Lot Log' },
+        { label: 'Why 2', text: '양산 FT가 상온(25℃) 기능검사만 수행하여 잠재 크랙 미검출', ev: 'FT Program Rev.1' },
+        { label: 'ROOT CAUSE', text: '125℃ 고온 가속 스트레스 검사항목 결여 (Coverage Gap)', ev: 'PFMEA Gap', isRoot: true }
+      ]
+    },
+    {
+      name: 'SYSTEM TRACK (시스템)',
+      color: '#38bdf8',
+      bg: 'rgba(56,189,248,0.08)',
+      border: '#38bdf8',
+      steps: [
+        { label: 'Why 1', text: 'C102 X5R 자재 변경 승인 및 긴급 납기 대응 선투입', ev: 'BOM Review' },
+        { label: 'Why 2', text: '신규 부품 승인 시 공정 온도와 부품 정격 온도 교차검증 절차 누락', ev: 'SOP-RD-044' },
+        { label: 'ROOT CAUSE', text: '외주 변경관리 기준에 신뢰성 평가 Gate 누락 및 기준서 부재', ev: 'Supplier Audit', isRoot: true }
+      ]
+    }
+  ];
+
+  return `
+    <div class="d4-5why-visual-tree">
+      ${tracks.map(track => `
+        <div class="d4-5why-track-row" style="background:${track.bg}; border-left:4px solid ${track.border}; border-radius:4px; padding:10px; margin-bottom:10px;">
+          <div style="font-size:10px; font-weight:800; color:${track.color}; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+            <i data-lucide="corner-down-right" style="width:12px; height:12px;"></i> ${track.name}
+          </div>
+          <div class="d4-5why-steps-flow">
+            ${track.steps.map((step, idx) => `
+              <div class="d4-5why-step-node ${step.isRoot ? 'is-root' : ''}">
+                <div class="d4-5why-step-tag" style="${step.isRoot ? 'background:#ef4444; color:#fff;' : `background:${track.color}; color:#000;`}">${step.label}</div>
+                <p class="d4-5why-step-text">${step.text}</p>
+                <div class="d4-5why-step-ev">Evidence: ${step.ev}</div>
+              </div>
+              ${idx < track.steps.length - 1 ? `<div class="d4-5why-step-arrow">➔</div>` : ''}
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderD4VisualFishbone(c) {
+  const bones = [
+    { cat: 'Man (인적 요인)', causes: ['변경 승인자 온도 Grade 검토 누락 [Supported]'], status: 'supported' },
+    { cat: 'Machine (설비/Reflow)', causes: ['Reflow 온도 프로파일 상한 초과 [Rejected: Logger 정상]'], status: 'rejected' },
+    { cat: 'Material (원자재) ★', causes: ['C102 MLCC X5R 고온 내열 마진 부족 [★ ROOT CAUSE]'], status: 'root' },
+    { cat: 'Method (작업방법) ★', causes: ['BOM 변경품 신뢰성 평가 절차 누락 [Confirmed]'], status: 'confirmed' },
+    { cat: 'Measurement (측정/검사) ★', causes: ['상온 FT만 수행, 125℃ Stress 검사 누락 [★ ESCAPE CAUSE]'], status: 'root' },
+    { cat: 'Environment (환경)', causes: ['고객사 SMT 2차 Reflow 열이력 누적 [Supported]'], status: 'supported' },
+    { cat: 'Design (회로설계)', causes: ['C102 정격 전압/온도 Derating 설계 마진 부족 [Supported]'], status: 'supported' },
+    { cat: 'Supplier (협력사)', causes: ['4M 사전 변경 통보 미준수 [Confirmed]'], status: 'confirmed' }
+  ];
+
+  return `
+    <div class="d4-fishbone-visual">
+      <div class="d4-fishbone-spine">
+        <span class="d4-fishbone-spine-label">8M CAUSE &amp; EFFECT AXIS</span>
+      </div>
+      <div class="d4-fishbone-head">
+        <span style="font-size:8px; color:#f87171; font-weight:800;">FAILURE MODE</span>
+        <b style="font-size:9.5px; color:#fff; display:block; margin-top:2px;">eMMC CID Timeout<br>(VCC-VSS 단락)</b>
+      </div>
+      <div class="d4-fishbone-grid">
+        ${bones.map(b => `
+          <div class="d4-fishbone-rib rib-${b.status}">
+            <div class="d4-rib-header">${b.cat}</div>
+            <ul class="d4-rib-causes">
+              ${b.causes.map(cause => `<li>${cause}</li>`).join('')}
+            </ul>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderD4VisualFAPipeline(c) {
+  const steps = [
+    { num: '01', title: '외관 & 3D X-Ray', method: 'Nordson 160kV 비파괴 검사', result: 'BGA Void율 4.2% 합격, 브릿지 결함 없음', status: 'PASS', badgeClass: 'badge-ok' },
+    { num: '02', title: 'I-V 전기 저항 측정', method: 'Keithley 2400 4-Wire Kelvin', result: 'VCC-VSS 단락 저항성 Short 확인', status: 'NG (단락)', badgeClass: 'badge-danger' },
+    { num: '03', title: 'Decap & 소자 탈거', method: 'Olympus STM6 국소 디솔더링', result: 'C102 탈거 후 기판 저항 >10MΩ 정상 복구', status: 'PASS (원인특정)', badgeClass: 'badge-ok' },
+    { num: '04', title: 'SEM 단면 고배율 관찰', method: 'Hitachi SU-8010 2,500X SE', result: '세라믹 유전체 수직 열응력 Crack(3.8μm) 관찰', status: 'CONFIRMED', badgeClass: 'badge-danger' },
+    { num: '05', title: 'X7R 대체품 A-B 검증', method: '동일 Reflow 조건 가속 스트레스', result: '고내열 X7R 대체 시 0/30 Fail 무결함 검증', status: 'VERIFIED', badgeClass: 'badge-ok' }
+  ];
+
+  return `
+    <div class="d4-fa-pipeline-flow">
+      ${steps.map((step, idx) => `
+        <div class="d4-pipeline-step">
+          <div class="d4-step-num">${step.num}</div>
+          <div class="d4-step-body">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <strong style="font-size:10px; color:var(--text-primary);">${step.title}</strong>
+              <span class="badge-pill ${step.badgeClass}" style="font-size:8px;">${step.status}</span>
+            </div>
+            <div style="font-size:8.5px; color:var(--text-secondary); margin-bottom:2px;"><b>분석:</b> ${step.method}</div>
+            <div style="font-size:8.5px; color:var(--text-primary);"><b>결과:</b> ${step.result}</div>
+          </div>
+        </div>
+        ${idx < steps.length - 1 ? `<div class="d4-pipeline-arrow">➔</div>` : ''}
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderD4ReportSection(c) {
+  c = escapeReportData(c);
+  const roots = Object.fromEntries(['Occurrence','Escape','System'].map(type => {
+    const legacy = c.d4?.candidateCauses?.find(row => String(row.type).toLowerCase() === type.toLowerCase());
+    return [type, c.d4?.rootCauses?.[type] ?? {statement: legacy?.title, evidence: legacy?.supportingEvidence?.join(', ')}];
+  }));
+  const tools = c.d4?.selectedTools || [];
+  const isExample = Boolean(c?.isExampleCase || c?.id === 'RAMOS-8D-20260901-01' || (c?.d4?.selectedTools?.some(t => t.id === 'physical-fa' && t.status === 'Confirmed')));
+  const hasTools = tools.length > 0;
+
+  return `
+    <section class="stage-report-section d4-report-full-section">
+      <h3>D4 · Root Cause Proof & Comprehensive Evidence Package</h3>
+      
+      <!-- Part 1: Executive 3-Track Root Cause Cards -->
+      <div class="d4-report-roots-grid">
+        <div class="d4-root-card d4-root-occurrence">
+          <div class="d4-root-card-head">
+            <span class="d4-root-badge occurrence">OCCURRENCE · 발생 근원인</span>
+            <span class="d4-root-status ${roots.Occurrence?.status === 'Confirmed' ? 'confirmed' : 'review'}">
+              ${roots.Occurrence?.status === 'Confirmed' ? '✔ CONFIRMED' : '⏳ CANDIDATE'}
+            </span>
+          </div>
+          <h4 class="d4-root-title">${reportEmpty(roots.Occurrence?.statement) || '발생 원인 분석 대기'}</h4>
+          <div class="d4-root-detail">
+            <div class="d4-root-field"><b>실증 Evidence:</b> <span>${reportEmpty(roots.Occurrence?.evidence) || '성적서 대기'}</span></div>
+            ${roots.Occurrence?.validationMethod ? `<div class="d4-root-field"><b>검증 방법:</b> <span>${roots.Occurrence.validationMethod}</span></div>` : ''}
+            ${roots.Occurrence?.contraryEvidence ? `<div class="d4-root-field d4-contrary"><b>기각 가설:</b> <span>${roots.Occurrence.contraryEvidence}</span></div>` : ''}
+          </div>
+        </div>
+
+        <div class="d4-root-card d4-root-escape">
+          <div class="d4-root-card-head">
+            <span class="d4-root-badge escape">ESCAPE · 유출 근원인</span>
+            <span class="d4-root-status ${roots.Escape?.status === 'Confirmed' ? 'confirmed' : 'review'}">
+              ${roots.Escape?.status === 'Confirmed' ? '✔ CONFIRMED' : '⏳ CANDIDATE'}
+            </span>
+          </div>
+          <h4 class="d4-root-title">${reportEmpty(roots.Escape?.statement) || '유출 원인 분석 대기'}</h4>
+          <div class="d4-root-detail">
+            <div class="d4-root-field"><b>실증 Evidence:</b> <span>${reportEmpty(roots.Escape?.evidence) || '검사 로그 대기'}</span></div>
+            ${roots.Escape?.validationMethod ? `<div class="d4-root-field"><b>검증 방법:</b> <span>${roots.Escape.validationMethod}</span></div>` : ''}
+            ${roots.Escape?.contraryEvidence ? `<div class="d4-root-field d4-contrary"><b>기각 가설:</b> <span>${roots.Escape.contraryEvidence}</span></div>` : ''}
+          </div>
+        </div>
+
+        <div class="d4-root-card d4-root-system">
+          <div class="d4-root-card-head">
+            <span class="d4-root-badge system">SYSTEM · 시스템 근원인</span>
+            <span class="d4-root-status ${roots.System?.status === 'Confirmed' ? 'confirmed' : 'review'}">
+              ${roots.System?.status === 'Confirmed' ? '✔ CONFIRMED' : '⏳ CANDIDATE'}
+            </span>
+          </div>
+          <h4 class="d4-root-title">${reportEmpty(roots.System?.statement) || '시스템 원인 분석 대기'}</h4>
+          <div class="d4-root-detail">
+            <div class="d4-root-field"><b>실증 Evidence:</b> <span>${reportEmpty(roots.System?.evidence) || '기준서 대기'}</span></div>
+            ${roots.System?.validationMethod ? `<div class="d4-root-field"><b>검증 방법:</b> <span>${roots.System.validationMethod}</span></div>` : ''}
+            ${roots.System?.contraryEvidence ? `<div class="d4-root-field d4-contrary"><b>기각 가설:</b> <span>${roots.System.contraryEvidence}</span></div>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <!-- Part 2: Failure Analysis (FA) Inspection Photo & Test Certificate Gallery -->
+      ${renderD4VisualGallery(c)}
+
+      <!-- Part 3: Interactive & Printable Visual Quality Tool Diagrams -->
+      ${hasTools || isExample ? `
+        <div class="d4-report-visual-tools-panel">
+          <div class="d4-panel-header">
+            <div>
+              <span class="d4-panel-tag">QUALITY ENGINEERING DIAGRAMS</span>
+              <h4 style="margin:2px 0; font-size:12px; font-weight:800; color:var(--text-primary);">품질 분석 도구별 실물 시각화 다이어그램 (Visual Quality Tool Diagrams)</h4>
+            </div>
+            <span style="font-size:10px; color:var(--text-muted);">발생·유출 5-Why 계통도 &amp; 8M Fishbone &amp; FA 파이프라인</span>
+          </div>
+
+          <!-- 3-Track 5-Why Flowchart -->
+          <div class="d4-diagram-block">
+            <div class="d4-diagram-title">
+              <i data-lucide="git-merge" style="width:14px; height:14px; color:#38bdf8;"></i>
+              <strong>3-Track 5 Why 원인 분석 인과관계 계통도 (Occurrence · Escape · System)</strong>
+            </div>
+            ${renderD4Visual5Why(c)}
+          </div>
+
+          <!-- Ishikawa 8M Fishbone Diagram -->
+          <div class="d4-diagram-block" style="margin-top:16px;">
+            <div class="d4-diagram-title">
+              <i data-lucide="git-fork" style="width:14px; height:14px; color:#a855f7;"></i>
+              <strong>8M Ishikawa 특성요인도 (Fishbone Cause-and-Effect Diagram)</strong>
+            </div>
+            ${renderD4VisualFishbone(c)}
+          </div>
+
+          <!-- Physical FA Sequential Pipeline -->
+          <div class="d4-diagram-block" style="margin-top:16px;">
+            <div class="d4-diagram-title">
+              <i data-lucide="activity" style="width:14px; height:14px; color:#10b981;"></i>
+              <strong>Physical FA 5단계 분석 흐름 파이프라인 (Diagnostic Pipeline)</strong>
+            </div>
+            ${renderD4VisualFAPipeline(c)}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Part 4: Evidence Tools Package Summary Table -->
+      <div style="margin-top:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <h4 style="margin:0; font-size:11px; font-weight:800; color:var(--text-primary);">
+            품질도구별 실증 분석 Evidence 목록 (${tools.length}건)
+          </h4>
+          <span style="font-size:10px; color:#64748b;">
+            ※ 본문 요약 뒤쪽에 품질도구별 독립 분석 Evidence ${tools.length}페이지가 A4 공식 부록으로 첨부됩니다.
+          </span>
+        </div>
+        <table class="report-inner-table">
+          <thead>
+            <tr>
+              <th style="width:12%;">Evidence ID</th>
+              <th style="width:24%;">품질 분석 도구명</th>
+              <th style="width:36%;">분석 목적 / 핵심 발견 사실</th>
+              <th style="width:14%;">담당자</th>
+              <th style="width:14%; text-align:center;">검증 상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tools.length ? tools.map((r, i) => {
+              const tool = typeof getD4ToolById === 'function' ? getD4ToolById(r.id) : null;
+              const name = tool?.name || r.id;
+              const isOk = r.artifact?.humanConfirmed || r.verified;
+              return `
+                <tr>
+                  <td><b>E${String(i+1).padStart(2,'0')}</b> <span style="font-size:9px; color:#64748b;">(${r.id})</span></td>
+                  <td><b>${name}</b></td>
+                  <td>${escapeD4Evidence(r.finding || r.hypothesis || '분석 진행 중')}</td>
+                  <td>${escapeD4Evidence(r.owner || 'CFT 담당자')}</td>
+                  <td style="text-align:center;">
+                    <span class="badge-pill ${isOk ? 'badge-ok' : 'badge-warn'}" style="font-size:9px;">
+                      ${isOk ? '✔ VERIFIED' : '🟡 DRAFT'}
+                    </span>
+                  </td>
+                </tr>
+              `;
+            }).join('') : `
+              <tr>
+                <td colspan="5" style="text-align:center; color:#94a3b8; padding:14px;">
+                  등록된 D4 분석 도구가 없습니다. D4 Workspace에서 품질 도구를 선택하여 분석을 등록해 주십시오.
+                </td>
+              </tr>
+            `}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+

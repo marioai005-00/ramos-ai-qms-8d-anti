@@ -12,9 +12,16 @@ import urllib.request
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-
-
 import json
+import base64
+import io
+import os
+import socket
+import threading
+import zipfile
+import xml.etree.ElementTree as ET
+from email.parser import BytesParser
+from email import policy
 import urllib.error
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -23,6 +30,165 @@ PORT_RANGE = range(8765, 8776)
 STATUS_PATH = "/__portal_status__"
 AI_STATUS_PATH = "/__api__/ai/status"
 AI_DISPATCH_PATH = "/__api__/ai/dispatch"
+DOCUMENT_PARSE_PATH = "/__api__/documents/parse"
+
+AI_PROVIDER_TIMEOUT_SECONDS = 45
+AI_PROVIDER_RESPONSE_BYTES = 2 * 1024 * 1024
+
+
+def read_json_response(response) -> dict:
+    raw = response.read(AI_PROVIDER_RESPONSE_BYTES + 1)
+    if len(raw) > AI_PROVIDER_RESPONSE_BYTES:
+        raise ValueError("AI provider response exceeded 2 MB")
+    value = json.loads(raw.decode("utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError("AI provider returned a non-object response")
+    return value
+
+
+def parse_structured_text(result: dict[str, object]) -> object | None:
+    if not result.get("success") or not isinstance(result.get("text"), str):
+        return None
+    raw_text = result["text"].strip()
+    if raw_text.startswith("```json"):
+        raw_text = raw_text[7:]
+    elif raw_text.startswith("```"):
+        raw_text = raw_text[3:]
+    if raw_text.endswith("```"):
+        raw_text = raw_text[:-3]
+    try:
+        return json.loads(raw_text.strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def normalize_structured_output(task: str, value: object) -> object:
+    if not isinstance(value, dict) or task not in {"d5_draft", "d6_draft", "d7_draft", "d8_draft"}:
+        return value
+    normalized = json.loads(json.dumps(value))
+    for key in ("confirmedFacts", "inferences", "missingInformation", "recommendations"):
+        items = normalized.get(key)
+        if isinstance(items, list):
+            normalized[key] = [
+                item if isinstance(item, str) else json.dumps(item, ensure_ascii=False, separators=(",", ":"))
+                for item in items
+            ]
+    groups = normalized.get("groups")
+    if not isinstance(groups, dict):
+        return normalized
+    string_row_fields = {
+        "d5_draft": {"candidates": ("title", "Occurrence")},
+        "d6_draft": {"validationTests": ("testName", "")},
+        "d7_draft": {"systemUpdates": ("changeContent", ""), "horizontalDeployment": ("action", "")},
+        "d8_draft": {"checklist": ("item", "AI Recommendation")},
+    }
+    for group, (field, category) in string_row_fields[task].items():
+        rows = groups.get(group)
+        if isinstance(rows, list):
+            converted = []
+            for row in rows:
+                if isinstance(row, str):
+                    safe_row = {field: row}
+                    if task == "d5_draft":
+                        safe_row["causeType"] = category
+                    elif task == "d8_draft":
+                        safe_row["cat"] = category
+                    converted.append(safe_row)
+                else:
+                    converted.append(row)
+            groups[group] = converted
+    return normalized
+
+
+def structured_output_errors(task: str, value: object) -> list[str]:
+    if task == "intake_extract":
+        if not isinstance(value, dict):
+            return ["intake output must be an object"]
+        text_fields = ("customer", "customerContact", "customerEmail", "product", "partNumber",
+                       "internalPartNumber", "lotNumber", "mfgSite", "incidentSite", "claimTitle",
+                       "agentReasoning")
+        errors = [f"{key} must be text or null" for key in text_fields
+                  if value.get(key) is not None and not isinstance(value.get(key), str)]
+        for key in ("defectQty", "inspectQty"):
+            field_value = value.get(key)
+            if field_value is not None and (isinstance(field_value, bool) or not isinstance(field_value, int) or field_value < 0):
+                errors.append(f"{key} must be a non-negative integer or null")
+        for key in ("lineStop", "safetyRisk", "recurrentDefect"):
+            if value.get(key) is not None and not isinstance(value.get(key), bool):
+                errors.append(f"{key} must be boolean or null")
+        confidence = value.get("confidenceScore")
+        if confidence is not None and (isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 <= confidence <= 1):
+            errors.append("confidenceScore must be between 0 and 1")
+        if value.get("sourceEvidence") is not None and not isinstance(value.get("sourceEvidence"), dict):
+            errors.append("sourceEvidence must be an object")
+        return errors
+
+    groups = {
+        "d5_draft": {"candidates"},
+        "d6_draft": {"validationTests"},
+        "d7_draft": {"systemUpdates", "horizontalDeployment"},
+        "d8_draft": {"checklist"},
+    }
+    if task not in groups:
+        return []
+    if not isinstance(value, dict):
+        return ["late-stage output must be an object"]
+    errors = []
+    for key in ("confirmedFacts", "inferences", "missingInformation", "recommendations"):
+        if value.get(key) is not None and (not isinstance(value[key], list) or any(not isinstance(item, str) for item in value[key])):
+            errors.append(f"{key} must be a string array")
+    output_groups = value.get("groups")
+    if not isinstance(output_groups, dict):
+        errors.append("groups must be an object")
+        return errors
+    for key in groups[task]:
+        rows = output_groups.get(key)
+        if rows is not None and (not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows)):
+            errors.append(f"groups.{key} must be an object array")
+        elif isinstance(rows, list) and len(rows) > 20:
+            errors.append(f"groups.{key} exceeds 20 rows")
+    return errors
+
+
+def parse_document(filename: str, content: bytes) -> dict:
+    if len(content) > 20 * 1024 * 1024:
+        raise ValueError("Document exceeds 20 MB parsing limit")
+    ext = Path(filename).suffix.lower()
+    if ext == ".txt":
+        if content.startswith((b"\xff\xfe", b"\xfe\xff")):
+            text = content.decode("utf-16")
+        else:
+            try:
+                text = content.decode("utf-8-sig")
+            except UnicodeError:
+                text = content.decode("cp949")
+    elif ext == ".eml":
+        message = BytesParser(policy=policy.default).parsebytes(content)
+        body = message.get_body(preferencelist=("plain",))
+        if body is None:
+            html_body = message.get_body(preferencelist=("html",))
+            if html_body:
+                text = "\n".join(f"{key}: {message.get(key, '')}" for key in ("From", "To", "Date", "Subject"))
+                text += "\n" + html_body.get_content()
+            else:
+                text = "\n".join(f"{key}: {message.get(key, '')}" for key in ("From", "To", "Date", "Subject"))
+        else:
+            text = "\n".join(f"{key}: {message.get(key, '')}" for key in ("From", "To", "Date", "Subject"))
+            text += "\n" + body.get_content()
+    elif ext == ".docx":
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            entries = archive.infolist()
+            if len(entries) > 2000 or sum(e.file_size for e in entries) > 20 * 1024 * 1024:
+                raise ValueError("DOCX expanded size exceeds parsing limit")
+            xml = archive.read("word/document.xml")
+            if b"<!DOCTYPE" in xml.upper() or b"<!ENTITY" in xml.upper():
+                raise ValueError("Unsupported XML declarations")
+            root = ET.fromstring(xml)
+            ns = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+            text = "\n".join("".join(n.text or "" for n in para.iter(ns + "t")) for para in root.iter(ns + "p"))
+    else:
+        raise ValueError(f"Unsupported document format: {ext}")
+    return {"success": True, "text": text[:100000], "truncated": len(text) > 100000}
 
 
 def load_env() -> dict[str, str]:
@@ -34,6 +200,9 @@ def load_env() -> dict[str, str]:
             if line and not line.startswith("#") and "=" in line:
                 k, v = line.split("=", 1)
                 env_vars[k.strip()] = v.strip()
+    for key in ("GROQ_API_KEY", "GEMINI_API_KEY"):
+        if os.environ.get(key):
+            env_vars[key] = os.environ[key]
     return env_vars
 
 
@@ -66,8 +235,8 @@ def call_groq(prompt: str, system_prompt: str = "", model: str = "openai/gpt-oss
     )
     start_t = time.time()
     try:
-        with urllib.request.urlopen(req, timeout=12) as res:
-            data = json.loads(res.read().decode("utf-8"))
+        with urllib.request.urlopen(req, timeout=AI_PROVIDER_TIMEOUT_SECONDS) as res:
+            data = read_json_response(res)
             content = data["choices"][0]["message"]["content"].strip()
             return {
                 "success": True,
@@ -82,7 +251,7 @@ def call_groq(prompt: str, system_prompt: str = "", model: str = "openai/gpt-oss
         return {"success": False, "engine": "groq", "error": str(err)}
 
 
-def call_gemini(prompt: str, system_prompt: str = "", image_base64: str = "", model: str = "") -> dict[str, object]:
+def call_gemini(prompt: str, system_prompt: str = "", image_base64: str = "", model: str = "", attachments: list | None = None) -> dict[str, object]:
     env = load_env()
     api_key = env.get("GEMINI_API_KEY", "")
     if not api_key:
@@ -106,9 +275,19 @@ def call_gemini(prompt: str, system_prompt: str = "", image_base64: str = "", mo
             }
         })
 
+    for attachment in attachments or []:
+        if isinstance(attachment, dict) and "dataUrl" in attachment and ";base64," in attachment["dataUrl"]:
+            header, encoded = attachment["dataUrl"].split(";base64,", 1)
+            mime = header.replace("data:", "")
+            parts.append({"text": "Source filename: " + attachment.get("name", "document")})
+            parts.append({"inlineData": {"mimeType": mime, "data": encoded}})
+
     payload = json.dumps({
         "contents": [{"parts": parts}],
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 2048}
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 3072
+        }
     }).encode("utf-8")
 
     candidate_models = [model] if model else ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-pro-latest"]
@@ -127,8 +306,8 @@ def call_gemini(prompt: str, system_prompt: str = "", image_base64: str = "", mo
         )
         start_t = time.time()
         try:
-            with urllib.request.urlopen(req, timeout=12) as res:
-                data = json.loads(res.read().decode("utf-8"))
+            with urllib.request.urlopen(req, timeout=AI_PROVIDER_TIMEOUT_SECONDS) as res:
+                data = read_json_response(res)
                 text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
                 return {
                     "success": True,
@@ -147,9 +326,29 @@ def call_gemini(prompt: str, system_prompt: str = "", image_base64: str = "", mo
     return {"success": False, "engine": "gemini", "error": last_err or "Unknown Gemini error"}
 
 
-
 class PortalHandler(SimpleHTTPRequestHandler):
-    def do_GET(self) -> None:  # noqa: N802 - inherited HTTP handler API
+    def send_head(self):
+        # Only browser assets are public; never serve .env, Git, source or input files.
+        target = Path(self.translate_path(self.path)).resolve()
+        try:
+            relative = target.relative_to(Path(self.directory).resolve())
+        except ValueError:
+            self.send_error(403, "Private path")
+            return None
+        if (relative.as_posix() != "index.html" and relative.as_posix() != "."
+                and (not relative.parts or relative.parts[0] not in {"js", "css", "assets"})):
+            self.send_error(403, "Private path")
+            return None
+        if any(part.startswith(".") for part in relative.parts):
+            self.send_error(403, "Private path")
+            return None
+        return super().send_head()
+
+    def list_directory(self, path):
+        self.send_error(403, "Directory listing disabled")
+        return None
+
+    def do_GET(self) -> None:  # noqa: N802
         clean_path = self.path.split("?", 1)[0]
         if clean_path == STATUS_PATH:
             payload = str(PROJECT_ROOT).encode("utf-8")
@@ -169,8 +368,8 @@ class PortalHandler(SimpleHTTPRequestHandler):
                 "status": "ok",
                 "dualEngine": True,
                 "groq": {"available": groq_ready, "recommendedFor": "Ultra-fast text, D2 5W2H, IS/IS NOT, 5-Why inference"},
-                "gemini": {"available": gemini_ready, "recommendedFor": "Multimodal vision, PDF/document parsing, deep FA inspection"},
-                "activeEngines": [e for e, ok in [("groq", groq_ready), ("gemini", gemini_ready)] if ok]
+                "gemini": {"available": gemini_ready, "recommendedFor": "Multimodal PDF/Claim visual inspection & deep audits"},
+                "activeEngine": "auto"
             }
             body = json.dumps(res_data).encode("utf-8")
             self.send_response(200)
@@ -184,24 +383,84 @@ class PortalHandler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def end_headers(self) -> None:
-        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
         self.send_header("Pragma", "no-cache")
         self.send_header("Expires", "0")
         super().end_headers()
 
     def do_POST(self) -> None:  # noqa: N802
         clean_path = self.path.split("?", 1)[0]
-        if clean_path == AI_DISPATCH_PATH:
-            content_len = int(self.headers.get("Content-Length", 0))
-            raw_body = self.rfile.read(content_len).decode("utf-8") if content_len > 0 else "{}"
+        if clean_path in (DOCUMENT_PARSE_PATH, AI_DISPATCH_PATH):
+            port = self.server.server_port
+            allowed_hosts = {f"{HOST}:{port}", f"localhost:{port}"}
+            client_host = self.headers.get("Host", "")
+            if client_host and client_host not in allowed_hosts:
+                self.send_error(403, "Local host required")
+                return
+            origin = self.headers.get("Origin")
+            if origin and origin not in {f"http://{host}" for host in allowed_hosts}:
+                try:
+                    content_len = int(self.headers.get("Content-Length", "0"))
+                    if 0 < content_len <= 32 * 1024 * 1024:
+                        self.rfile.read(content_len)
+                except Exception:
+                    pass
+                self.send_error(403, "Same-origin request required")
+                return
             try:
+                content_len = int(self.headers.get("Content-Length", "0"))
+                if not 0 < content_len <= 32 * 1024 * 1024:
+                    self.send_error(413, "Invalid request size")
+                    return
+                raw_body = self.rfile.read(content_len).decode("utf-8")
                 params = json.loads(raw_body)
-            except Exception:
-                params = {}
+                if not isinstance(params, dict):
+                    raise ValueError("Expected object")
+                if any(not isinstance(params.get(key, ""), str) for key in
+                       ("prompt", "systemPrompt", "task", "engine", "imageBase64")):
+                    raise ValueError("Expected string fields")
+                if len(params.get("prompt", "")) > 200000 or len(params.get("systemPrompt", "")) > 50000:
+                    raise ValueError("AI text input exceeds size limit")
+            except (ValueError, UnicodeError):
+                self.send_error(400, "Invalid JSON request")
+                return
+
+            if clean_path == DOCUMENT_PARSE_PATH:
+                try:
+                    filename, data_url = params.get("filename"), params.get("dataUrl")
+                    if not isinstance(filename, str) or not isinstance(data_url, str) or not data_url.startswith("data:") or ";base64," not in data_url:
+                        raise ValueError("Filename and base64 data URL required")
+                    content = base64.b64decode(data_url.split(";base64,", 1)[1], validate=True)
+                    result = parse_document(filename, content)
+                    status = 200
+                except (ValueError, KeyError, zipfile.BadZipFile, ET.ParseError, UnicodeError, RuntimeError, NotImplementedError) as error:
+                    result = {"success": False, "error": str(error)}
+                    status = 422
+                body = json.dumps(result).encode("utf-8")
+                self.send_response(status)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
 
             prompt = params.get("prompt", "").strip()
             system_prompt = params.get("systemPrompt", "").strip()
             task = params.get("task", "quick_draft")
+            attachments = params.get("attachments", [])
+            try:
+                if not isinstance(attachments, list) or len(attachments) > 10:
+                    raise ValueError("Invalid attachment list")
+                for attachment in attachments:
+                    if not isinstance(attachment, dict) or not isinstance(attachment.get("name"), str) or not isinstance(attachment.get("dataUrl"), str):
+                        raise ValueError("Invalid attachment")
+                    header, encoded = attachment["dataUrl"].split(";base64,", 1)
+                    if header not in {"data:application/pdf", "data:image/png", "data:image/jpeg", "data:image/webp"}:
+                        raise ValueError("Unsupported media")
+                    base64.b64decode(encoded, validate=True)
+            except ValueError:
+                self.send_error(400, "Invalid media attachments")
+                return
             engine_pref = params.get("engine", "auto")
             image_b64 = params.get("imageBase64", "")
 
@@ -255,58 +514,41 @@ DYNAMIC DEPTH RULE:
   4. "기판 실장 위치 (Where - PCB 위치)"
   5. "발생 시점 (When - 공정 타이밍)"
   6. "작업 환경 (When - 조건/추세)"
-  7. "영향 규모 (How Much - 결함률/범위)"
-  8. "설비 / 프로파일 (Process - 공정조건)"
-- If requested count is 4~5 or normal issue, generate 4 to 5 core rows.
-Return strictly a valid JSON array of objects with keys: "factor", "is", "isNot", "difference".
-Never use vague placeholders like '[확인 필요]'. Provide concrete, realistic technical engineering contrasts reflecting LGE DTV eMMC 5.1 (16GB BGA153) and SMT Reflow/Cold Boot test conditions.
-Always write all JSON field values in natural, professional Korean (한국어로 작성할 것). Ensure output is strictly valid JSON with no markdown wrapping."""
+  7. "외주 가공 조건 (How - 외주 OSAT SMT 조건)"
+  8. "불량률 및 범위 (How Many - 규모/집중도)"
 
-            if task == "triage_rationale":
-                if not system_prompt:
-                    system_prompt = """You are sjkim (Master QA / Senior Pro of Quality Innovation Team) at RAMOS.
-Write a highly professional, rigorous Quality Review Opinion & 8D Issuance Rationale in Korean.
-Format your response in 4 clear, numbered bullet points with titles:
-1. [고객사 생산라인 영향 및 긴급도 평가]: Evaluate customer line impact (e.g. Line Stop risk at LGE DTV SMT line).
-2. [불량률(PPM) 및 정식 8D 발행 타당성]: Justify formal 8D issuance based on PPM and severity.
-3. [초동 조치(D3) 및 출하/WIP 락 지시]: Direct immediate 24h containment actions (ERP FG shipment lock, MES WIP quarantine).
-4. [주관부서 핵심 원인분석 방향]: Direct engineering/FA investigation focus (Flash 개발실, Decap, CS SEM, C102 MLCC, Inked NAND margin).
-Maintain an authoritative, precise tone fitting a senior automotive/semiconductor Master QA expert."""
+Return strictly a JSON array of objects with keys: "factor", "is", "isNot", "difference", "verificationStatus"."""
 
             if task == "intake_extract":
                 if not system_prompt:
                     system_prompt = (
-                        "You are the RAMOS AI-QMS Intake Triage Agent specialized in semiconductor/electronics quality management.\n"
-                        'Extract quality claim metadata from customer documents (emails, notices, photos).\n'
-                        'Return ONLY a valid JSON object matching this schema:\n'
-                        '{\n'
-                        '  "customer": "Customer company name (e.g. LGE, LG Electronics)",\n'
-                        '  "customerContact": "Customer contact person name and title",\n'
-                        '  "customerEmail": "Customer email if available",\n'
-                        '  "product": "Product name and model (e.g. eMMC 5.1 64GB, PCIe Gen4 SSD)",\n'
-                        '  "partNumber": "Part number",\n'
-                        '  "lotNumber": "Lot number",\n'
-                        '  "mfgSite": "Manufacturing site (e.g. RAMOS 오창 1공장)",\n'
-                        '  "incidentSite": "Incident location / customer factory",\n'
-                        '  "defectQty": defect quantity as integer,\n'
-                        '  "inspectQty": total inspection or input quantity as integer,\n'
-                        '  "claimTitle": "Detailed failure symptom and claim description",\n'
-                        '  "lineStop": true or false,\n'
-                        '  "safetyRisk": true or false,\n'
-                        '  "recurrentDefect": true or false,\n'
-                        '  "confidenceScore": confidence between 0.80 and 0.99,\n'
-                        '  "agentReasoning": "Brief 1-line explanation of key defect clues detected"\n'
-                        "}"
+                        "You are an expert AI quality triage agent for RAMOS semiconductor 8D system. "
+                        "Extract all customer defect information from the provided claim document/email into a strictly valid JSON object. "
+                        "Fields: customer, customerContact, customerEmail, product, partNumber, internalPartNumber, lotNumber, "
+                        "mfgSite, incidentSite, defectQty (integer), inspectQty (integer), lineStop (boolean), safetyRisk (boolean), "
+                        "recurrentDefect (boolean), claimTitle, agentReasoning, confidenceScore (0.0 to 1.0), sourceEvidence (object mapping field to quote)."
                     )
                 if not prompt:
-                    prompt = "Please analyze the attached customer quality claim document/image and extract all 14 quality fields as JSON."
+                    prompt = "Please analyze the attached customer quality claim document/image and extract the requested quality fields as JSON."
+
+            late_stage_contracts = {
+                "d5_draft": '{"confirmedFacts":[],"inferences":[],"missingInformation":[],"recommendations":[],"groups":{"candidates":[{"causeType":"Occurrence|Escape|System","title":"","rationale":"","rootCauseElimination":"","feasibility":"","costImpact":"","riskLevel":"","owner":"","due":"","verificationPlan":""}]}}',
+                "d6_draft": '{"confirmedFacts":[],"inferences":[],"missingInformation":[],"recommendations":[],"groups":{"validationTests":[{"actionId":"","testName":"","condition":"","acceptanceCriteria":"","owner":"","sampleSize":500,"failQty":0,"result":"PASS"}]}}',
+                "d7_draft": '{"confirmedFacts":[],"inferences":[],"missingInformation":[],"recommendations":[],"groups":{"systemUpdates":[{"actionId":"","docName":"","changeContent":"","owner":"","due":"","status":"Completed"}],"horizontalDeployment":[{"actionId":"","product":"","sameRisk":"","action":"","owner":"","status":"Completed"}]}}',
+                "d8_draft": '{"confirmedFacts":[],"inferences":[],"missingInformation":[],"recommendations":[],"groups":{"checklist":[{"cat":"Closure","item":"","evidence":"","checked":true}]}}',
+            }
+            if task in late_stage_contracts:
+                system_prompt += (
+                    "\nReturn exactly one JSON object matching this task contract. "
+                    "Every required group must be an array of objects, even when empty. "
+                    "Contract: " + late_stage_contracts[task]
+                )
 
             # Routing decision
             result = None
-            if engine_pref == "gemini" or (engine_pref == "auto" and (image_b64 or task in ("vision", "multimodal", "deep_audit", "intake_extract"))):
-                result = call_gemini(prompt, system_prompt, image_b64)
-                if not result.get("success") and not image_b64:
-                    # Fallback to groq if gemini fails and no image is involved
+            if attachments or image_b64 or engine_pref == "gemini" or (engine_pref == "auto" and (image_b64 or task in ("vision", "multimodal", "deep_audit", "intake_extract", "d5_draft", "d6_draft", "d7_draft", "d8_draft"))):
+                result = call_gemini(prompt, system_prompt, image_b64, attachments=attachments)
+                if not result.get("success") and not image_b64 and not attachments:
                     fallback_result = call_groq(prompt, system_prompt)
                     if fallback_result.get("success"):
                         result = fallback_result
@@ -314,28 +556,37 @@ Maintain an authoritative, precise tone fitting a senior automotive/semiconducto
             else:
                 result = call_groq(prompt, system_prompt)
                 if not result.get("success"):
-                    # Fallback to gemini if groq fails
-                    fallback_result = call_gemini(prompt, system_prompt, image_b64)
+                    fallback_result = call_gemini(prompt, system_prompt, image_b64, attachments=attachments)
                     if fallback_result.get("success"):
                         result = fallback_result
                         result["fallbackFrom"] = "groq"
 
-            # Parse JSON if output is structured
-            if result and result.get("success") and isinstance(result.get("text"), str):
-                raw_text = result["text"].strip()
-                if raw_text.startswith("```json"):
-                    raw_text = raw_text[7:]
-                elif raw_text.startswith("```"):
-                    raw_text = raw_text[3:]
-                if raw_text.endswith("```"):
-                    raw_text = raw_text[:-3]
-                raw_text = raw_text.strip()
+            # Parse and validate structured AI outputs
+            parsed = normalize_structured_output(task, parse_structured_text(result or {}))
+            schema_errors = structured_output_errors(task, parsed)
+            structured_tasks = {"intake_extract", "d5_draft", "d6_draft", "d7_draft", "d8_draft"}
+            if task in structured_tasks and parsed is None:
+                schema_errors = ["provider did not return valid JSON"]
+            if schema_errors and not image_b64 and not attachments:
+                first_engine = result.get("engine") if isinstance(result, dict) else None
+                alternate = call_groq(prompt, system_prompt) if first_engine == "gemini" else call_gemini(prompt, system_prompt)
+                alternate_parsed = normalize_structured_output(task, parse_structured_text(alternate))
+                alternate_errors = structured_output_errors(task, alternate_parsed)
+                if task in structured_tasks and alternate_parsed is None:
+                    alternate_errors = ["provider did not return valid JSON"]
+                if alternate.get("success") and not alternate_errors:
+                    alternate["fallbackFrom"] = first_engine or "unknown"
+                    result, parsed, schema_errors = alternate, alternate_parsed, []
+            if parsed is not None:
+                result["parsedJson"] = parsed
+            if task in structured_tasks:
+                result["schemaValid"] = not schema_errors
+                if schema_errors:
+                    result["schemaWarning"] = "; ".join(schema_errors[:3])
 
-                try:
-                    parsed = json.loads(raw_text)
-                    result["parsedJson"] = parsed
-                except Exception:
-                    pass
+            request_id = params.get("requestId")
+            if isinstance(request_id, str) and len(request_id) <= 100:
+                result["requestId"] = request_id
 
             body = json.dumps(result).encode("utf-8")
             self.send_response(200)
@@ -349,17 +600,22 @@ Maintain an authoritative, precise tone fitting a senior automotive/semiconducto
         self.send_response(404)
         self.end_headers()
 
-    def end_headers(self) -> None:
-        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
-        self.send_header("Pragma", "no-cache")
-        self.send_header("Expires", "0")
-        super().end_headers()
-
     def log_message(self, _format: str, *args: object) -> None:
         return
 
 
+def local_port_is_open(port: int) -> bool:
+    try:
+        with socket.create_connection((HOST, port), timeout=0.08):
+            pass
+    except OSError:
+        return False
+    return True
+
+
 def project_server_is_running(port: int) -> bool:
+    if not local_port_is_open(port):
+        return False
     try:
         with urllib.request.urlopen(
             f"http://{HOST}:{port}{STATUS_PATH}", timeout=0.4
@@ -384,6 +640,8 @@ def main() -> None:
     server = None
     selected_port = None
     for port in PORT_RANGE:
+        if local_port_is_open(port):
+            continue
         try:
             server = ThreadingHTTPServer((HOST, port), handler)
             selected_port = port
@@ -394,7 +652,7 @@ def main() -> None:
     if server is None or selected_port is None:
         raise RuntimeError("No local portal port is available (8765-8775).")
 
-    open_portal(selected_port)
+    threading.Thread(target=open_portal, args=(selected_port,), daemon=True).start()
     server.serve_forever()
 
 

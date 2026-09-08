@@ -100,7 +100,7 @@
       container.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; border-bottom:1px solid var(--border); padding-bottom:12px;">
           <div>
-            <div style="font-size:1.1rem; font-weight:800; color:#f8fafc; display:flex; align-items:center; gap:8px;">
+            <div style="font-size:1.1rem; font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
               <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#38bdf8;"></span>
               ${member.name} ${member.position}
               <span style="font-size:0.75rem; color:#60a5fa; font-weight:600; background:rgba(56,189,248,0.12); padding:2px 7px; border-radius:4px;">${member.dept}</span>
@@ -254,14 +254,14 @@
         <input type="file" id="orgExcelUploadInput" style="display:none;" accept=".xlsx,.xls" onchange="handleOrgSkillExcelUpload(event)">
         <div class="org-tree-controls" style="flex-direction:column; gap:6px; align-items:stretch; margin-bottom:10px;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-weight:700; color:#94a3b8; font-size:0.75rem;">조직 계통도 (총 62명)</span>
+            <span style="font-weight:700; color:var(--text-secondary); font-size:0.75rem;">조직 계통도 (총 62명)</span>
             <div style="display:flex; gap:4px;">
               <button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.65rem;" onclick="expandAllOrgTree(true)">+ 전체 펼치기</button>
               <button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.65rem;" onclick="expandAllOrgTree(false)">- 전체 접기</button>
             </div>
           </div>
-          <div style="display:flex; gap:6px; background:#0b1322; border:1px solid #1e293b; border-radius:5px; padding:4px 8px; justify-content:space-between; align-items:center;">
-            <span style="font-size:0.68rem; color:#60a5fa; font-weight:700;">📋 R&R / 스킬 동기화:</span>
+          <div class="org-sync-strip" style="display:flex; gap:6px; background:var(--bg-card-subtle); border:1px solid var(--border); border-radius:5px; padding:4px 8px; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.68rem; color:var(--accent); font-weight:700;">📋 R&R / 스킬 동기화:</span>
             <div style="display:flex; gap:4px;">
               <button class="btn btn-secondary btn-sm" style="padding:2px 6px; font-size:0.62rem;" onclick="downloadOrgSkillExcel()" title="현재 등록된 업무/스킬 정보를 엑셀로 내보냅니다.">📥 엑셀 내보내기</button>
               <button class="btn btn-primary btn-sm" style="padding:2px 6px; font-size:0.62rem;" onclick="triggerOrgSkillExcelUpload()" title="작성한 엑셀 파일을 올려 일괄 등록합니다.">📤 엑셀 가져오기</button>
@@ -314,10 +314,10 @@
                         </div>
                         <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;">
                           <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div style="font-size:0.82rem; font-weight:700; color:#f8fafc; line-height:1.2;">
+                            <div style="font-size:0.82rem; font-weight:700; color:var(--text-primary); line-height:1.2;">
                               ${m.name} ${m.isMe ? `<span class="badge-me" style="font-size:0.6rem; padding:0 4px; border-radius:3px;">나</span>` : ''}
                             </div>
-                            <span style="font-size:0.6rem; color:#60a5fa; border:1px solid rgba(96,165,250,0.3); border-radius:3px; padding:0 3px;">R&R 설정 ➔</span>
+                            <span class="org-skill-tag" style="font-size:0.6rem; color:#2563eb; border:1px solid rgba(37,99,235,0.3); border-radius:3px; padding:0 3px;">R&R 설정 ➔</span>
                           </div>
                           <div style="font-size:0.72rem; color:#94a3b8; line-height:1.2;">
                             ${m.position || 'Pro'}
@@ -329,8 +329,8 @@
                             const sk = getOrgMemberSkills(m.email);
                             if (!sk.jobDesc && !sk.skills) return '';
                             return `
-                              <div style="margin-top:4px; padding-top:4px; border-top:1px dashed #1e293b; display:flex; flex-direction:column; gap:2px;">
-                                ${sk.jobDesc ? `<div style="font-size:0.66rem; color:#cbd5e1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📝 ${sk.jobDesc}</div>` : ''}
+                              <div style="margin-top:4px; padding-top:4px; border-top:1px dashed var(--border); display:flex; flex-direction:column; gap:2px;">
+                                ${sk.jobDesc ? `<div style="font-size:0.66rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📝 ${sk.jobDesc}</div>` : ''}
                                 ${sk.skills ? `<div style="font-size:0.62rem; color:#38bdf8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">🔬 ${sk.skills}</div>` : ''}
                               </div>
                             `;
@@ -590,7 +590,7 @@
               <i data-lucide="network" style="color:#38bdf8; width:20px; height:20px;"></i> RAmos 전사 조직도 (총 62명) — D1 CFT 팀원 배속
             </div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
-              Active Case: <b class="num-mono" style="color:#f8fafc;">${c.id}</b> | 조직도에서 배속할 팀원을 선택하십시오.
+              Active Case: <b class="num-mono" style="color:var(--text-primary);">${c.id}</b> | 조직도에서 배속할 팀원을 선택하십시오.
             </div>
           </div>
           <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('globalModal').style.display='none'">
@@ -599,10 +599,10 @@
         </div>
 
         <!-- Role Selector & Search Bar -->
-        <div style="background:rgba(15,23,42,0.8); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:12px;">
+        <div style="background:var(--bg-card-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:12px;">
           <div class="grid-2" style="gap:12px;">
             <div>
-              <label class="form-label" style="font-weight:700; color:#cbd5e1; margin-bottom:4px;">
+              <label class="form-label" style="font-weight:700; color:var(--text-secondary); margin-bottom:4px;">
                 <span>배속할 CFT Role (역할 지정)</span>
               </label>
               <select id="modalCftRoleSelect" class="form-control">
@@ -620,7 +620,7 @@
               </select>
             </div>
             <div>
-              <label class="form-label" style="font-weight:700; color:#cbd5e1; margin-bottom:4px;">
+              <label class="form-label" style="font-weight:700; color:var(--text-secondary); margin-bottom:4px;">
                 <span>조직도 실시간 검색 (이름/부서/직급/이메일)</span>
               </label>
               <div style="position:relative;">
@@ -632,7 +632,7 @@
         </div>
 
         <!-- Modal Org Tree Container -->
-        <div id="modalOrgTreeContainer" style="max-height:480px; overflow-y:auto; padding:12px; background:#070d19; border:1px solid var(--border); border-radius:var(--radius-sm);">
+        <div id="modalOrgTreeContainer" style="max-height:480px; overflow-y:auto; padding:12px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm);">
         </div>
       `;
 
@@ -703,11 +703,11 @@
 
         return `
           <div class="folder-node" style="margin-bottom:4px;">
-            <div class="folder-header ${isOpen ? 'open' : ''}" onclick="toggleModalOrgNode('${node.id}', event)" style="padding:6px 10px; border-radius:4px; display:flex; align-items:center; gap:8px; cursor:pointer; background:rgba(30,41,59,0.35);">
+            <div class="folder-header ${isOpen ? 'open' : ''}" onclick="toggleModalOrgNode('${node.id}', event)" style="padding:6px 10px; border-radius:4px; display:flex; align-items:center; gap:8px; cursor:pointer; background:var(--bg-card-subtle);">
               <span class="folder-toggle-icon" style="font-family:monospace; font-weight:800; font-size:0.75rem; color:#60a5fa;">[${isOpen ? '-' : '+'}]</span>
               <i data-lucide="${isOpen ? 'folder-open' : 'folder'}" style="width:15px; height:15px; color:#f59e0b;"></i>
-              <span class="folder-name" style="font-weight:700; font-size:0.8rem; color:#f8fafc;">${node.name}</span>
-              <span class="folder-count-badge" style="margin-left:auto; font-size:0.65rem; background:#1e293b; color:#93c5fd; padding:1px 6px; border-radius:10px;">${totalMembers}명</span>
+              <span class="folder-name" style="font-weight:700; font-size:0.8rem; color:var(--text-primary);">${node.name}</span>
+              <span class="folder-count-badge" style="margin-left:auto; font-size:0.65rem; background:var(--bg-card); color:var(--accent); border:1px solid var(--border); padding:1px 6px; border-radius:10px;">${totalMembers}명</span>
             </div>
 
             ${isOpen ? `
@@ -716,13 +716,13 @@
                 ${filteredMembers.length > 0 ? `
                   <div class="folder-members-list" style="display:flex; flex-direction:column; gap:4px; margin-bottom:6px;">
                     ${filteredMembers.map(m => `
-                      <div class="tree-member-card" style="display:flex; align-items:center; justify-content:space-between; padding:6px 10px; background:#0e172a; border:1px solid rgba(255,255,255,0.06); border-radius:5px;">
+                      <div class="tree-member-card" style="display:flex; align-items:center; justify-content:space-between; padding:6px 10px; background:var(--bg-card-subtle); border:1px solid var(--border); border-radius:5px;">
                         <div style="display:flex; align-items:center; gap:10px;">
                           <div style="width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#2563eb,#7c3aed); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.7rem; color:#fff; flex-shrink:0;">
                             ${m.name.length > 2 ? m.name.slice(-2) : m.name}
                           </div>
                           <div style="display:flex; flex-direction:column; gap:2px;">
-                            <div style="font-size:0.82rem; font-weight:700; color:#f8fafc; line-height:1.2;">
+                            <div style="font-size:0.82rem; font-weight:700; color:var(--text-primary); line-height:1.2;">
                               ${m.name} ${m.isMe ? `<span class="badge-me" style="font-size:0.6rem; background:#2563eb; color:#fff; padding:0 4px; border-radius:3px;">나</span>` : ''}
                             </div>
                             <div style="font-size:0.72rem; color:#94a3b8; line-height:1.2;">
@@ -807,26 +807,37 @@
 
 
     function uploadEvidencePrompt() {
-      const title = prompt('등록할 Evidence 명칭을 입력하세요:', 'SAT 초음파 비파괴검사 성적서');
-      if (!title) return;
-      const c = getActiveCase();
-      const newEvdId = `EVD-${String(c.evidenceList.length + 1).padStart(2, '0')}`;
-      c.evidenceList.push({
-        id: newEvdId,
-        title: title,
-        type: 'Inspection File',
-        file: `SAT_Scan_${new Date().getTime()}.pdf`,
-        linkedStages: ['D4']
-      });
-      saveAppData();
-      alert(`신규 증거 [${newEvdId}]가 등록되었습니다.`);
-      renderCurrentView();
+      const c=getActiveCase();
+      const picker=document.createElement('input');picker.type='file';picker.multiple=true;
+      picker.onchange=()=>registerCaseEvidenceFiles(c,Array.from(picker.files||[]));
+      picker.click();
+    }
+    async function registerCaseEvidenceFiles(c,files) {
+      if(!c||!files.length)return;
+      try {
+        if(files.some(file=>file.size>INTAKE_MAX_FILE_BYTES))throw new Error('파일당 최대 30 MB까지 보관할 수 있습니다.');
+        const evidence=await prepareIntakeEvidence(files.map(file=>({id:intakeFileId(),name:file.name,fileObj:file})));
+        evidence.forEach(item=>{item.title=item.file;item.type='User evidence';item.linkedStages=['D4'];});
+        const previous=c.evidenceList||[];c.evidenceList=[...previous,...evidence];
+        try{saveAppData();}catch(error){c.evidenceList=previous;throw error;}
+        if(getActiveCase()===c)renderCurrentView();
+      }catch(error){alert(`증거 저장 실패: ${error.message}`);}
     }
 
     function openAIAssistantModal() {
       const c = getActiveCase();
       const modal = document.getElementById('globalModal');
       const container = document.getElementById('modalContainer');
+      const esc = escapeWorkspaceValue;
+      const selected = (c.d5?.candidates || []).filter(row => row.selected);
+      const rootTypes = ['Occurrence','Escape','System'];
+      const causeLinksOk = rootTypes.every(type => selected.some(row => row.causeType === type));
+      const validationLinksOk = selected.length > 0 && selected.every(action => (c.d6?.validationTests || []).some(test => test.actionId === action.id && test.result === 'PASS' && test.evidence));
+      const preventionRows = [...(c.d7?.systemUpdates || []), ...(c.d7?.horizontalDeployment || [])];
+      const preventionLinksOk = preventionRows.length > 0 && preventionRows.every(row => selected.some(action => action.id === row.actionId) && ['Completed','Not Applicable'].includes(row.status) && row.evidence);
+      const traceabilityOk = causeLinksOk && validationLinksOk && preventionLinksOk;
+      const missingStages = QUALITY_STAGES.filter(stage => !hasCurrentStageApproval(c, stage));
+      const reportReady = missingStages.length === 0 && !reportReviewError(c, 'gate8D');
       
       container.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:12px;">
@@ -836,20 +847,20 @@
           <button class="btn btn-secondary btn-sm" onclick="document.getElementById('globalModal').style.display='none'">닫기</button>
         </div>
 
-        <div style="font-size:0.84rem; line-height:1.6; color:#f8fafc;">
-          <div style="background:#0e1628; border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; margin-bottom:12px;">
-            <div style="font-weight:700; color:#34d399; margin-bottom:4px;">1. Fact & Evidence Traceability 검사: 통과 (100%)</div>
-            <p style="color:#cbd5e1; font-size:0.8rem;">D2 Fact와 D4 Root Cause 간의 물리적 성적서(EVD-04, EVD-08)가 완벽하게 연결되어 있습니다.</p>
+        <div style="font-size:0.84rem; line-height:1.6; color:var(--text-primary);">
+          <div style="background:var(--bg-card-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; margin-bottom:12px;">
+            <div style="font-weight:700; color:${traceabilityOk?'#34d399':'#fbbf24'}; margin-bottom:4px;">1. 원인→대책→검증→예방 Traceability: ${traceabilityOk?'연결 확인':'보완 필요'}</div>
+            <p style="color:var(--text-secondary); font-size:0.8rem;">발생·유출·시스템 원인별 D5 대책 ${causeLinksOk?'연결':'미연결'}, 선정 대책별 D6 PASS/Evidence ${validationLinksOk?'확인':'미완료'}, D7 개정·수평전개 Evidence ${preventionLinksOk?'확인':'미완료'}.</p>
           </div>
 
-          <div style="background:#0e1628; border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; margin-bottom:12px;">
-            <div style="font-weight:700; color:#38bdf8; margin-bottom:4px;">2. 수량 정합성 (Consistency) 검사: 정상 일치</div>
-            <p style="color:#cbd5e1; font-size:0.8rem;">고객 인입 불량 12ea와 D3 선별 결과 NG 12ea가 정확히 일치하여 데이터 왜곡이 없습니다.</p>
+          <div style="background:var(--bg-card-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; margin-bottom:12px;">
+            <div style="font-weight:700; color:${missingStages.length?'#fbbf24':'#38bdf8'}; margin-bottom:4px;">2. 단계별 사람 승인: ${missingStages.length?'미완료':'D1~D8 완료'}</div>
+            <p style="color:var(--text-secondary); font-size:0.8rem;">${missingStages.length?`미승인 단계: ${esc(missingStages.join(', '))}`:'모든 단계의 현재 내용이 기안·Leader·Champion 승인 스냅샷과 일치합니다.'}</p>
           </div>
 
-          <div style="background:#0e1628; border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px;">
-            <div style="font-weight:700; color:#fbbf24; margin-bottom:4px;">3. 고객사 제출 준비도: 즉시 제출 가능 (Ready for Submission)</div>
-            <p style="color:#cbd5e1; font-size:0.8rem;">Final 8D 리포트의 결재선(Leader -> FA -> Director -> Customer)이 완결되었습니다.</p>
+          <div style="background:var(--bg-card-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px;">
+            <div style="font-weight:700; color:${reportReady?'#34d399':'#fbbf24'}; margin-bottom:4px;">3. Final 8D 내부 검토 준비도: ${reportReady?'단계 승인 완료':'검토 필요'}</div>
+            <p style="color:var(--text-secondary); font-size:0.8rem;">${reportReady?'Final Report Gate에서 별도 내부 결재와 고객 송부 증빙을 진행할 수 있습니다.':esc(reportReviewError(c,'gate8D') || 'D1~D8 승인 상태를 확인하세요.')}</p>
           </div>
         </div>
 

@@ -43,6 +43,7 @@
         return { status: 'in-progress', label: '진행중', icon: '🟡', badgeClass: 'badge-status-in-progress' };
       }
 
+      if(['D5','D6','D7','D8'].includes(stageKey)&&hasCurrentStageApproval(c,stageKey))return {status:'completed',label:'완료',icon:'🟢',badgeClass:'badge-status-completed'};
       // D1. Team
       if (stageKey === 'D1') {
         if (typeof isD1StageComplete === 'function' && isD1StageComplete(c)) {
@@ -202,8 +203,8 @@
               <div style="display:flex; align-items:center; gap:8px;">
                 <i data-lucide="bot" style="color: #60a5fa; width: 20px; height: 20px;"></i>
                 <div>
-                  <div style="font-size:0.85rem; font-weight:800; color:#f8fafc;">AI Quality Assistant</div>
-                  <div style="font-size:0.68rem; color:#94a3b8;">Real-time Stage Verification</div>
+                  <div style="font-size:0.85rem; font-weight:800; color:var(--text-primary);">AI Quality Assistant</div>
+                  <div style="font-size:0.68rem; color:var(--text-secondary);">Real-time Stage Verification</div>
                 </div>
               </div>
               <span class="badge-pill badge-purple" style="font-size:0.65rem;">ACTIVE PROMPT RULE</span>
@@ -219,6 +220,17 @@
     }
 
     function renderStageContent(c, stage) {
+      if (['D5','D6','D7','D8'].includes(stage)) return renderLateStageWorkspace(c,stage);
+      // Older and newly approved Cases may have no downstream details yet.
+      if (stage === 'D5') {
+        c.d5 = c.d5 || { candidates: [] };
+        c.d5.pcnEcn = c.d5.pcnEcn || { ecnNumber: '', pcnRequired: null, customerApprovalStatus: '미확인' };
+      }
+      if (stage === 'D6') {
+        c.d6 = c.d6 || { validationTests: [] };
+        c.d6.implementationDetails = c.d6.implementationDetails || {};
+        c.d6.beforeAfter = c.d6.beforeAfter || {};
+      }
       switch (stage) {
         case 'overview':
           return `
@@ -248,17 +260,17 @@
                 <div class="card-title"><i data-lucide="clock" style="color:#fbbf24; width:16px; height:16px;"></i> 현재 상태 요약 & 오픈 이슈</div>
               </div>
               <div class="grid-3">
-                <div style="background:#0e1628; border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px;">
+                <div style="background:var(--bg-card-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px;">
                   <div style="font-size:0.75rem; color:var(--text-muted);">Open Actions</div>
                   <div style="font-size:1.4rem; font-weight:800; color:#38bdf8; margin-top:4px;" class="num-mono">${c.d3.actions.length} 건</div>
                   <div style="font-size:0.7rem; color:#34d399;">전원 기한 내 완료 진행 중</div>
                 </div>
-                <div style="background:#0e1628; border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px;">
+                <div style="background:var(--bg-card-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px;">
                   <div style="font-size:0.75rem; color:var(--text-muted);">연동된 Evidence</div>
                   <div style="font-size:1.4rem; font-weight:800; color:#a855f7; margin-top:4px;" class="num-mono">${c.evidenceList.length} Files</div>
                   <div style="font-size:0.7rem; color:#a855f7;">물리/전기 성적서 완결</div>
                 </div>
-                <div style="background:#0e1628; border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px;">
+                <div style="background:var(--bg-card-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px;">
                   <div style="font-size:0.75rem; color:var(--text-muted);">발행 가능 공식 리포트</div>
                   <div style="font-size:1.1rem; font-weight:800; color:#34d399; margin-top:6px;">Initial 3D / Interim 5D / Final 8D</div>
                   <button class="btn btn-primary btn-sm" style="margin-top:6px;" onclick="switchNav('reports-hub')">리포트 뷰어 열기</button>
@@ -296,7 +308,7 @@
                     <tr>
                       <td style="font-weight:700; color:#60a5fa;">${m.role}</td>
                       <td>
-                        <select class="form-control form-control-sm" style="font-weight:700; color:#38bdf8; background:#1e293b; border-color:#475569;" onchange="changeCFTMemberDirect(${idx}, this.value)" title="사내 실제 담당자 직접 선택/변경">
+                        <select class="form-control form-control-sm" style="font-weight:700; color:var(--accent);" onchange="changeCFTMemberDirect(${idx}, this.value)" title="사내 실제 담당자 직접 선택/변경">
                           ${RAMOS_MEMBER_DIRECTORY.map(mem => `
                             <option value="${mem.email}" ${mem.email === m.contact || mem.name === m.name ? 'selected' : ''}>
                               ${mem.name} (${mem.dept})
@@ -304,7 +316,7 @@
                           `).join('')}
                         </select>
                       </td>
-                      <td style="color:#cbd5e1;">${m.dept}</td>
+                      <td style="color:var(--text-secondary);">${m.dept}</td>
                       <td class="num-mono" style="color:var(--text-secondary); font-size:0.75rem;">${m.contact}</td>
                       <td><span class="badge-pill badge-ok">${m.status}</span></td>
                       <td style="text-align:center;">
@@ -382,7 +394,7 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">고객 PCN 필요 여부</label>
-                  <input type="text" class="form-control" value="${c.d5.pcnEcn.pcnRequired ? '필요 (Yes)' : '불필요'}" readonly>
+                  <input type="text" class="form-control" value="${c.d5.pcnEcn.pcnRequired === true ? '필요 (Yes)' : c.d5.pcnEcn.pcnRequired === false ? '불필요' : '미확인'}" readonly>
                 </div>
                 <div class="form-group">
                   <label class="form-label">고객사 승인 상태</label>
@@ -401,11 +413,11 @@
               </div>
 
               <!-- Implementation Info -->
-              <div style="background:#0e1628; border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; margin-bottom:16px;" class="grid-4">
-                <div><span style="color:var(--text-muted); font-size:0.75rem;">BOM Revision:</span> <div style="font-weight:700; color:#38bdf8;">${c.d6.implementationDetails.bomRevision}</div></div>
-                <div><span style="color:var(--text-muted); font-size:0.75rem;">적용 양산 Lot:</span> <div class="num-mono" style="font-weight:700;">${c.d6.implementationDetails.appliedLot}</div></div>
-                <div><span style="color:var(--text-muted); font-size:0.75rem;">적용 일자:</span> <div class="num-mono">${c.d6.implementationDetails.startDate}</div></div>
-                <div><span style="color:var(--text-muted); font-size:0.75rem;">생산 라인:</span> <div>${c.d6.implementationDetails.productionSite}</div></div>
+              <div style="background:var(--bg-card-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; margin-bottom:16px;" class="grid-4">
+                <div><span style="color:var(--text-muted); font-size:0.75rem;">BOM Revision:</span> <div style="font-weight:700; color:#38bdf8;">${c.d6.implementationDetails.bomRevision || '작성 대기'}</div></div>
+                <div><span style="color:var(--text-muted); font-size:0.75rem;">적용 양산 Lot:</span> <div class="num-mono" style="font-weight:700;">${c.d6.implementationDetails.appliedLot || '작성 대기'}</div></div>
+                <div><span style="color:var(--text-muted); font-size:0.75rem;">적용 일자:</span> <div class="num-mono">${c.d6.implementationDetails.startDate || '작성 대기'}</div></div>
+                <div><span style="color:var(--text-muted); font-size:0.75rem;">생산 라인:</span> <div>${c.d6.implementationDetails.productionSite || '작성 대기'}</div></div>
               </div>
 
               <table class="custom-table">
@@ -421,7 +433,7 @@
                 <tbody>
                   ${c.d6.validationTests.map(vt => `
                     <tr>
-                      <td style="font-weight:700; color:#f8fafc;">${vt.testName}</td>
+                      <td style="font-weight:700; color:var(--text-primary);">${vt.testName}</td>
                       <td>${vt.condition}</td>
                       <td class="num-mono">${vt.sampleSize} ea</td>
                       <td class="num-mono" style="color:#34d399; font-weight:700;">${vt.failQty} Fail</td>
@@ -435,11 +447,11 @@
               <div style="background: rgba(59, 130, 246, 0.08); border:1px solid #3b82f6; border-radius:var(--radius-sm); padding:14px; margin-top:16px;" class="grid-2">
                 <div>
                   <div style="font-size:0.75rem; color:#f87171; font-weight:700;">BEFORE IMPROVEMENT (개선 전)</div>
-                  <div style="font-size:1.1rem; font-weight:800; color:#f8fafc; margin-top:4px;" class="num-mono">${c.d6.beforeAfter.beforeMetric}</div>
+                  <div style="font-size:1.1rem; font-weight:800; color:var(--text-primary); margin-top:4px;" class="num-mono">${c.d6.beforeAfter.beforeMetric || '작성 대기'}</div>
                 </div>
                 <div>
                   <div style="font-size:0.75rem; color:#34d399; font-weight:700;">AFTER IMPROVEMENT (개선 후 실증)</div>
-                  <div style="font-size:1.1rem; font-weight:800; color:#34d399; margin-top:4px;" class="num-mono">${c.d6.beforeAfter.afterMetric}</div>
+                  <div style="font-size:1.1rem; font-weight:800; color:#34d399; margin-top:4px;" class="num-mono">${c.d6.beforeAfter.afterMetric || '작성 대기'}</div>
                 </div>
               </div>
             </div>
@@ -497,7 +509,7 @@
                 <tbody>
                   ${c.d7.horizontalDeployment.map(hd => `
                     <tr>
-                      <td style="font-weight:700; color:#f8fafc;">${hd.product}</td>
+                      <td style="font-weight:700; color:var(--text-primary);">${hd.product}</td>
                       <td>${hd.samePartUsed}</td>
                       <td style="color:${hd.sameRisk === 'None' ? '#94a3b8' : '#fbbf24'};">${hd.sameRisk}</td>
                       <td style="font-weight:600;">${hd.action}</td>
@@ -519,11 +531,11 @@
               </div>
               <div class="grid-2" style="gap:10px;">
                 ${c.d8.checklist.map(chk => `
-                  <div style="background:#0e1628; border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; display:flex; align-items:center; gap:8px;">
+                  <div style="background:var(--bg-card-subtle); border:1px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px; display:flex; align-items:center; gap:8px;">
                     <i data-lucide="check-circle" style="color:#34d399; width:16px; height:16px; flex-shrink:0;"></i>
                     <div style="font-size:0.8rem;">
                       <span style="color:var(--text-muted); font-size:0.7rem;">[${chk.cat}]</span>
-                      <span style="color:#f8fafc; font-weight:500;">${chk.item}</span>
+                      <span style="color:var(--text-primary); font-weight:500;">${chk.item}</span>
                     </div>
                   </div>
                 `).join('')}
@@ -537,9 +549,9 @@
               </div>
               <div class="grid-5" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:10px;">
                 ${c.d8.approvalFlow.map(ap => `
-                  <div style="background:#0e1628; border:1px solid #22c55e; border-radius:var(--radius-sm); padding:10px; text-align:center;">
+                  <div style="background:var(--bg-card-subtle); border:1px solid #22c55e; border-radius:var(--radius-sm); padding:10px; text-align:center;">
                     <div style="font-size:0.7rem; color:#94a3b8; font-weight:600;">${ap.step}</div>
-                    <div style="font-size:0.8rem; font-weight:700; color:#f8fafc; margin-top:4px;">${ap.approver}</div>
+                    <div style="font-size:0.8rem; font-weight:700; color:var(--text-primary); margin-top:4px;">${ap.approver}</div>
                     <div style="font-size:0.68rem; color:#34d399; margin-top:2px;">✔ ${ap.status}</div>
                     <div style="font-size:0.65rem; color:var(--text-muted);" class="num-mono">${ap.date}</div>
                   </div>
@@ -548,7 +560,7 @@
 
               <div style="background: rgba(16, 185, 129, 0.08); border:1px solid #10b981; border-radius:var(--radius-sm); padding:12px; margin-top:14px;">
                 <div style="font-size:0.78rem; font-weight:700; color:#34d399;">CFT 포상 및 감사의 글</div>
-                <div style="font-size:0.82rem; color:#f8fafc; margin-top:4px;">
+                <div style="font-size:0.82rem; color:var(--text-primary); margin-top:4px;">
                   "${c.d8.teamAppreciation}"
                 </div>
               </div>
@@ -565,23 +577,23 @@
     }
 
     function isD1StageComplete(c) {
-      return isCFTAssignmentComplete(c) && c.cftRecommendation?.humanConfirmed === true && c.cftRaci?.acknowledged === true;
+      return hasCurrentStageApproval(c, 'D1');
     }
 
     function isD2StageComplete(c) {
-      return c.d2?.approval?.status === 'Approved' && c.d2?.approval?.humanConfirmed === true;
+      return hasCurrentStageApproval(c, 'D2');
     }
 
     function isD3StageComplete(c) {
-      return c.d3?.approval?.status === 'Approved' && c.d3?.approval?.humanConfirmed === true;
+      return hasCurrentStageApproval(c, 'D3');
     }
 
     function canEnterQualityStage(c, stage) {
-      if (!c?.sourceIntakeId) return { allowed: true };
-      if (stage === 'D2' && !isD1StageComplete(c)) return { allowed: false, message: 'D1 CFT 역할과 RACI를 사람이 확정해야 D2를 시작할 수 있습니다.' };
-      if (stage === 'D3' && !isD2StageComplete(c)) return { allowed: false, message: 'D2 문제 정의에 대해 8D Leader(김현수 상무)와 Champion(황승안 상무)의 최종 결재 승인이 완료되어야 D3를 시작할 수 있습니다.' };
-      if (['D4','D5','D6','D7','D8'].includes(stage) && !isD3StageComplete(c)) return { allowed: false, message: 'D3 긴급 봉쇄조치에 대해 8D Leader(김현수 상무)와 Champion(황승안 상무)의 최종 결재 승인이 완료되어야 D4 원인분석으로 이동할 수 있습니다.' };
-      if (['D5','D6','D7','D8'].includes(stage) && !isD4StageComplete(c)) return { allowed: false, message: 'D4 발생·유출·시스템 근본원인을 Evidence로 승인해야 영구대책 단계로 이동할 수 있습니다.' };
+      if (!QUALITY_STAGES.includes(stage)) return {allowed:true};
+      // Keep legacy navigation, but never bypass a recorded requirement for re-review.
+      if (!c?.sourceIntakeId && !c?.approvalReviewFrom) return {allowed:true};
+      const missing = QUALITY_STAGES.slice(0, QUALITY_STAGES.indexOf(stage)).find(s => !hasCurrentStageApproval(c,s));
+      if (missing) return {allowed:false,message:`${missing} 단계의 최종 승인을 먼저 완료해 주세요.`};
       return { allowed: true };
     }
 
@@ -709,15 +721,15 @@
         btn.innerHTML = `<span class="agent-pulse" style="width:6px;height:6px;"></span> 🧠 Groq ⚡ LPU ${targetCount}개 심층 비교 추론 중...`;
       }
 
-      const customer = c.customer || 'LGE (LG전자 HE사업본부 DTV)';
-      const product = c.product || 'DTV eMMC 5.1 16GB (BGA153)';
-      const partNumber = c.partNumber || 'MMACGD8J0F-KV0AF0-TPAG';
-      const lotNumber = c.lotNumber || '0QH321200A02-LPAGA00';
-      const incidentSite = c.incidentSite || 'LGE 평택 DTV Main Board SMT 3라인';
-      const claimTitle = c.claimTitle || d2.problemWhat || 'eMMC Boot CID Read Timeout 및 VCC-VSS Short 단락 불량';
-      const defectQty = c.defectQty || 12;
-      const inspectQty = c.inspectQty || 10000;
-      const ppm = c.ppm || 1200;
+      const customer = c.customer || '[확인 필요]';
+      const product = c.product || '[확인 필요]';
+      const partNumber = c.partNumber || '[확인 필요]';
+      const lotNumber = c.lotNumber || '[확인 필요]';
+      const incidentSite = c.incidentSite || '[확인 필요]';
+      const claimTitle = c.claimTitle || d2.problemWhat || '[확인 필요]';
+      const defectQty = c.defectQty ?? '[확인 필요]';
+      const inspectQty = c.inspectQty ?? '[확인 필요]';
+      const ppm = c.ppm ?? '[확인 필요]';
 
       const userPrompt = `
 [품질 부적합 정보]
@@ -729,8 +741,8 @@
 - 수량 / 불량률: ${defectQty}ea / ${inspectQty}ea (${ppm.toLocaleString()} PPM)
 - 5W2H What: ${d2.problemWhat || claimTitle}
 - 5W2H Where: ${d2.problemWhere || incidentSite}
-- 5W2H When: ${d2.problemWhen || c.incidentDate || 'SMT 리플로우 후'}
-- 5W2H How: ${d2.problemHow || 'Post-Reflow Initial Boot 통전 시'}
+- 5W2H When: ${d2.problemWhen || c.incidentDate || '[확인 필요]'}
+- 5W2H How: ${d2.problemHow || '[확인 필요]'}
 
 위 구체적 사실에 입각하여, Kepner-Tregoe 기법에 따라 이슈 심각도(Critical/Line Stop)를 반영한 정확히 ${targetCount}개의 다차원 IS / IS NOT 정밀 비교 분석(1.제품/LOT, 2.불량모드, 3.공장/라인, 4.기판실장위치, 5.발생시점, 6.작업환경, 7.영향규모, 8.설비조건) JSON 배열을 생성하세요.
       `.trim();
@@ -772,71 +784,15 @@
       // 100% High-Precision Engineering Fallback (4 or 8 Rows depending on targetCount)
       if (!isNotRows || !isNotRows.length) {
         const fullRows = [
-          {
-            factor: '제품 / LOT (What - 대상)',
-            is: `${product} / ${partNumber} / Lot #${lotNumber}`,
-            isNot: `동일 라인 실장 직전 정상 Lot #0QH321200A01-LPAGA00 및 타 DateCode 로트`,
-            difference: `해당 Lot(#${lotNumber}) 투입 특정 웨이퍼 Inked NAND Die 패키징 실장분 국한 (실장 후 열응력 민감도 차이)`,
-            aiDraft: true,
-            verificationStatus: 'Required'
-          },
-          {
-            factor: '불량 모드 (What - 결함 특성)',
-            is: `eMMC Boot CID Timeout 및 VCC-VSS 전원단 저저항 단락 (0.8Ω 측정)`,
-            isNot: `단순 Firmware 손상, Data I/O 파형 지연, CRC 전송 에러, 간헐적 재부팅`,
-            difference: `전원단 물리적 완벽 단락으로 인한 과전류 차단(Over-Current Trip 850mA) 현상 국한`,
-            aiDraft: true,
-            verificationStatus: 'Required'
-          },
-          {
-            factor: '공장 / 라인 (Where - 지리적 위치)',
-            is: `${incidentSite} (Post-Reflow ICT 검사기)`,
-            isNot: `동일 평택 공장 타 SMT 라인(1, 2라인) 및 구미 DTV 실장 라인 동일 모델 투입분`,
-            difference: `3라인 Reflow 8-Zone Peak 온도(248℃) 편차 및 마운터 3호기 노즐 장착 압력 차이`,
-            aiDraft: true,
-            verificationStatus: 'Required'
-          },
-          {
-            factor: '기판 실장 위치 (Where - PCB 위치)',
-            is: `LGE DTV 메인보드 eMMC 실장 부위 (U101 위치)`,
-            isNot: `인접 Main SoC (U100) 및 DDR4 DRAM (U102) 실장 부위`,
-            difference: `BGA153 솔더볼 피치(0.5mm) 미세 간격 부위 열팽창 응력 집중 및 패턴 근접성`,
-            aiDraft: true,
-            verificationStatus: 'Required'
-          },
-          {
-            factor: '발생 시점 (When - 공정 타이밍)',
-            is: `${d2.problemWhen || 'SMT 리플로우 직후'} Initial Cold Boot 통전 검사 시점`,
-            isNot: 'SMT 실장 전 부품 수입검사(IQC) 단계 및 상온 48시간 이상 방치 후 재부팅 시',
-            difference: 'Lead-Free 260℃ 납땜 열충격 직후 솔더볼 열팽창 및 패키지 내부 단락 유발 조건',
-            aiDraft: true,
-            verificationStatus: 'Required'
-          },
-          {
-            factor: '작업 환경 (When - 조건/추세)',
-            is: `2026-08-31 22:15 야간 양산 가동 초물 투입 시점`,
-            isNot: `주간 정상 가동 시간대(08:00~18:00) 안정 생산분`,
-            difference: `야간 조 교대 직후 SMT 라인 칠러 온도 편차 및 급랭 냉각 속도 차이`,
-            aiDraft: true,
-            verificationStatus: 'Required'
-          },
-          {
-            factor: '영향 규모 (How Much - 결함률/범위)',
-            is: `투입 10,000대 중 12대 불량 적출 (${ppm.toLocaleString()} PPM, 고객사 라인 정지)`,
-            isNot: `투입 전수(10,000대) 일괄 전멸 또는 낱개 단위 산발적 1~2개 불량`,
-            difference: `특정 웨이퍼 Die 에지(Edge) 영역 Inked 셀 마진 부족분이 집중 실장된 배치 국한`,
-            aiDraft: true,
-            verificationStatus: 'Required'
-          },
-          {
-            factor: '설비 조건 (Process - 프로파일)',
-            is: `Lead-Free Reflow 프로파일 Peak 248℃ (Pre-heat 180℃ 90초 유지)`,
-            isNot: `규격 상한 이하 완만 가열 프로파일 (Peak 240℃ 이하)`,
-            difference: `eMMC 내부 EMC 몰딩재와 Substrate 간의 열팽창 계수(CTE) 미세 불일치 유발`,
-            aiDraft: true,
-            verificationStatus: 'Required'
-          }
-        ];
+          ['제품 / LOT', d2.problemWhich || `${product} / ${partNumber} / ${lotNumber}`],
+          ['불량 모드', d2.problemWhat || claimTitle],
+          ['발생 위치', d2.problemWhere || incidentSite],
+          ['발생 시점', d2.problemWhen || c.incidentDate || '[확인 필요]'],
+          ['발생 조건', d2.problemHow || '[확인 필요]'],
+          ['수량 / 범위', d2.problemHowMany || `${defectQty} / ${inspectQty} (${ppm} PPM)`],
+          ['작업 환경', '[확인 필요]'],
+          ['설비 / 프로파일', '[확인 필요]']
+        ].map(([factor, value]) => ({factor, is:value, isNot:'[확인 필요] 실제 비발생 비교대상과 증거 입력', difference:'[확인 필요] 비교자료 확인 후 작성', aiDraft:true, verificationStatus:'Required'}));
 
         isNotRows = fullRows.slice(0, targetCount);
       }
@@ -844,7 +800,7 @@
       d2.isIsNot = isNotRows;
       d2.isIsNotDraft = {
         generatedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        source: 'Groq LPU (API) + Kepner-Tregoe Quality Engine',
+        source: 'AI 또는 입력 기반 초안 · 원본 확인 필요',
         status: 'Human Verification Required'
       };
       d2.approval = { ...(d2.approval || {}), status: 'Draft', humanConfirmed: false };
@@ -880,27 +836,28 @@
         btn.innerHTML = '<span class="agent-pulse" style="width:6px;height:6px;"></span> 🧠 Groq ⚡ LPU 사실 종합 추론 중...';
       }
 
-      const customer = c.customer || 'LGE (LG전자 HE사업본부 DTV)';
-      const product = c.product || 'DTV eMMC 5.1 64GB (BGA153)';
-      const partNumber = c.partNumber || 'RM-EM51-064G-X1';
-      const lotNumber = c.lotNumber || 'EM2608-DTV01';
-      const incidentSite = d2.problemWhere || c.incidentSite || 'LGE 평택 DTV Main Board SMT 3라인';
-      const claimTitle = d2.problemWhat || c.claimTitle || 'eMMC Boot CID Read Timeout 및 VCC-VSS Short 단락 불량';
-      const defectQty = c.defectQty || 12;
-      const inspectQty = c.inspectQty || 10000;
-      const ppm = c.ppm || 1200;
-      const when = d2.problemWhen || c.incidentDate || '2026-08-31 22:15';
-      const how = d2.problemHow || 'Post-Reflow Initial Boot 통전 시 VCC-VSS 저저항 단락 0.8Ω';
+      const customer = c.customer || '[확인 필요]';
+      const product = c.product || '[확인 필요]';
+      const partNumber = c.partNumber || '[확인 필요]';
+      const lotNumber = c.lotNumber || '[확인 필요]';
+      const incidentSite = d2.problemWhere || c.incidentSite || '[확인 필요]';
+      const claimTitle = d2.problemWhat || c.claimTitle || '[확인 필요]';
+      const defectQty = c.defectQty ?? '[확인 필요]';
+      const inspectQty = c.inspectQty ?? '[확인 필요]';
+      const ppm = c.ppm ?? '[확인 필요]';
+      const when = d2.problemWhen || c.incidentDate || '[확인 필요]';
+      const how = d2.problemHow || '[확인 필요]';
 
       const userPrompt = `
-[5W2H 검증 사실 정보]
+[사용자 입력 5W2H · 원본 사실 확인 필요]
 - What (무엇이 불량인가): ${claimTitle}
 - Where (어디서 발생했는가): ${customer} ${incidentSite}
 - When (언제 발생했는가): ${when}
-- Who (누가 확인했는가): ${d2.problemWho || c.customerContact || 'LGE DTV 품질팀'}
-- Which (어떤 제품/Lot인가): ${product} (${partNumber}), Lot #${lotNumber}
+- Who (누가 확인했는가): ${d2.problemWho || c.customerContact || '[확인 필요]'}
+- Which (어떤 제품/Lot인가): ${d2.problemWhich || `${product} (${partNumber}), Lot #${lotNumber}`}
 - How (어떤 상태/조건인가): ${how}
-- How Many (수량 및 불량률): ${defectQty}ea / ${inspectQty}ea (${ppm.toLocaleString()} PPM)
+- How Many (수량 및 불량률): ${d2.problemHowMany || `${defectQty}ea / ${inspectQty}ea (${ppm} PPM)`}
+- 사람이 확인한 비교행: ${JSON.stringify((d2.isIsNot || []).filter(row => row.verificationStatus === "Verified"))}
 
 위 5W2H 사실 정보를 엄격히 종합하여, 원인 추정 문구 없이 사실에만 기반한 IATF 16949 표준 8D 표준 문제 정의문(2~3문장)을 작성하세요.
       `.trim();
@@ -925,13 +882,14 @@
 
       // 100% High-Precision Engineering Fallback
       if (!generatedStatement) {
-        generatedStatement = `${when} ${customer} ${incidentSite}에서 생산 중인 ${product} (P/N: ${partNumber}, Lot #${lotNumber}) 실장 모듈 대상 검사에서, SMT 리플로우 직후 ${how} 상태가 확인되어 eMMC Boot CID 응답 불가 및 VCC-VSS 전원단 단락 현상이 적출되었다. 해당 불량의 적출 규모는 총 투입 ${inspectQty.toLocaleString()}대 중 ${defectQty}대로 불량률 ${ppm.toLocaleString()} PPM에 달하며, 고객사 DTV 메인보드 생산 라인의 일시 정지(Line Stop) 위험을 유발하였다.`;
+        generatedStatement = `사용자 입력 기준: ${when}, ${customer} / ${incidentSite}에서 ${claimTitle}. 대상: ${d2.problemWhich || `${product} (${partNumber}), Lot ${lotNumber}`}. 발생 조건: ${how}. 수량: ${d2.problemHowMany || `${defectQty} / ${inspectQty} (${ppm} PPM)`}. 원본 Evidence 확인 후 사실을 확정하세요.`;
       }
 
       d2.problemStatement = generatedStatement;
+      d2.approval = { ...(d2.approval || {}), status:'Draft', humanConfirmed:false };
       d2.aiDraft = {
         generatedAt: new Date().toISOString().replace('T', ' ').slice(0, 16),
-        source: 'Groq LPU (API) + 5W2H Fact Synthesis Engine'
+        source: 'AI 또는 입력 기반 초안 · 원본 확인 필요'
       };
 
       saveAppData();
@@ -986,6 +944,9 @@
       });
       c.d3.inventorySources.mes = c.d3.inventorySources.mes || { processStocks:[], evidence:'', verified:false };
       c.d3.inventorySources.mes.processStocks = Array.isArray(c.d3.inventorySources.mes.processStocks) ? c.d3.inventorySources.mes.processStocks : [];
+      c.d3.inventorySources.mes.processStocks.forEach(row => {
+        if (row.status === 'HOLD완료' || !row.status) row.status = 'Hold';
+      });
       return c.d3;
     }
 
@@ -1009,7 +970,7 @@
               const breakdownHTML = breakdown ? `
                 <div class="warehouse-lot-breakdown">
                   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-size:0.75rem; font-weight:800; color:#cbd5e1;">🔎 ${code} 창고 내 감지된 LOT 현황 (${breakdown.length}개 LOT)</span>
+                    <span style="font-size:0.75rem; font-weight:800; color:var(--text-primary);">🔎 ${code} 창고 내 감지된 LOT 현황 (${breakdown.length}개 LOT)</span>
                     <span style="font-size:0.68rem; color:#38bdf8; font-weight:700;">인접 Lot 자동 분류 완료</span>
                   </div>
                   <div style="overflow-x:auto;">
@@ -1065,7 +1026,10 @@
           <div class="mes-inventory-block">
             <div class="mes-inventory-head"><div><span>MES WORK IN PROCESS</span><strong>공정별 현재 재공품</strong><small>${mes.importedAt ? `Excel 반영 ${mes.importedAt}` : '공정명과 현재 수량을 입력하거나 MES Excel을 가져오세요.'}</small></div><div class="inline-action-group"><input type="file" id="inventoryFileMES" accept=".xlsx,.xls,.csv" hidden onchange="handleInventoryExcelImport(event,'mes','MES')"><button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('inventoryFileMES').click()"><i data-lucide="file-spreadsheet" style="width:13px;height:13px;"></i> MES Excel 가져오기</button><button type="button" class="btn btn-secondary btn-sm" onclick="addMESProcessStockRow()"><i data-lucide="plus" style="width:13px;height:13px;"></i> 공정 추가</button></div></div>
             <div class="quality-table-wrap"><table class="custom-table quality-edit-table"><thead><tr><th>공정명</th><th>LOT</th><th>현재 WIP</th><th>Hold</th><th>상태</th><th>Evidence</th><th>관리</th></tr></thead><tbody>
-              ${mes.processStocks.length ? mes.processStocks.map((row,idx) => `<tr><td><input class="form-control" name="mesProcess${idx}" value="${escapeWorkspaceValue(row.process)}" placeholder="예: SMT / TEST"></td><td><input class="form-control" name="mesLot${idx}" value="${escapeWorkspaceValue(row.lot || c.lotNumber)}"></td><td><input class="form-control num-mono" type="number" min="0" name="mesQty${idx}" value="${Number(row.currentQty || 0)}" oninput="updateD3InventoryPreview()"></td><td><input class="form-control num-mono" type="number" min="0" name="mesHold${idx}" value="${Number(row.holdQty || 0)}"></td><td><select class="form-control" name="mesStatus${idx}">${['미확인','In Process','Hold','Screening','Released'].map(status => `<option ${row.status===status?'selected':''}>${status}</option>`).join('')}</select></td><td><input class="form-control" name="mesEvidence${idx}" value="${escapeWorkspaceValue(row.evidence || mes.evidence)}" placeholder="MES 조회/파일명"></td><td><button type="button" class="icon-danger-btn" onclick="removeMESProcessStockRow(${idx})"><i data-lucide="trash-2"></i></button></td></tr>`).join('') : `<tr><td colspan="7" class="quality-empty-row">MES 공정재고가 없습니다. Excel을 가져오거나 공정행을 추가하세요.</td></tr>`}
+              ${mes.processStocks.length ? mes.processStocks.map((row,idx) => {
+                const curStatus = (row.status === 'HOLD완료' || row.status === 'Hold & Audit' || !row.status) ? 'Hold' : row.status;
+                return `<tr><td><input class="form-control" name="mesProcess${idx}" value="${escapeWorkspaceValue(row.process)}" placeholder="예: SMT / TEST"></td><td><input class="form-control" name="mesLot${idx}" value="${escapeWorkspaceValue(row.lot || c.lotNumber)}"></td><td><input class="form-control num-mono" type="number" min="0" name="mesQty${idx}" value="${Number(row.currentQty || 0)}" oninput="updateD3InventoryPreview()"></td><td><input class="form-control num-mono" type="number" min="0" name="mesHold${idx}" value="${Number(row.holdQty || 0)}"></td><td><select class="form-control" name="mesStatus${idx}">${['미확인','In Process','Hold','Screening','Released'].map(status => `<option value="${status}" ${curStatus===status?'selected':''}>${status}</option>`).join('')}</select></td><td><input class="form-control" name="mesEvidence${idx}" value="${escapeWorkspaceValue(row.evidence || mes.evidence)}" placeholder="MES 조회/파일명"></td><td><button type="button" class="icon-danger-btn" onclick="removeMESProcessStockRow(${idx})"><i data-lucide="trash-2"></i></button></td></tr>`;
+              }).join('') : `<tr><td colspan="7" class="quality-empty-row">MES 공정재고가 없습니다. Excel을 가져오거나 공정행을 추가하세요.</td></tr>`}
             </tbody></table></div>
             <div class="mes-verification-row"><label><input type="checkbox" name="mesVerified" ${mes.verified ? 'checked' : ''}> MES 공정별 WIP 확인 완료</label><button type="button" class="btn btn-secondary btn-sm" onclick="applyInventorySourcesToMaterialFlow()"><i data-lucide="arrow-down-to-line" style="width:13px;height:13px;"></i> D3 Material Flow에 반영</button></div>
           </div>
@@ -1088,15 +1052,19 @@
           verified:Boolean(form.elements[`erp${code}Verified`]?.checked)
         };
       });
-      sources.mes.processStocks = sources.mes.processStocks.map((row,idx) => ({
-        ...row,
-        process:form.elements[`mesProcess${idx}`]?.value?.trim() || '',
-        lot:form.elements[`mesLot${idx}`]?.value?.trim() || c.lotNumber || '',
-        currentQty:Number(form.elements[`mesQty${idx}`]?.value || 0),
-        holdQty:Number(form.elements[`mesHold${idx}`]?.value || 0),
-        status:form.elements[`mesStatus${idx}`]?.value || '미확인',
-        evidence:form.elements[`mesEvidence${idx}`]?.value?.trim() || ''
-      }));
+      sources.mes.processStocks = sources.mes.processStocks.map((row,idx) => {
+        const rawStatus = form.elements[`mesStatus${idx}`]?.value || row.status || 'Hold';
+        const finalStatus = (rawStatus === 'HOLD완료' || rawStatus === 'Hold & Audit') ? 'Hold' : rawStatus;
+        return {
+          ...row,
+          process:form.elements[`mesProcess${idx}`]?.value?.trim() || row.process || '',
+          lot:form.elements[`mesLot${idx}`]?.value?.trim() || row.lot || c.lotNumber || '',
+          currentQty:Number(form.elements[`mesQty${idx}`]?.value ?? row.currentQty ?? 0),
+          holdQty:Number(form.elements[`mesHold${idx}`]?.value ?? row.holdQty ?? 0),
+          status:finalStatus,
+          evidence:form.elements[`mesEvidence${idx}`]?.value?.trim() || row.evidence || ''
+        };
+      });
       sources.mes.verified = Boolean(form.elements.mesVerified?.checked);
       return sources;
     }
@@ -1404,7 +1372,7 @@ function getLotPrefixAndSeq(lotStr = '') {
           <div class="card quality-stage-card">
             <div class="quality-tool-head inline-head"><div><span class="quality-tool-kicker">QUALITY TOOL · 7-AREA MATERIAL FLOW</span><h3>위치별 재고·재공·출하 통제</h3></div>${d3.materialFlow.length ? '' : `<button type="button" class="btn btn-secondary btn-sm" onclick="initializeD3MaterialFlow()"><i data-lucide="wand-sparkles" style="width:13px;height:13px;"></i> 7개 영역 생성</button>`}</div>
             <div class="quality-table-wrap"><table class="custom-table quality-edit-table wide-quality-table"><thead><tr><th>관리 영역</th><th>LOT</th><th>총수량</th><th>Hold</th><th>선별</th><th>NG</th><th>상태</th><th>Evidence *</th></tr></thead><tbody>
-              ${d3.materialFlow.length ? d3.materialFlow.map((row,idx) => `<tr><td><input class="form-control" name="mfArea${idx}" value="${escapeWorkspaceValue(row.area)}"></td><td><input class="form-control" name="mfLot${idx}" value="${escapeWorkspaceValue(row.lot)}"></td>${['totalQty','holdQty','screenQty','ngQty'].map(key => `<td><input class="form-control num-mono" type="number" min="0" name="mf${key}${idx}" value="${Number(row[key] || 0)}"></td>`).join('')}<td><select class="form-control" name="mfStatus${idx}">${['미확인','Hold','Screening','Released','Not Applicable'].map(status => `<option ${row.status === status ? 'selected' : ''}>${status}</option>`).join('')}</select></td><td><input class="form-control" name="mfEvidence${idx}" value="${escapeWorkspaceValue(row.evidence)}" placeholder="ERP/MES/사진"></td></tr>`).join('') : `<tr><td colspan="8" class="quality-empty-row">7개 관리 영역을 생성해 위치별 수량을 확인하세요.</td></tr>`}
+              ${d3.materialFlow.length ? d3.materialFlow.map((row,idx) => `<tr><td><input class="form-control" name="mfArea${idx}" value="${escapeWorkspaceValue(row.area)}"></td><td><input class="form-control" name="mfLot${idx}" value="${escapeWorkspaceValue(row.lot)}"></td>${['totalQty','holdQty','screenQty','ngQty'].map(key => `<td><input class="form-control num-mono" type="number" min="0" name="mf${key}${idx}" value="${Number(row[key] || 0)}"></td>`).join('')}<td><select class="form-control" name="mfStatus${idx}">${[...new Set([row.status, '미확인','Hold','Screening','Released','Not Applicable'].filter(Boolean))].map(status => `<option ${row.status === status ? 'selected' : ''}>${status}</option>`).join('')}</select></td><td><input class="form-control" name="mfEvidence${idx}" value="${escapeWorkspaceValue(row.evidence)}" placeholder="ERP/MES/사진"></td></tr>`).join('') : `<tr><td colspan="8" class="quality-empty-row">7개 관리 영역을 생성해 위치별 수량을 확인하세요.</td></tr>`}
             </tbody></table></div>
           </div>
 
@@ -1449,12 +1417,50 @@ function getLotPrefixAndSeq(lotStr = '') {
       if (!form) return d3;
       captureD3InventoryForm(c,form);
       d3.lotScope = {
-        affectedLot:form.elements.affectedLot?.value?.trim() || '', adjacentLots:form.elements.adjacentLots?.value?.trim() || '', rawMaterialBatch:form.elements.rawMaterialBatch?.value?.trim() || '', equipment:form.elements.equipment?.value?.trim() || '', shippedQty:Number(form.elements.shippedQty?.value || 0), inTransitQty:Number(form.elements.inTransitQty?.value || 0), customerStockQty:Number(form.elements.customerStockQty?.value || 0), rationale:form.elements.scopeRationale?.value?.trim() || ''
+        ...d3.lotScope,
+        affectedLot: form.elements.affectedLot?.value?.trim() ?? (d3.lotScope.affectedLot || ''),
+        adjacentLots: form.elements.adjacentLots?.value?.trim() ?? (d3.lotScope.adjacentLots || ''),
+        rawMaterialBatch: form.elements.rawMaterialBatch?.value?.trim() ?? (d3.lotScope.rawMaterialBatch || ''),
+        equipment: form.elements.equipment?.value?.trim() ?? (d3.lotScope.equipment || ''),
+        rationale: form.elements.scopeRationale?.value?.trim() ?? (d3.lotScope.rationale || '')
       };
-      d3.materialFlow = d3.materialFlow.map((row,idx) => ({ area:form.elements[`mfArea${idx}`]?.value?.trim() || '', lot:form.elements[`mfLot${idx}`]?.value?.trim() || '', totalQty:Number(form.elements[`mftotalQty${idx}`]?.value || 0), holdQty:Number(form.elements[`mfholdQty${idx}`]?.value || 0), screenQty:Number(form.elements[`mfscreenQty${idx}`]?.value || 0), ngQty:Number(form.elements[`mfngQty${idx}`]?.value || 0), status:form.elements[`mfStatus${idx}`]?.value || '미확인', evidence:form.elements[`mfEvidence${idx}`]?.value?.trim() || '' }));
-      d3.actions = d3.actions.map((row,idx) => ({ id:row.id || `ICA-${String(idx+1).padStart(2,'0')}`, target:form.elements[`caTarget${idx}`]?.value?.trim() || '', action:form.elements[`caAction${idx}`]?.value?.trim() || '', owner:form.elements[`caOwner${idx}`]?.value?.trim() || '', due:(form.elements[`caDue${idx}`]?.value || '').replace('T',' '), status:form.elements[`caStatus${idx}`]?.value || 'Open', result:form.elements[`caResult${idx}`]?.value?.trim() || '', completion:row.completion || '' }));
-      d3.effectiveness = { noAdditionalClaim:form.elements.noAdditionalClaim?.value || '', lineStable:form.elements.lineStable?.value || '', stockReconciled:form.elements.stockReconciled?.value || '', verificationEvidence:form.elements.verificationEvidence?.value?.trim() || '' };
-      d3.effectivenessStatement = form.elements.effectivenessStatement?.value?.trim() || '';
+      if (form.elements.shippedQty && form.elements.shippedQty.value.trim() !== '') d3.lotScope.shippedQty = Number(form.elements.shippedQty.value);
+      if (form.elements.inTransitQty && form.elements.inTransitQty.value.trim() !== '') d3.lotScope.inTransitQty = Number(form.elements.inTransitQty.value);
+      if (form.elements.customerStockQty && form.elements.customerStockQty.value.trim() !== '') d3.lotScope.customerStockQty = Number(form.elements.customerStockQty.value);
+
+      d3.materialFlow = d3.materialFlow.map((row,idx) => ({
+        ...row,
+        area: form.elements[`mfArea${idx}`]?.value?.trim() ?? row.area,
+        lot: form.elements[`mfLot${idx}`]?.value?.trim() ?? row.lot,
+        totalQty: form.elements[`mftotalQty${idx}`] !== undefined ? Number(form.elements[`mftotalQty${idx}`]?.value || 0) : row.totalQty,
+        holdQty: form.elements[`mfholdQty${idx}`] !== undefined ? Number(form.elements[`mfholdQty${idx}`]?.value || 0) : row.holdQty,
+        screenQty: form.elements[`mfscreenQty${idx}`] !== undefined ? Number(form.elements[`mfscreenQty${idx}`]?.value || 0) : row.screenQty,
+        ngQty: form.elements[`mfngQty${idx}`] !== undefined ? Number(form.elements[`mfngQty${idx}`]?.value || 0) : row.ngQty,
+        status: form.elements[`mfStatus${idx}`]?.value || row.status,
+        evidence: form.elements[`mfEvidence${idx}`]?.value?.trim() ?? row.evidence
+      }));
+
+      d3.actions = d3.actions.map((row,idx) => ({
+        ...row,
+        id: row.id || `ICA-${String(idx+1).padStart(2,'0')}`,
+        target: form.elements[`caTarget${idx}`]?.value?.trim() ?? row.target,
+        action: form.elements[`caAction${idx}`]?.value?.trim() ?? row.action,
+        owner: form.elements[`caOwner${idx}`]?.value?.trim() ?? row.owner,
+        due: form.elements[`caDue${idx}`] ? (form.elements[`caDue${idx}`].value || '').replace('T',' ') : row.due,
+        status: form.elements[`caStatus${idx}`]?.value || row.status,
+        result: form.elements[`caResult${idx}`]?.value?.trim() ?? row.result,
+        completion: row.completion || '',
+        evidence: row.evidence || ''
+      }));
+
+      d3.effectiveness = {
+        ...d3.effectiveness,
+        noAdditionalClaim: form.elements.noAdditionalClaim?.value || d3.effectiveness.noAdditionalClaim || '',
+        lineStable: form.elements.lineStable?.value || d3.effectiveness.lineStable || '',
+        stockReconciled: form.elements.stockReconciled?.value || d3.effectiveness.stockReconciled || '',
+        verificationEvidence: form.elements.verificationEvidence?.value?.trim() || d3.effectiveness.verificationEvidence || ''
+      };
+      d3.effectivenessStatement = form.elements.effectivenessStatement?.value?.trim() || d3.effectivenessStatement || '';
       return d3;
     }
 
@@ -1601,7 +1607,8 @@ function getLotPrefixAndSeq(lotStr = '') {
         ];
       }
 
-      d3.actions = generatedActions;
+      d3.actions = generatedActions.map(action => ({...action, status:'Open', result:'', completion:''}));
+      d3.approval = {...(d3.approval || {}), status:'Draft', humanConfirmed:false};
       saveAppData();
       renderCurrentView();
 
@@ -1625,7 +1632,24 @@ function getLotPrefixAndSeq(lotStr = '') {
       if (!approve) { d3.approval={...(d3.approval||{}),status:'Draft',humanConfirmed:false,savedAt:new Date().toISOString().replace('T',' ').slice(0,16)}; saveAppData(); alert('D3 작성 내용이 임시 저장되었습니다.'); renderCurrentView(); return; }
       if (!isD2StageComplete(c)) { alert('D2 문제 정의를 먼저 승인해 주세요.'); return; }
       const sources=d3.inventorySources; const warehouses=['RAK4','RAK5'].map(code=>sources.erp[code]);
-      if (warehouses.some(row=>!row.verified||!row.evidence||row.holdQty>row.currentQty) || !sources.mes.verified || !sources.mes.processStocks.length || sources.mes.processStocks.some(row=>!row.process||!row.evidence||row.status==='미확인'||row.holdQty>row.currentQty)) { alert('D3 승인 전에 ERP RAK4·RAK5와 MES 공정별 재고를 각각 확인하고 Material Flow에 반영해 주세요.'); return; }
+      const invErrors = [];
+      if (warehouses.some(row=>!row.verified)) invErrors.push('상단 ERP [RAK4 및 RAK5 재고 확인] 체크박스');
+      if (warehouses.some(row=>!row.evidence)) invErrors.push('상단 ERP 재고 증빙 파일명');
+      if (warehouses.some(row=>row.holdQty>row.currentQty)) invErrors.push('ERP Hold 수량이 현재고를 초과함');
+      if (!sources.mes.verified) invErrors.push('상단 MES [공정별 WIP 확인 완료] 체크박스');
+      if (!sources.mes.processStocks.length) invErrors.push('상단 MES 공정별 재고 행 1개 이상 필요');
+      if (sources.mes.processStocks.some(row=>!row.process)) invErrors.push('상단 MES 공정명 누락');
+      if (sources.mes.processStocks.some(row=>!row.evidence)) invErrors.push('상단 MES 증빙 파일명 누락');
+      if (sources.mes.processStocks.some(row=>row.status==='미확인')) invErrors.push('상단 MES 공정 상태 (미확인 ➔ Hold 선택 필요)');
+      if (sources.mes.processStocks.some(row=>row.holdQty>row.currentQty)) invErrors.push('MES Hold 수량이 현재고를 초과함');
+
+      if (invErrors.length > 0) {
+        alert(`D3 봉쇄 승인을 위해 상단 [현재 재고 확인] 카드에서 아래 항목 확인이 필요합니다:\n\n• ${invErrors.join('\n• ')}\n\n확인 체크 후 다시 승인 버튼을 눌러주세요.`);
+        const panel = document.querySelector('.inventory-source-panel');
+        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      syncInventorySourcesToMaterialFlow(c);
       const scope=d3.lotScope; if (!scope.affectedLot || !scope.adjacentLots || !scope.rawMaterialBatch || !scope.equipment || !scope.rationale) { alert('LOT 영향 범위와 선정 근거를 모두 입력해 주세요.'); return; }
       if (d3.materialFlow.length !== 7 || d3.materialFlow.some(row => !row.area || !row.lot || row.status === '미확인' || !row.evidence || row.holdQty > row.totalQty || row.screenQty > row.totalQty)) { alert('7개 Material Flow 영역의 수량·상태·Evidence를 확인해 주세요. Hold/선별 수량은 총수량을 초과할 수 없습니다.'); return; }
       if (!d3.actions.length || d3.actions.some(row => !row.target || !row.action || !row.owner || !row.due || row.status !== 'Completed' || !row.result)) { alert('봉쇄조치를 한 개 이상 등록하고 담당자·기한·완료상태·결과 Evidence를 완성해 주세요.'); return; }
@@ -1751,8 +1775,8 @@ function getLotPrefixAndSeq(lotStr = '') {
 
     function renderD4ActiveTool(row,idx) {
       const tool=getD4ToolById(row.id)||{name:row.id,category:'기타',desc:'',needs:''};
-      const artifactReady=Boolean(row.artifact?.humanConfirmed&&row.artifact?.rows?.length);
-      return `<section class="d4-active-tool ${row.verified?'verified':''}"><header><div><span>${tool.category}</span><h4>${tool.name}</h4><p>${tool.desc}</p></div><div class="d4-tool-actions"><span class="d4-evidence-state ${artifactReady?'ready':''}">${artifactReady?'분석문서 완료':'분석문서 필요'}</span><button type="button" class="btn btn-secondary btn-sm" onclick="openD4EvidenceBuilder(${idx})"><i data-lucide="file-pen-line"></i> Evidence 작성</button><button type="button" class="icon-danger-btn" onclick="removeD4Tool(${idx})" title="도구 제외"><i data-lucide="trash-2"></i></button></div></header><div class="d4-tool-form"><label><span>분석 목적·가설 *</span><textarea class="form-control" name="d4ToolHypothesis${idx}" placeholder="이 도구로 무엇을 확인하거나 기각할 것인지">${escapeWorkspaceValue(row.hypothesis)}</textarea></label><label><span>연결 Evidence *</span><textarea class="form-control" name="d4ToolEvidence${idx}" placeholder="파일명, 성적서 번호, 원시데이터 위치">${escapeWorkspaceValue(row.evidence)}</textarea></label><label class="wide"><span>분석 결과·해석 *</span><textarea class="form-control" name="d4ToolFinding${idx}" placeholder="관찰된 사실과 가설에 대한 결론을 구분해서 작성">${escapeWorkspaceValue(row.finding)}</textarea></label><label><span>담당자</span><input class="form-control" name="d4ToolOwner${idx}" value="${escapeWorkspaceValue(row.owner)}" placeholder="분석 담당"></label><label><span>상태</span><select class="form-control" name="d4ToolStatus${idx}">${['Planned','Testing','Rejected','Supported','Confirmed'].map(status=>`<option value="${status}" ${row.status===status?'selected':''}>${status}</option>`).join('')}</select></label></div><footer><small>필요자료 · ${tool.needs}</small><label class="row-verify-control"><input type="checkbox" name="d4ToolVerified${idx}" ${row.verified?'checked':''}><span>Evidence와 결과 사실 확인</span></label></footer></section>`;
+      const artifactReady=Boolean(row.artifact?.humanConfirmed&&(row.artifact?.rows?.length||row.artifact?.attachments?.length));
+      return `<section class="d4-active-tool ${row.verified?'verified':''}"><header><div><span>${tool.category}</span><h4>${tool.name}</h4><p>${tool.desc}</p></div><div class="d4-tool-actions"><span class="d4-evidence-state ${artifactReady?'ready':'needed'}"><i data-lucide="${artifactReady?'check-circle-2':'alert-circle'}"></i><span>${artifactReady?'Evidence 등록완료':'Evidence 작성필요'}</span></span><button type="button" class="d4-evidence-btn ${artifactReady?'ready':''}" onclick="openD4EvidenceBuilder(${idx})" title="${artifactReady?'등록된 Evidence 상세 열람 및 수정':'Evidence 실증자료 작성 및 원본 첨부'}"><i data-lucide="${artifactReady?'file-check':'file-pen-line'}"></i><span>${artifactReady?'Evidence 상세/수정':'Evidence 작성'}</span></button><button type="button" class="d4-tool-remove-btn" onclick="removeD4Tool(${idx})" title="도구 제외"><i data-lucide="trash-2"></i></button></div></header><div class="d4-tool-form"><label><span>분석 목적·가설 *</span><textarea class="form-control" name="d4ToolHypothesis${idx}" placeholder="이 도구로 무엇을 확인하거나 기각할 것인지">${escapeWorkspaceValue(row.hypothesis)}</textarea></label><label><span>연결 Evidence *</span><textarea class="form-control" name="d4ToolEvidence${idx}" placeholder="파일명, 성적서 번호, 원시데이터 위치">${escapeWorkspaceValue(row.evidence)}</textarea></label><label class="wide"><span>분석 결과·해석 *</span><textarea class="form-control" name="d4ToolFinding${idx}" placeholder="관찰된 사실과 가설에 대한 결론을 구분해서 작성">${escapeWorkspaceValue(row.finding)}</textarea></label><label><span>담당자</span><input class="form-control" name="d4ToolOwner${idx}" value="${escapeWorkspaceValue(row.owner)}" placeholder="분석 담당"></label><label><span>상태</span><select class="form-control" name="d4ToolStatus${idx}">${['Planned','Testing','Rejected','Supported','Confirmed'].map(status=>`<option value="${status}" ${row.status===status?'selected':''}>${status}</option>`).join('')}</select></label></div><footer><small>필요자료 · ${tool.needs}</small><label class="row-verify-control"><input type="checkbox" name="d4ToolVerified${idx}" ${row.verified?'checked':''}><span>Evidence와 결과 사실 확인</span></label></footer></section>`;
     }
 
     function renderD4CauseLane(type,cause) {
@@ -1772,7 +1796,7 @@ function getLotPrefixAndSeq(lotStr = '') {
     function applyD4Recommendations() { const c=getActiveCase(); const d4=captureD4Form(c); d4.recommendations=buildD4ToolRecommendations(d4); d4.recommendations.forEach(rec=>{if(!d4.selectedTools.some(row=>row.id===rec.id))d4.selectedTools.push({id:rec.id,source:'AI',hypothesis:'',evidence:'',finding:'',owner:'',status:'Planned',verified:false});}); d4.approval={status:'Draft',humanConfirmed:false}; saveAppData(); renderCurrentView(); }
     function addD4Tool(id) { const c=getActiveCase(); const d4=captureD4Form(c); if(!getD4ToolById(id)||d4.selectedTools.some(row=>row.id===id))return; d4.selectedTools.push({id,source:'CFT',hypothesis:'',evidence:'',finding:'',owner:'',status:'Planned',verified:false}); d4.approval={status:'Draft',humanConfirmed:false}; saveAppData(); renderCurrentView(); }
     function removeD4Tool(idx) { const c=getActiveCase(); const d4=captureD4Form(c); d4.selectedTools.splice(idx,1); d4.approval={status:'Draft',humanConfirmed:false}; saveAppData(); renderCurrentView(); }
-    function isD4StageComplete(c) { return c.d4?.approval?.status==='Approved'&&c.d4?.approval?.humanConfirmed===true; }
+    function isD4StageComplete(c) { return hasCurrentStageApproval(c, 'D4'); }
 
     function saveD4Analysis(approve) {
       const c=getActiveCase(); const d4=captureD4Form(c); const form=document.getElementById('d4QualityForm');
@@ -1861,11 +1885,11 @@ function getLotPrefixAndSeq(lotStr = '') {
 
       return checks.map(chk => `
         <div class="ai-check-item ${chk.type}">
-          <div style="font-weight:700; color:#f8fafc; display:flex; align-items:center; gap:6px;">
+          <div style="font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:6px;">
             <i data-lucide="${chk.type === 'critical' ? 'alert-circle' : chk.type === 'warning' ? 'alert-triangle' : 'check-circle'}" style="width:14px;height:14px;"></i>
             ${chk.title}
           </div>
-          <div style="font-size:0.75rem; color:#cbd5e1; margin-top:4px; line-height:1.4;">
+          <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px; line-height:1.4;">
             ${chk.desc}
           </div>
         </div>
@@ -1892,7 +1916,10 @@ function getLotPrefixAndSeq(lotStr = '') {
       const c = getActiveCase();
       if (!c) return;
 
+      closeStageReviewModal();
       const signOff = getStageSignOffData(c, stageKey);
+      const leader = stageApprover(c, 'leader');
+      const champion = stageApprover(c, 'champion');
       const backdrop = document.createElement('div');
       backdrop.id = 'stageReviewModalBackdrop';
       backdrop.className = 'stage-modal-backdrop';
@@ -1902,7 +1929,7 @@ function getLotPrefixAndSeq(lotStr = '') {
           <div class="stage-report-header">
             <div style="display:flex; align-items:center; gap:8px;">
               <i data-lucide="file-check-2" style="width:20px;height:20px;color:#38bdf8;"></i>
-              <strong style="color:#f8fafc; font-size:0.95rem;">공식 8D 중간 검토 리포트 & 승인 결재 (${stageKey} 단계)</strong>
+              <strong style="color:var(--text-primary); font-size:0.95rem;">공식 8D 중간 검토 리포트 & 승인 결재 (${stageKey} 단계)</strong>
             </div>
             <button type="button" class="btn btn-secondary btn-sm" onclick="closeStageReviewModal()" style="padding:4px 8px;">✕ 닫기</button>
           </div>
@@ -1923,8 +1950,8 @@ function getLotPrefixAndSeq(lotStr = '') {
 
               <div class="signoff-cell" style="background:${signOff.status === 'Submitted' ? 'rgba(59,130,246,0.06)' : 'transparent'};">
                 <div class="signoff-role-title">2. 8D Leader 검토</div>
-                <div class="signoff-person-name">김현수 실장_상무</div>
-                <div style="font-size:0.68rem; color:#94a3b8;">Flash 개발실 (기술 주관)</div>
+                <div class="signoff-person-name">${escapeWorkspaceValue(leader?.name || "Leader 미지정")}</div>
+                <div style="font-size:0.68rem; color:#94a3b8;">${escapeWorkspaceValue(leader?.dept || "미지정")}</div>
                 ${signOff.leader ? `
                   <div class="signoff-stamp approved">✔️ 검토 완료<br><small style="font-size:0.6rem;">${signOff.leader.signedAt}</small></div>
                 ` : signOff.status === 'Submitted' ? `
@@ -1936,8 +1963,8 @@ function getLotPrefixAndSeq(lotStr = '') {
 
               <div class="signoff-cell" style="background:${signOff.status === 'LeaderApproved' ? 'rgba(16,185,129,0.06)' : 'transparent'};">
                 <div class="signoff-role-title">3. 8D Champion 최종 승인</div>
-                <div class="signoff-person-name">황승안 팀장_상무</div>
-                <div style="font-size:0.68rem; color:#94a3b8;">품질혁신팀 (품질 총괄)</div>
+                <div class="signoff-person-name">${escapeWorkspaceValue(champion?.name || "Champion 미지정")}</div>
+                <div style="font-size:0.68rem; color:#94a3b8;">${escapeWorkspaceValue(champion?.dept || "미지정")}</div>
                 ${signOff.champion ? `
                   <div class="signoff-stamp approved">🏆 최종 승인 완료<br><small style="font-size:0.6rem;">${signOff.champion.signedAt}</small></div>
                 ` : signOff.status === 'LeaderApproved' ? `
@@ -1952,7 +1979,7 @@ function getLotPrefixAndSeq(lotStr = '') {
             <div class="report-paper">
               <div class="report-title-strip">
                 <span style="font-size:0.7rem; letter-spacing:1px; color:#38bdf8; font-weight:800;">RAMOS TECHNOLOGY · OFFICIAL 8D REPORT</span>
-                <h3 style="margin:4px 0; color:#f8fafc; font-size:1.15rem;">[${stageKey}] ${getStageTitleText(stageKey)} 공식 검토서</h3>
+                <h3 style="margin:4px 0; color:var(--text-primary); font-size:1.15rem;">[${stageKey}] ${getStageTitleText(stageKey)} 공식 검토서</h3>
                 <div style="font-size:0.72rem; color:#94a3b8;">문서번호: 8D-REP-${c.id}-${stageKey} | 고객사: ${c.customer}</div>
               </div>
 
@@ -1974,10 +2001,11 @@ function getLotPrefixAndSeq(lotStr = '') {
           <div class="stage-report-footer">
             <div style="font-size:0.75rem; color:#94a3b8;">
               <i data-lucide="shield-alert" style="width:13px;height:13px;color:#f59e0b;display:inline-block;vertical-align:middle;"></i>
-              8D Leader(김현수 상무)와 Champion(황승안 상무)의 최종 결재가 완료되어야 다음 단계가 공식 해금됩니다.
+              CFT에 지정된 Leader와 Champion의 최종 결재가 완료되어야 다음 단계로 이동할 수 있습니다.
             </div>
 
             <div class="inline-action-group">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="openApprovalHistory('${stageKey}')">이전 결재 이력</button>
               ${renderStageSignOffActionButtons(c, stageKey, signOff)}
             </div>
           </div>
@@ -1995,13 +2023,19 @@ function getLotPrefixAndSeq(lotStr = '') {
 
     function getStageTitleText(stageKey) {
       const map = {
-        'D1': 'D1. CFT 팀 구성 및 RACI',
-        'D2': 'D2. 5W2H 사실 종합 & IS/IS NOT 문제 정의',
-        'D3': 'D3. 7-Area 재고 격리 및 긴급 봉쇄조치(ICA)',
-        'D4': 'D4. 근본원인 규명 및 FA 가설 검증'
+        'D1': 'CFT 팀 구성 및 RACI',
+        'D2': '5W2H 사실 종합 & IS/IS NOT 문제 정의',
+        'D3': '7-Area 재고 격리 및 긴급 봉쇄조치 (ICA)',
+        'D4': '근본원인 규명 및 FA 가설 검증 (5-Why & FA)',
+        'D5': '영구 시정조치 선정 및 계획 (PCA)',
+        'D6': '대책 적용 및 실측 검증 (Validation & Release)',
+        'D7': '재발방지 및 사내 표준 개정 / 수평전개',
+        'D8': '최종 종결 점검 및 팀 인정'
       };
-      return map[stageKey] || stageKey;
+      const raw = map[stageKey] || stageKey;
+      return String(raw).replace(new RegExp(`^${stageKey}[.:\\s-]*`, 'i'), '').trim();
     }
+    window.getStageTitleText = getStageTitleText;
 
     function renderStageReportSpecificContent(c, stageKey) {
       if (stageKey === 'D1') {
@@ -2088,15 +2122,15 @@ function getLotPrefixAndSeq(lotStr = '') {
           <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; margin-bottom:18px;">
             <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:6px;">
               <span style="font-size:0.75rem; color:#64748b; font-weight:700;">RAK4 완제품 재고 (ERP)</span>
-              <div style="font-size:1.15rem; font-weight:900; color:#0369a1; margin-top:4px;">${Number(d3.inventorySources?.erp?.RAK4?.currentQty || 1675).toLocaleString()}ea <span style="font-size:0.75rem; color:#b91c1c; font-weight:800;">(Hold 100%)</span></div>
+              <div style="font-size:1.15rem; font-weight:900; color:#0369a1; margin-top:4px;">${Number(d3.inventorySources?.erp?.RAK4?.currentQty ?? 0).toLocaleString()}ea <span style="font-size:0.75rem; color:#b91c1c; font-weight:800;">(확인 필요)</span></div>
             </div>
             <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:6px;">
               <span style="font-size:0.75rem; color:#64748b; font-weight:700;">CTST 라인 재공 (MES)</span>
-              <div style="font-size:1.15rem; font-weight:900; color:#b45309; margin-top:4px;">${Number(d3.inventorySources?.mes?.processStocks?.reduce((s,r)=>s+Number(r.currentQty||0),0) || 1608).toLocaleString()}ea <span style="font-size:0.75rem; color:#b91c1c; font-weight:800;">(Hold)</span></div>
+              <div style="font-size:1.15rem; font-weight:900; color:#b45309; margin-top:4px;">${Number(d3.inventorySources?.mes?.processStocks?.reduce((s,r)=>s+Number(r.currentQty||0),0) ?? 0).toLocaleString()}ea <span style="font-size:0.75rem; color:#b91c1c; font-weight:800;">(Hold)</span></div>
             </div>
             <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:6px;">
               <span style="font-size:0.75rem; color:#64748b; font-weight:700;">인접 LOT 추적 대상</span>
-              <div style="font-size:0.92rem; font-weight:800; color:#15803d; margin-top:4px;">${d3.lotScope?.adjacentLots || '0QH321200A03, A05'}</div>
+              <div style="font-size:0.92rem; font-weight:800; color:#15803d; margin-top:4px;">${d3.lotScope?.adjacentLots || '작성 대기'}</div>
             </div>
           </div>
 
@@ -2142,28 +2176,34 @@ function getLotPrefixAndSeq(lotStr = '') {
             <tbody>
               <tr>
                 <td class="report-col-factor" style="color:#b91c1c;">1. 발생 원인 (Occurrence)</td>
-                <td style="font-weight:700; color:#0f172a;">${escapeWorkspaceValue(roots.Occurrence?.statement || '웨이퍼 Die 에지 Inked 셀 내부 단락 유발')}</td>
-                <td style="font-size:0.78rem; color:#475569;">${escapeWorkspaceValue(roots.Occurrence?.evidence || 'SEM/EDX 단면 분석 성적서')}</td>
+                <td style="font-weight:700; color:#0f172a;">${escapeWorkspaceValue(roots.Occurrence?.statement || '작성 대기')}</td>
+                <td style="font-size:0.78rem; color:#475569;">${escapeWorkspaceValue(roots.Occurrence?.evidence || '작성 대기')}</td>
               </tr>
               <tr>
                 <td class="report-col-factor" style="color:#b45309;">2. 유출 원인 (Escape)</td>
-                <td style="font-weight:700; color:#0f172a;">${escapeWorkspaceValue(roots.Escape?.statement || '출하 전 SHORT TEST 검사 패턴의 미세 단락 감지 한계')}</td>
-                <td style="font-size:0.78rem; color:#475569;">${escapeWorkspaceValue(roots.Escape?.evidence || 'ATE 테스트 로그 파일 및 커버리지')}</td>
+                <td style="font-weight:700; color:#0f172a;">${escapeWorkspaceValue(roots.Escape?.statement || '작성 대기')}</td>
+                <td style="font-size:0.78rem; color:#475569;">${escapeWorkspaceValue(roots.Escape?.evidence || '작성 대기')}</td>
               </tr>
               <tr>
                 <td class="report-col-factor" style="color:#0369a1;">3. 시스템 원인 (System)</td>
-                <td style="font-weight:700; color:#0f172a;">${escapeWorkspaceValue(roots.System?.statement || '외주 가공처 Die 마진 관리 기준 미흡 및 FMEA 반영 누락')}</td>
-                <td style="font-size:0.78rem; color:#475569;">${escapeWorkspaceValue(roots.System?.evidence || '공정 관리계획서(CP) 및 PFMEA')}</td>
+                <td style="font-weight:700; color:#0f172a;">${escapeWorkspaceValue(roots.System?.statement || '작성 대기')}</td>
+                <td style="font-size:0.78rem; color:#475569;">${escapeWorkspaceValue(roots.System?.evidence || '작성 대기')}</td>
               </tr>
             </tbody>
           </table>
         `;
       }
 
-      return `<div style="padding:20px; color:#94a3b8; text-align:center;">해당 단계 내용 요약 준비 중</div>`;
+      return renderStageReportSection(c, stageKey);
     }
 
     function renderStageSignOffActionButtons(c, stageKey, signOff) {
+      const nextRole = {Draft:'drafter', Submitted:'leader', LeaderApproved:'champion'}[signOff.status];
+      const assigned = nextRole ? stageApprover(c, nextRole) : null;
+      const isMaster = typeof hasMasterAuthority === 'function' && hasMasterAuthority(CURRENT_USER);
+      if (nextRole && (!assigned || assigned.email !== CURRENT_USER.email) && !isMaster) {
+        return `<span class="badge-pill badge-warn">${escapeWorkspaceValue(assigned?.name || 'CFT 담당자 지정 필요')} 결재 대기</span>`;
+      }
       const nowStr = new Date().toISOString().replace('T',' ').slice(0,16);
 
       // 1. Initial State: Drafter needs to submit
@@ -2177,9 +2217,10 @@ function getLotPrefixAndSeq(lotStr = '') {
 
       // 2. Submitted: Leader needs to approve (or quick test sign)
       if (signOff.status === 'Submitted') {
+        const isSelf = assigned && assigned.email === CURRENT_USER.email;
         return `
-          <button type="button" class="btn btn-secondary" onclick="executeStageSignOff('${stageKey}', 'leader')" style="border-color:#38bdf8; color:#38bdf8;">
-            <i data-lucide="check" style="width:14px;height:14px;"></i> 👑 [김현수 실장_상무] Leader 검토 승인
+          <button type="button" class="btn ${isSelf ? 'btn-secondary' : 'btn-warning'}" onclick="${isSelf ? `executeStageSignOff('${stageKey}', 'leader')` : `executeStageSignOff('${stageKey}', 'leader', true)`}" style="${isSelf ? 'border-color:#38bdf8; color:#38bdf8;' : 'background:#f59e0b; border-color:#d97706; color:#000; font-weight:800;'}">
+            <i data-lucide="check" style="width:14px;height:14px;"></i> ${isSelf ? '👑 ' + escapeWorkspaceValue(assigned?.name) + ' Leader 검토 승인' : '👑 [마스터 전결] ' + escapeWorkspaceValue(assigned?.name || 'Leader') + ' 승인'}
           </button>
           <span style="font-size:0.72rem; color:#fbbf24;">(Champion 결재 대기 중)</span>
         `;
@@ -2187,9 +2228,10 @@ function getLotPrefixAndSeq(lotStr = '') {
 
       // 3. LeaderApproved: Champion needs to give final sign-off
       if (signOff.status === 'LeaderApproved') {
+        const isSelf = assigned && assigned.email === CURRENT_USER.email;
         return `
-          <button type="button" class="btn btn-primary" onclick="executeStageSignOff('${stageKey}', 'champion')" style="background:#10b981; border-color:#10b981;">
-            <i data-lucide="award" style="width:14px;height:14px;"></i> 🏛️ [황승안 팀장_상무] Champion 최종 승인
+          <button type="button" class="btn ${isSelf ? 'btn-primary' : 'btn-warning'}" onclick="${isSelf ? `executeStageSignOff('${stageKey}', 'champion')` : `executeStageSignOff('${stageKey}', 'champion', true)`}" style="${isSelf ? 'background:#10b981; border-color:#10b981;' : 'background:#f59e0b; border-color:#d97706; color:#000; font-weight:800;'}">
+            <i data-lucide="award" style="width:14px;height:14px;"></i> ${isSelf ? '🏛️ ' + escapeWorkspaceValue(assigned?.name) + ' Champion 최종 승인' : '👑 [마스터 전결] ' + escapeWorkspaceValue(assigned?.name || 'Champion') + ' 최종 승인'}
           </button>
         `;
       }
@@ -2221,104 +2263,60 @@ function getLotPrefixAndSeq(lotStr = '') {
       `;
     }
 
-    function executeStageSignOff(stageKey, role) {
+    function executeStageSignOff(stageKey, role, forceMaster = false) {
       const c = getActiveCase();
-      if (!c) return;
-
+      if (!c || !QUALITY_STAGES.includes(stageKey)) return;
+      const assigned = stageApprover(c, role);
+      const isMaster = typeof hasMasterAuthority === 'function' && hasMasterAuthority(CURRENT_USER);
+      if ((!assigned || assigned.email !== CURRENT_USER.email) && (!forceMaster || !isMaster)) {
+        alert('현재 CFT에 지정된 해당 결재자 계정으로 접속해 주세요.'); return;
+      }
+      // Capture visible edits before checking the exact version being signed.
+      if (appData.currentView === 'stage' && appData.activeStage === stageKey) {
+        if (stageKey === 'D2') captureD2Form(c);
+        if (stageKey === 'D3') captureD3Form(c);
+        if (stageKey === 'D4') captureD4Form(c);
+        if (['D5','D6','D7','D8'].includes(stageKey)) captureLateStageForm(c,stageKey);
+      }
+      saveAppData();
       const signOff = getStageSignOffData(c, stageKey);
-      const nowStr = new Date().toISOString().replace('T',' ').slice(0,16);
-
+      const expected = {drafter:'Draft',leader:'Submitted',champion:'LeaderApproved'}[role];
+      if (!expected || signOff.status !== expected) { alert('결재 순서가 변경되었거나 이미 처리됐습니다. 검토서를 다시 확인해 주세요.'); return; }
+      const error = stageReviewError(c, stageKey);
+      if (error) { alert(error); return; }
+      const snapshot = approvalSnapshot(c, stageKey);
+      if (role !== 'drafter' && (!signOff.snapshot || JSON.stringify(signOff.snapshot) !== JSON.stringify(snapshot))) {
+        invalidateApprovalFrom(c,stageKey,'기안 내용과 현재 내용 불일치 — 재기안 필요');
+        saveAppData(); closeStageReviewModal(); renderCurrentView();
+        alert('기안 이후 내용이 달라졌거나 구형 결재입니다. 내용을 확인하고 다시 기안해 주세요.'); return;
+      }
+      const signedAt = new Date().toISOString();
+      const isOverride = forceMaster && isMaster && (!assigned || assigned.email !== CURRENT_USER.email);
+      const signName = isOverride ? `${assigned?.name || role} (마스터 ${CURRENT_USER.name} 전결)` : (assigned?.name || CURRENT_USER.name);
+      signOff[role] = {name:signName, dept:assigned?.dept || CURRENT_USER.dept, email:assigned?.email || CURRENT_USER.email, signedAt, masterOverride: isOverride};
       if (role === 'drafter') {
-        signOff.drafter = {
-          name: CURRENT_USER.name || '김성중 S.Pro',
-          dept: CURRENT_USER.dept || '품질혁신팀',
-          email: CURRENT_USER.email || 'sjkim@ramostek.com',
-          signedAt: nowStr
-        };
+        signOff.snapshot = snapshot;
+        signOff.reportHtml = renderStageReportSpecificContent(c, stageKey);
         signOff.status = 'Submitted';
-        saveAppData();
-        alert(`[${stageKey}] 기안이 상신되었습니다! 8D Leader(김현수 상무)의 검토 결재를 진행해 주세요.`);
-        openStageReviewModal(stageKey);
-        renderCurrentView();
-        return;
-      }
-
-      if (role === 'leader') {
-        signOff.leader = {
-          name: '김현수 실장_상무',
-          dept: 'Flash 개발실',
-          email: 'hskim@ramostek.com',
-          signedAt: nowStr
-        };
+      } else if (role === 'leader') {
         signOff.status = 'LeaderApproved';
-        saveAppData();
-        alert(`[${stageKey}] 8D Leader(김현수 상무) 검토 승인이 완료되었습니다! 8D Champion(황승안 상무)의 최종 결재를 진행해 주세요.`);
-        openStageReviewModal(stageKey);
-        renderCurrentView();
-        return;
-      }
-
-      if (role === 'champion') {
-        signOff.champion = {
-          name: '황승안 팀장_상무',
-          dept: '품질혁신팀',
-          email: 'sahwang@ramostek.com',
-          signedAt: nowStr
-        };
+      } else {
         signOff.status = 'Approved';
-
-        // Mark actual stage as approved across D1 to D8
-        if (stageKey === 'D1') {
-          c.cftRecommendation = {
-            ...(c.cftRecommendation || {}),
-            status: 'Human Confirmed',
-            humanConfirmed: true,
-            confirmedAt: nowStr,
-            confirmedBy: signOff.champion
-          };
-          c.cftRaci = {
-            acknowledged: true,
-            confirmedAt: nowStr,
-            confirmedBy: signOff.champion
-          };
-          c.currentStage = 'D1';
-        } else if (stageKey === 'D2') {
-          c.d2.approval = {
-            status: 'Approved',
-            humanConfirmed: true,
-            approvedAt: nowStr,
-            approvedBy: signOff.champion
-          };
-          c.currentStage = 'D2';
-        } else if (stageKey === 'D3') {
-          c.d3.approval = {
-            status: 'Approved',
-            humanConfirmed: true,
-            approvedAt: nowStr,
-            approvedBy: signOff.champion
-          };
-          c.currentStage = 'D3';
-        } else {
-          c[stageKey.toLowerCase()] = c[stageKey.toLowerCase()] || {};
-          c[stageKey.toLowerCase()].approval = {
-            status: 'Approved',
-            humanConfirmed: true,
-            approvedAt: nowStr,
-            approvedBy: signOff.champion
-          };
-          c.currentStage = stageKey;
+        if (stageKey !== 'D1') c[stageKey.toLowerCase()].approval = {status:'Approved',humanConfirmed:true,approvedAt:signedAt,approvedBy:signOff.champion};
+        c.currentStage = stageKey;
+        if (stageKey === 'D8') {
+          c.status = 'Closed';
+          c.closedAt = signedAt;
+          c.closedBy = {...signOff.champion};
         }
-
-        saveAppData();
-        alert(`🎉 [${stageKey}] 8D Champion(황승안 상무) 최종 결재가 완료되었습니다!
-이제 다음 8D 단계가 공식 해금(Unlock)되어 이동할 수 있습니다.`);
-        closeStageReviewModal();
-        renderCurrentView();
       }
+      saveAppData();
+      closeStageReviewModal(); renderCurrentView(); openStageReviewModal(stageKey);
+      alert(`[${stageKey}] ${assigned.name} 결재가 저장되었습니다.`);
     }
 
 
     function proceedToNextStage(nextStageKey) {
       closeStageReviewModal();
-      switchQualityStage(nextStageKey);
+      switchStage(nextStageKey);
     }
