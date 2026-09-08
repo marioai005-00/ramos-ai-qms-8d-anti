@@ -178,6 +178,10 @@ async function send(method, params = {}, sessionId) {
       inTransitAction: '운송 화물 1건 회수 완료',
       containmentAction: '디스펜서 공압 교정 및 직전 3개 로트 X-Ray 전수 검사',
       faReportDeadline: '2026-09-09 18:00',
+      evidenceFiles: [
+        { name: 'Xray_Void_Defect_Inspection.png', size: '3.1 MB', type: 'image' },
+        { name: 'ASE_Dispenser_Pressure_Log.csv', size: '450 KB', type: 'csv' }
+      ],
       title: '[긴급 E2E] 언더필 토출압 저하로 인한 보이드 급증',
       description: 'E2E 자동화 검증을 통한 긴급 공정 이상 발생 자진 신고 건입니다.'
     });
@@ -212,8 +216,62 @@ async function send(method, params = {}, sessionId) {
   })()` });
   await delay(300);
 
-  // 6. Test 8D Escalation Linkage
-  console.log('--- Step 6: Testing 8D Escalation Linkage ---');
+  // 6. Test Universal Document Viewer (PDF, Excel, X-Ray Image)
+  console.log('--- Step 6: Testing Universal Document & Report Viewer ---');
+  
+  // 6-A: PDF SpecSheet Viewer
+  console.log('Testing PDF SpecSheet Viewer...');
+  await call('Runtime.evaluate', { expression: `openDocumentViewer('Murata_X7R_MLCC_SpecSheet.pdf');` });
+  await delay(400);
+
+  const viewerVisible = (await call('Runtime.evaluate', { expression: `document.getElementById('documentViewerModal').style.display`, returnByValue: true })).result.value;
+  assert.equal(viewerVisible, 'flex', 'Document viewer modal should be visible');
+
+  const pdfTitle = (await call('Runtime.evaluate', { expression: `document.querySelector('.doc-viewer-title').innerText`, returnByValue: true })).result.value;
+  assert.ok(pdfTitle.includes('Murata'), 'Document viewer should display Murata spec');
+
+  const pdfShot = await call('Page.captureScreenshot', { format: 'png' });
+  fs.writeFileSync(path.join(outDir, 'verify_pdf_viewer.png'), Buffer.from(pdfShot.data, 'base64'));
+  console.log('✓ PASS: PDF Viewer opened successfully -> verify_pdf_viewer.png');
+
+  // 6-B: Excel Reliability Report Viewer
+  console.log('Testing Excel Reliability Report Viewer...');
+  await call('Runtime.evaluate', { expression: `openDocumentViewer('TC_1000Cycles_Reliability_Report.xlsx');` });
+  await delay(400);
+
+  const hasExcelTable = (await call('Runtime.evaluate', { expression: `Boolean(document.querySelector('.excel-grid-table'))`, returnByValue: true })).result.value;
+  assert.ok(hasExcelTable, 'Excel table should be rendered inside viewer');
+
+  const excelShot = await call('Page.captureScreenshot', { format: 'png' });
+  fs.writeFileSync(path.join(outDir, 'verify_excel_viewer.png'), Buffer.from(excelShot.data, 'base64'));
+  console.log('✓ PASS: Excel Viewer opened successfully -> verify_excel_viewer.png');
+
+  // 6-C: X-Ray Defect Image Viewer & 90 deg rotation
+  console.log('Testing X-Ray Defect Image Viewer...');
+  await call('Runtime.evaluate', { expression: `openDocumentViewer('Xray_Void_Defect_Inspection.png');` });
+  await delay(400);
+
+  const hasDefectCallout = (await call('Runtime.evaluate', { expression: `document.body.innerText.includes('DEFECT: SOLDER VOID')`, returnByValue: true })).result.value;
+  assert.ok(hasDefectCallout, 'X-Ray defect callout should be rendered');
+
+  // Test rotation
+  await call('Runtime.evaluate', { expression: `rotateViewerImage();` });
+  await delay(200);
+
+  const xrayShot = await call('Page.captureScreenshot', { format: 'png' });
+  fs.writeFileSync(path.join(outDir, 'verify_xray_viewer.png'), Buffer.from(xrayShot.data, 'base64'));
+  console.log('✓ PASS: X-Ray Defect Viewer opened and rotated -> verify_xray_viewer.png');
+
+  // Close Viewer
+  await call('Runtime.evaluate', { expression: `closeDocumentViewer();` });
+  await delay(200);
+
+  const viewerClosed = (await call('Runtime.evaluate', { expression: `document.getElementById('documentViewerModal').style.display`, returnByValue: true })).result.value;
+  assert.equal(viewerClosed, 'none', 'Document viewer modal should be closed');
+  console.log('✓ PASS: Document Viewer closed cleanly');
+
+  // 7. Test 8D Escalation Linkage
+  console.log('--- Step 7: Testing 8D Escalation Linkage ---');
   await call('Runtime.evaluate', { expression: `handleEscalateTo8D('SQ-2026-002');` });
   await delay(400);
 
@@ -224,7 +282,7 @@ async function send(method, params = {}, sessionId) {
   try { socket.close(); } catch {}
   try { proc.kill(); } catch {}
   console.log('\n=================================================');
-  console.log('🎉 ALL DYNAMIC 2-TRACK SUPPLIER E2E TESTS PASSED 100%!');
+  console.log('🎉 ALL DYNAMIC 2-TRACK SUPPLIER & DOC VIEWER E2E TESTS PASSED 100%!');
   console.log('=================================================');
   setTimeout(() => process.exit(0), 100);
 })().catch(err => {

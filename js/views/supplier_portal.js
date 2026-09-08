@@ -276,7 +276,7 @@ function renderSupplierWatchtower(records, kpi) {
         <input type="text" placeholder="🔍 검색어 입력..." value="${supplierPortalState.searchQuery}" oninput="supplierPortalState.searchQuery = this.value; renderCurrentView();">
       </div>
 
-      <div style="display:flex; gap:6px; align-items:flex-end;">
+      <div class="supplier-filter-actions">
         <button class="btn btn-secondary btn-sm" onclick="supplierPortalState.filterSupplier='ALL'; supplierPortalState.filterType='ALL'; supplierPortalState.filterStatus='ALL'; supplierPortalState.searchQuery=''; renderCurrentView();" title="필터 초기화">
           <i data-lucide="rotate-ccw" style="width:14px; height:14px;"></i>
           <span>초기화</span>
@@ -358,6 +358,15 @@ function renderSupplierWatchtower(records, kpi) {
                     <span class="num-mono" style="color:#38bdf8;">P/N: ${item.targetProduct?.partNumber || '-'}</span>
                     <span style="margin-left:8px;" class="num-mono">Lot: ${item.targetProduct?.lotNo || 'N/A'}</span>
                   </div>
+                  ${item.evidenceFiles && item.evidenceFiles.length > 0 ? `
+                    <div style="display:flex; gap:4px; margin-top:5px; flex-wrap:wrap;">
+                      ${item.evidenceFiles.map(f => `
+                        <button type="button" class="btn btn-xs btn-outline-info" onclick="event.stopPropagation(); openDocumentViewer('${f.name}')" title="클릭하여 즉시 문서/성적서 뷰어로 확인">
+                          📎 ${f.name.length > 24 ? f.name.slice(0, 22) + '...' : f.name}
+                        </button>
+                      `).join('')}
+                    </div>
+                  ` : ''}
                 </td>
                 <td style="text-align:center;">
                   <span class="badge-risk ${isMajor ? 'risk-major' : 'risk-minor'}">
@@ -626,19 +635,25 @@ function renderPCNTrackForm(f) {
       </div>
     </div>
 
-    <div class="supplier-dropzone" onclick="simulateAttachSupplierFile('PCN')">
+    <div class="supplier-dropzone" onclick="document.getElementById('pcnFileInput').click()" style="cursor:pointer;">
+      <input type="file" id="pcnFileInput" style="display:none;" multiple onchange="handleSupplierFileUpload(event, 'PCN')">
       <i data-lucide="upload-cloud" style="width:32px; height:32px; color:#38bdf8; margin-bottom:6px;"></i>
       <div style="font-weight:700; color:var(--text-primary); font-size:0.85rem;">
-        클릭하여 신뢰성 시험 성적서, 4M 검토서, 스펙시트 첨부
+        클릭하여 신뢰성 시험 성적서, 4M 검토서, 스펙시트 첨부 (드래그 & 드롭 가능)
       </div>
       <div style="font-size:0.72rem; color:var(--text-muted); margin-top:3px;">
         지원 포맷: PDF, XLSX, CSV, PNG, JPG (최대 50MB) · 공인 성적서 사전 검증
       </div>
-      <div style="margin-top:10px; display:flex; gap:8px; justify-content:center;">
-        <span class="badge-pill badge-info" style="font-size:0.72rem;">📎 Murata_X7R_Reliability_Test.pdf (1.4MB)</span>
-        <span class="badge-pill badge-info" style="font-size:0.72rem;">📎 SMT_Reflow_Thermal_Profile.xlsx (2.1MB)</span>
+      <div style="margin-top:10px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+        <span class="badge-pill badge-info" style="font-size:0.72rem; cursor:pointer;" onclick="event.stopPropagation(); openDocumentViewer('Murata_X7R_Reliability_Test.pdf')" title="뷰어로 미리보기">
+          📎 Murata_X7R_Reliability_Test.pdf (1.4MB) <b style="color:#2563eb; margin-left:4px;">[👁️ 뷰어]</b>
+        </span>
+        <span class="badge-pill badge-info" style="font-size:0.72rem; cursor:pointer;" onclick="event.stopPropagation(); openDocumentViewer('SMT_Reflow_Thermal_Profile.xlsx')" title="뷰어로 미리보기">
+          📎 SMT_Reflow_Thermal_Profile.xlsx (2.1MB) <b style="color:#2563eb; margin-left:4px;">[👁️ 뷰어]</b>
+        </span>
       </div>
     </div>
+    <div id="pcnUploadedFileList" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;"></div>
   `;
 }
 
@@ -772,7 +787,8 @@ function renderIssueTrackForm(f) {
       </div>
     </div>
 
-    <div class="supplier-dropzone" onclick="simulateAttachSupplierFile('Issue')">
+    <div class="supplier-dropzone" onclick="document.getElementById('issueFileInput').click()" style="cursor:pointer;">
+      <input type="file" id="issueFileInput" style="display:none;" multiple onchange="handleSupplierFileUpload(event, 'Issue')">
       <i data-lucide="upload-cloud" style="width:32px; height:32px; color:#f43f5e; margin-bottom:6px;"></i>
       <div style="font-weight:700; color:var(--text-primary); font-size:0.85rem;">
         클릭하여 불량 실물 사진 (현미경/X-Ray/SEM), 라인 비가동 일지, 설비 이상 로그 첨부
@@ -780,11 +796,16 @@ function renderIssueTrackForm(f) {
       <div style="font-size:0.72rem; color:var(--text-muted); margin-top:3px;">
         지원 포맷: PNG, JPG, CSV, XLSX, PDF (최대 50MB) · 초동 증빙 락
       </div>
-      <div style="margin-top:10px; display:flex; gap:8px; justify-content:center;">
-        <span class="badge-pill badge-danger" style="font-size:0.72rem;">📎 Xray_Void_Defect_Inspection.png (3.1MB)</span>
-        <span class="badge-pill badge-danger" style="font-size:0.72rem;">📎 ASE_Dispenser_Pressure_Log.csv (450KB)</span>
+      <div style="margin-top:10px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+        <span class="badge-pill badge-danger" style="font-size:0.72rem; cursor:pointer;" onclick="event.stopPropagation(); openDocumentViewer('Xray_Void_Defect_Inspection.png')" title="뷰어로 미리보기">
+          📎 Xray_Void_Defect_Inspection.png (3.1MB) <b style="color:#f43f5e; margin-left:4px;">[👁️ 뷰어]</b>
+        </span>
+        <span class="badge-pill badge-danger" style="font-size:0.72rem; cursor:pointer;" onclick="event.stopPropagation(); openDocumentViewer('ASE_Dispenser_Pressure_Log.csv')" title="뷰어로 미리보기">
+          📎 ASE_Dispenser_Pressure_Log.csv (450KB) <b style="color:#f43f5e; margin-left:4px;">[👁️ 뷰어]</b>
+        </span>
       </div>
     </div>
+    <div id="issueUploadedFileList" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;"></div>
   `;
 }
 
@@ -973,12 +994,18 @@ function openSupplierTicketModal(ticketId) {
 
         <!-- Evidence Files -->
         <div style="margin-bottom:14px;">
-          <label style="font-size:0.78rem; font-weight:700; color:var(--text-secondary);">제출된 증빙 및 시험 성적서 파일</label>
-          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:4px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label style="font-size:0.78rem; font-weight:700; color:var(--text-secondary);">제출된 증빙 및 시험 성적서 파일 (${(ticket.evidenceFiles || []).length}건)</label>
+            <span style="font-size:0.72rem; color:var(--text-muted);">* 파일 클릭 시 통합 문서/데이터 뷰어가 즉시 실행됩니다.</span>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
             ${(ticket.evidenceFiles || []).map(f => `
-              <span class="badge-pill badge-info" style="font-size:0.75rem; padding:4px 10px;">
-                📎 <b>${f.name}</b> (${f.size})
-              </span>
+              <div class="evidence-file-chip" onclick="openDocumentViewer('${f.name}')" title="클릭하여 문서/데이터 바로보기">
+                <span class="file-icon">📄</span>
+                <span class="file-name">${f.name}</span>
+                <span class="file-size num-mono">(${f.size})</span>
+                <span class="file-view-badge">👁️ 바로보기</span>
+              </div>
             `).join('')}
           </div>
         </div>
