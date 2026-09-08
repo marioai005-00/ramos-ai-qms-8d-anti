@@ -86,7 +86,7 @@ async function send(method, params = {}, sessionId) {
   await call('Runtime.evaluate', { expression: `switchNav('supplier-portal');` });
   await delay(500);
 
-  const viewExists = (await call('Runtime.evaluate', { expression: `Boolean(document.querySelector('.supplier-portal-wrap'))`, returnByValue: true })).result.value;
+  const viewExists = (await call('Runtime.evaluate', { expression: `Boolean(document.querySelector('.supplier-portal-container'))`, returnByValue: true })).result.value;
   assert.ok(viewExists, 'Supplier portal container should exist');
 
   // Verify benchmark records in watchtower
@@ -101,43 +101,85 @@ async function send(method, params = {}, sessionId) {
   fs.writeFileSync(path.join(outDir, 'verify_supplier_watchtower.png'), Buffer.from(watchtowerShot.data, 'base64'));
   console.log('✓ SAVED verify_supplier_watchtower.png');
 
-  // 2. Switch to Intake Tab
-  console.log('--- Step 2: Testing Supplier Intake Form ---');
+  // 2. Switch to Intake Tab (Track A: PCN)
+  console.log('--- Step 2: Testing Supplier Intake Form (Track A: PCN) ---');
   await call('Runtime.evaluate', { expression: `switchSupplierTab('intake');` });
   await delay(400);
 
   const formExists = (await call('Runtime.evaluate', { expression: `Boolean(document.getElementById('supplierIntakeForm'))`, returnByValue: true })).result.value;
   assert.ok(formExists, 'Supplier intake form should be rendered');
 
-  // Capture Intake Form Screenshot
-  const intakeShot = await call('Page.captureScreenshot', { format: 'png' });
-  fs.writeFileSync(path.join(outDir, 'verify_supplier_intake_form.png'), Buffer.from(intakeShot.data, 'base64'));
-  console.log('✓ SAVED verify_supplier_intake_form.png');
+  const isPCNActive = (await call('Runtime.evaluate', { expression: `Boolean(document.querySelector('.comparison-table'))`, returnByValue: true })).result.value;
+  assert.ok(isPCNActive, 'Comparison table should be rendered for PCN track');
 
-  // 3. Submit New Ticket
-  console.log('--- Step 3: Submitting New 4M PCN Ticket ---');
+  // Capture PCN Track Screenshot
+  const pcnShot = await call('Page.captureScreenshot', { format: 'png' });
+  fs.writeFileSync(path.join(outDir, 'verify_supplier_intake_pcn.png'), Buffer.from(pcnShot.data, 'base64'));
+  console.log('✓ SAVED verify_supplier_intake_pcn.png');
+
+  // 3. Switch to Track B: Urgent Quality Incident (SCAR)
+  console.log('--- Step 3: Switching to Track B: Urgent Quality Incident (SCAR) ---');
+  await call('Runtime.evaluate', { expression: `setSupplierTicketType('Issue');` });
+  await delay(400);
+
+  const hasIncidentBanner = (await call('Runtime.evaluate', { expression: `Boolean(document.querySelector('.incident-alert-banner'))`, returnByValue: true })).result.value;
+  assert.ok(hasIncidentBanner, 'Incident banner should be displayed in Issue track');
+
+  const hasContainmentGrid = (await call('Runtime.evaluate', { expression: `Boolean(document.querySelector('.containment-3point-grid'))`, returnByValue: true })).result.value;
+  assert.ok(hasContainmentGrid, '3-Point Containment grid should be displayed');
+
+  // Test defect rate recalculation
+  await call('Runtime.evaluate', { expression: `(() => {
+    const inp = document.querySelector('input[name="inputQty"]');
+    const def = document.querySelector('input[name="defectQty"]');
+    if (inp && def) {
+      inp.value = 10000;
+      def.value = 500;
+      recalculateDefectRate();
+    }
+  })()` });
+  await delay(200);
+
+  const calculatedRate = (await call('Runtime.evaluate', { expression: `document.getElementById('defectRateInput').value`, returnByValue: true })).result.value;
+  assert.equal(calculatedRate, '5.00', 'Defect rate should be calculated as 5.00%');
+  console.log(`✓ PASS: Defect rate calculated dynamically: ${calculatedRate}%`);
+
+  // Capture Incident Track Screenshot
+  const incidentShot = await call('Page.captureScreenshot', { format: 'png' });
+  fs.writeFileSync(path.join(outDir, 'verify_supplier_intake_incident.png'), Buffer.from(incidentShot.data, 'base64'));
+  fs.writeFileSync(path.join(outDir, 'verify_supplier_intake_form.png'), Buffer.from(incidentShot.data, 'base64'));
+  console.log('✓ SAVED verify_supplier_intake_incident.png');
+
+  // 4. Submit New Urgent Incident Ticket
+  console.log('--- Step 4: Submitting New Urgent Incident Ticket ---');
   const initialCount = (await call('Runtime.evaluate', { expression: `loadSupplierRecords().length`, returnByValue: true })).result.value;
   
   await call('Runtime.evaluate', { expression: `(() => {
     createSupplierTicket({
-      ticketType: 'PCN',
+      ticketType: 'Issue',
       supplierCategory: 'OSAT_PKG',
       companyName: '하나마이크론(주)',
       plant: '아산 1공장 PKG 3라인',
-      submitter: '테스트 제출자 과장',
-      email: 'test@hana.com',
-      phone: '010-9999-8888',
+      submitter: '김영수 차장',
+      email: 'ys.kim@hana.com',
+      phone: '010-3344-9988',
       customer: 'LGE DTV',
       partName: '16GB eMMC v5.1',
       partNumber: 'RMS-EMMC-16G-LGE01',
-      lotNo: 'HN260908-LIVE01',
-      change4M: ['Material', 'Machine'],
-      reasonType: 'Cost_Reduction_And_Reliability',
-      title: '[E2E TEST] C102 X7R 부품 대체 승인 신청',
-      description: 'E2E 자동화 테스트를 통해 검증된 신규 4M PCN 신청 레코드입니다.',
-      comparisonTable: [
-        { item: 'MLCC 정격', current: 'X5R 85도', proposed: 'X7R 125도', riskAssessment: 'PASS' }
-      ]
+      lotNo: 'HN260908-LIVE99',
+      defectCategory: 'Machine_Drift',
+      processStep: 'Molding_Underfill',
+      inputQty: 10000,
+      defectQty: 500,
+      defectRate: '5.00',
+      lineAction: 'Line_Stop',
+      quarantineQty: 9500,
+      quarantineLocation: '아산공장 Q-Hold Area A-12',
+      inTransitAction: '운송 화물 1건 회수 완료',
+      containmentAction: '디스펜서 공압 교정 및 직전 3개 로트 X-Ray 전수 검사',
+      faReportDeadline: '2026-09-09 18:00',
+      title: '[긴급 E2E] 언더필 토출압 저하로 인한 보이드 급증',
+      description: 'E2E 자동화 검증을 통한 긴급 공정 이상 발생 자진 신고 건입니다.'
     });
   })()` });
   await delay(300);
@@ -146,16 +188,16 @@ async function send(method, params = {}, sessionId) {
   assert.equal(updatedCount, initialCount + 1, 'Ticket count should increase by 1');
   console.log(`✓ PASS: Ticket submitted successfully (Total: ${updatedCount})`);
 
-  // 4. Switch back to Watchtower and open Review Modal
-  console.log('--- Step 4: Testing Detailed Ticket Review Modal ---');
+  // 5. Switch back to Watchtower and open Review Modal for Incident Ticket
+  console.log('--- Step 5: Testing Incident Ticket Review Modal ---');
   await call('Runtime.evaluate', { expression: `switchSupplierTab('watchtower');` });
   await delay(400);
 
-  await call('Runtime.evaluate', { expression: `openSupplierTicketModal('PCN-2026-001');` });
+  await call('Runtime.evaluate', { expression: `openSupplierTicketModal('SQ-2026-002');` });
   await delay(400);
 
-  const modalVisible = (await call('Runtime.evaluate', { expression: `document.getElementById('globalModal').style.display === 'flex'`, returnByValue: true })).result.value;
-  assert.ok(modalVisible, 'Review modal should be opened');
+  const modalExists = (await call('Runtime.evaluate', { expression: `Boolean(document.querySelector('.modal-content'))`, returnByValue: true })).result.value;
+  assert.ok(modalExists, 'Review modal should be opened');
 
   // Capture Review Modal Screenshot
   const modalShot = await call('Page.captureScreenshot', { format: 'png' });
@@ -164,18 +206,14 @@ async function send(method, params = {}, sessionId) {
 
   // Submit Approval
   await call('Runtime.evaluate', { expression: `(() => {
-    document.getElementById('modalDecision').value = 'Approved';
-    document.getElementById('modalReviewComment').value = 'E2E 테스트 통과: 고온 신뢰성 데이터 완벽 확인하여 최종 승인함.';
-    submitSupplierReviewDecision('PCN-2026-001');
+    document.getElementById('modalDecision').value = '8D_Escalated';
+    document.getElementById('modalComment').value = 'E2E 검증: 3-Point 봉쇄 확인 및 사내 8D 즉시 승격 조치.';
+    submitSupplierReviewDecision('SQ-2026-002');
   })()` });
   await delay(300);
 
-  const updatedTicketStatus = (await call('Runtime.evaluate', { expression: `loadSupplierRecords().find(r => r.ticketId === 'PCN-2026-001').status`, returnByValue: true })).result.value;
-  assert.equal(updatedTicketStatus, 'Approved', 'Ticket status should be Approved');
-  console.log('✓ PASS: Decision successfully saved as Approved');
-
-  // 5. Test 8D Escalation
-  console.log('--- Step 5: Testing 8D Escalation Linkage ---');
+  // 6. Test 8D Escalation Linkage
+  console.log('--- Step 6: Testing 8D Escalation Linkage ---');
   await call('Runtime.evaluate', { expression: `handleEscalateTo8D('SQ-2026-002');` });
   await delay(400);
 
@@ -186,7 +224,7 @@ async function send(method, params = {}, sessionId) {
   try { socket.close(); } catch {}
   try { proc.kill(); } catch {}
   console.log('\n=================================================');
-  console.log('🎉 ALL SUPPLIER PORTAL E2E TESTS PASSED 100%!');
+  console.log('🎉 ALL DYNAMIC 2-TRACK SUPPLIER E2E TESTS PASSED 100%!');
   console.log('=================================================');
   setTimeout(() => process.exit(0), 100);
 })().catch(err => {

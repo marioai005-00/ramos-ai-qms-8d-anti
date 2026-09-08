@@ -6,11 +6,39 @@
 
 ## 📌 현재 활성 프로젝트 상태 (Latest Active Status)
 
-* **최근 업데이트 일시**: `2026-09-08 17:22 (KST)`
+* **최근 업데이트 일시**: `2026-09-08 17:38 (KST)`
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System_Antigravity`
-* **진행 상태 (Status)**: 🟢 `[COMPLETED]` / 🚀 `[SUPPLIER_PORTAL_DEPLOYED]`
+* **진행 상태 (Status)**: 🟢 `[COMPLETED]` / 🚀 `[DYNAMIC_2TRACK_SUPPLIER_PORTAL_DEPLOYED]`
 * **작업 내용 요약**:
-  1. **외주사 품질 이슈 및 4M PCN 접수·관제 포털 (`supplier-portal`) 전면 구현 및 100% E2E 검증 완료**:
+  1. **외주사 접수 양식 2-Track(4M PCN vs 공정 품질이상 긴급통보 SCAR) 동적 전환 시스템 전면 고도화 및 검증 완결**:
+     - **사용자 요청**:
+       - "여기 보면 지금 4M변경 통보나 외주 공정 품질 이상 발생 이부분에 대해서 클릭했을 떄, 아래의 내용이 바뀌면 좋겠는데?? 지금은 그냥 너무 단일로 4M내용밖에 안나오잖아!! 그러니까!! 전체적으로 다 업데이트 할 수 있는 프롬프트를 입력해주고!!/"
+     - **아키텍처 및 구현 내역**:
+       - **① 2-Track 동적 폼 분기 엔진 (`js/views/supplier_portal.js`, `css/styles.css`)**:
+         - **[Track A] 4M 변경 통보 (PCN)**:
+           - 4M 다중 체크박스(Material/Machine/Method/Man) + 사유 분류.
+           - 동적 변경 전(As-Is) vs 변경 후(To-Be) 상세 대조표(행 추가/삭제).
+           - 신뢰성 평가 샘플 제출일, 양산 희망일, 공인 시험 성적서 드롭존.
+         - **[Track B] 외주 공정 품질 이상 발생 긴급 통보 (SCAR)**:
+           - 상단 붉은색 긴급 통보 배너 (`🚨 [외주 공정 품질이상·긴급 통보 가동 중]`).
+           - **섹션 3. 공정 불량 현상 및 발생 규모**: 불량 유형(수율급락, 설비사고, 치수외관, 이물, 전기적특성 등), 발생 공정(Wafer Sawing, Die Attach, Wire Bonding, Molding/Underfill, SMT Reflow 등), 투입 수량/불량 수량 입력 시 **실시간 불량률(%) 및 PPM 자동 연산 배지**.
+           - **섹션 4. 긴급 유출 차단 및 3-Point 봉쇄 현황 (Containment & Quarantine)**:
+             - 1) 생산 라인 조치 (🔴 즉시 가동정지 Line Stop / 조건부 가동 / 정상가동).
+             - 2) 공장 내 의심 재고 격리 (수량, 보관 위치, RED HOLD 라벨 부착).
+             - 3) 운송 중 / 라모스 재고 회수 조치 및 입고 Lock.
+             - 초동 긴급 조치(ICA) 내역 기술.
+           - **섹션 5. 원인 분석 계획 및 긴급 증빙 파일 첨부**:
+             - 1차 FA 분석 결과 통보 예정일시 (24시간 이내 원칙).
+             - 라모스 본사 긴급 기술지원 요청 사항 (SQE 엔지니어 외주 현장 참관 요청).
+             - 긴급 증빙 드롭존 (현미경/X-Ray/SEM 불량 실물 사진, 비가동 일지).
+       - **② 데이터 레이어 & 모달/8D 연계 고도화 (`js/supplier_data.js`, `js/views/supplier_portal.js`)**:
+         - `SQ-2026-002` 및 신규 접수 티켓에 `incident` 객체 완전 저장.
+         - 심의 모달(`openSupplierTicketModal`): Issue 티켓 조회 시 붉은색 [불량 발생 규모 및 3-Point 긴급 봉쇄 현황] 전용 패널 제공.
+         - `🚀 8D Case 즉시 연계`: 외주 불량 건 연계 시 D2 5W2H(공정명, 투입량, 불량수, 불량률%) 및 D3 긴급 봉쇄(Line Stop, 격리 수량, 운송 회수) 자동 주입.
+       - **③ 검증 및 E2E 브라우저 테스트 통과**:
+         - `node tests/regression.cjs`: 21/21 그룹 ALL PASS!
+         - `python tests/run_full_e2e.py`: 4/4 전 스위트 100% 통과 (사이드바, 테마, 브라우저 스모크, 동적 2-Track 외주 포털).
+         - 실사 스크린샷 4종 완비: `verify_supplier_intake_pcn.png`, `verify_supplier_intake_incident.png`, `verify_supplier_incident_modal.png`, `verify_supplier_watchtower.png`.
      - **사용자 요청**: "이제 외주사 품질 Issue나 PCN같은거 접수하는 공간도 만들려고 하거든?? 그런건 어떻게 구축하면 좋을지에 대해서 프롬프트로 만들어 보자!! 일단 현재의 사이트 안에 별도의 공간으로 만들어서 접수가 되면 바로 볼 수 있도록 하는것이 목표야!!" -> "그러면 일단 현재 프롬프트를 적용해서 만들어보자!!"
      - **아키텍처 및 구현 내역**:
        - **① 데이터 레이어 (`js/supplier_data.js`)**:

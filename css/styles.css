@@ -34551,3 +34551,75 @@ html[data-theme="light"] .content-body {
   color: #7e22ce;
   border-color: #e9d5ff;
 }
+
+/* Track B: Urgent Quality Incident Styles */
+.supplier-type-card.danger-card.selected {
+  border-color: #f43f5e !important;
+  background: rgba(244, 63, 94, 0.08) !important;
+  box-shadow: 0 0 0 1px #f43f5e !important;
+}
+
+.incident-alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  color: #fecdd3;
+  font-size: 0.82rem;
+}
+[data-theme="light"] .incident-alert-banner {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #9f1239;
+}
+
+.incident-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.incident-metric-card {
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.incident-metric-card label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.containment-3point-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.containment-box {
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.containment-box-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--border);
+}

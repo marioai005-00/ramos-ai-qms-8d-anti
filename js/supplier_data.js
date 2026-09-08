@@ -121,6 +121,23 @@ const INITIAL_SUPPLIER_RECORDS = [
       plannedSampleDate: '2026-09-01',
       plannedMassDate: '2026-09-02'
     },
+    incident: {
+      defectCategory: 'Machine_Drift',
+      defectCategoryLabel: '설비 사고 / 파라미터 이탈 (공압 센서 유격)',
+      processStep: 'Molding_Underfill',
+      processStepLabel: 'Molding / Underfill (언더필 도포 공정 #4)',
+      inputQty: 4800,
+      defectQty: 864,
+      defectRate: '18.00',
+      lineAction: 'Line_Stop',
+      lineActionLabel: '🔴 BGA Line #2 즉시 가동 중단 (Line Stop)',
+      quarantineQty: 4800,
+      quarantineLocation: 'ASE 파주공장 불량격리창고 Q-Zone (RED HOLD 라벨 부착)',
+      inTransitAction: '운송 중 재고 없음 (공장 내 전량 락 완료)',
+      containmentAction: '디스펜서 공압 센서 즉시 교체 및 오프라인 영점 교정, 직전 생산 3개 로트 X-Ray 전수 선별',
+      faReportDeadline: '2026-09-02 12:00',
+      emergencySupportRequest: '라모스 SQE 엔지니어 파주 현장 참관 및 X-Ray 단면 계측 데이터 교차 검증 요청'
+    },
     evidenceFiles: [
       { name: 'ASE_Dispenser_Pressure_Log.csv', size: '450 KB', type: 'csv' },
       { name: 'Xray_Void_Defect_Inspection.png', size: '3.1 MB', type: 'image' }
@@ -240,6 +257,7 @@ function createSupplierTicket(data) {
   const min = String(now.getMinutes()).padStart(2, '0');
   const createdAt = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
 
+  const isIssue = (data.ticketType === 'Issue');
   const newTicket = {
     ticketId,
     ticketType: data.ticketType || 'PCN',
@@ -261,19 +279,33 @@ function createSupplierTicket(data) {
     },
     classification: {
       change4M: Array.isArray(data.change4M) ? data.change4M : ['Material'],
-      issueCategory: data.issueCategory || (data.ticketType === 'PCN' ? '4M_Change_Request' : 'Process_Abnormal'),
-      riskLevel: determine4MRiskLevel(data.change4M, data.reasonType),
-      reasonType: data.reasonType || 'Quality_Improvement'
+      issueCategory: data.issueCategory || (isIssue ? 'Process_Abnormal' : '4M_Change_Request'),
+      riskLevel: isIssue ? 'MAJOR' : determine4MRiskLevel(data.change4M, data.reasonType),
+      reasonType: data.reasonType || (isIssue ? 'Process_Abnormal' : 'Quality_Improvement')
     },
     details: {
-      title: data.title || '신규 접수 건',
+      title: data.title || (isIssue ? '[긴급 외주 품질이상 통보]' : '[4M 사전 변경 승인 요청]'),
       description: data.description || '',
       comparisonTable: Array.isArray(data.comparisonTable) && data.comparisonTable.length > 0 ? data.comparisonTable : [
-        { item: '주요 변경 사항', current: '현행 사양', proposed: '신규 사양', riskAssessment: '신뢰성 영향 분석 완료' }
+        { item: '주요 사양/공정 조건', current: '현행 사양 (기존)', proposed: '신규 사양 (제안)', riskAssessment: '신뢰성 영향 평가 완료' }
       ],
       plannedSampleDate: data.plannedSampleDate || '',
       plannedMassDate: data.plannedMassDate || ''
     },
+    incident: isIssue ? (data.incident || {
+      defectCategory: data.defectCategory || 'Yield_Drop',
+      processStep: data.processStep || 'Molding_Underfill',
+      inputQty: Number(data.inputQty || 0),
+      defectQty: Number(data.defectQty || 0),
+      defectRate: data.defectRate || '0.00',
+      lineAction: data.lineAction || 'Line_Stop',
+      quarantineQty: Number(data.quarantineQty || 0),
+      quarantineLocation: data.quarantineLocation || '',
+      inTransitAction: data.inTransitAction || '',
+      containmentAction: data.containmentAction || '',
+      faReportDeadline: data.faReportDeadline || '',
+      emergencySupportRequest: data.emergencySupportRequest || ''
+    }) : null,
     evidenceFiles: Array.isArray(data.evidenceFiles) ? data.evidenceFiles : [],
     sqeReview: {
       reviewer: '미지정 (접수 대기)',
