@@ -13,7 +13,7 @@
   <script src="js/vendor/xlsx.full.min.js"></script>
 
   <!-- Modular Portal Stylesheet -->
-  <link rel="stylesheet" href="css/styles.css?v=20260908_v40">
+  <link rel="stylesheet" href="css/styles.css?v=20260908_v41">
   <script>
     (function() {
       try {
@@ -280,6 +280,12 @@
         <i data-lucide="printer" style="width: 16px; height: 16px; color: #34d399;"></i>
         <span>공식 8D 리포트 출력 센터</span>
       </a>
+
+      <div class="menu-cat">Supplier & SCM Quality</div>
+      <a class="nav-item" onclick="switchNav('supplier-portal', this)" id="nav-supplier-portal">
+        <i data-lucide="factory" style="width: 16px; height: 16px; color: #f97316;"></i>
+        <span>외주 품질 & PCN 관제</span>
+      </a>
     </div>
 
     <!-- TAB 2: RAMOS ORG TREE -->
@@ -358,6 +364,10 @@
           <i data-lucide="file-text"></i>
           <span>8D 리포트</span>
         </button>
+        <button class="header-action-button" onclick="switchNav('supplier-portal')" title="외주사 품질 및 4M PCN 관제">
+          <i data-lucide="factory"></i>
+          <span>외주 PCN</span>
+        </button>
         <button class="header-action-button" onclick="if(confirm('진짜 회사 16GB 기준 데이터로 화면을 깨끗하게 새로고침하시겠습니까?')) resetToReal16GBData()" title="16GB 기준 데이터 초기화">
           <i data-lucide="rotate-ccw"></i>
           <span>초기화</span>
@@ -398,6 +408,8 @@
   <script src="js/views/d4_evidence.js?v=20260908_v27"></script>
   <script src="js/views/stage_preview.js?v=20260908_v27"></script>
   <script src="js/late_stages.js?v=20260908_v27"></script>
-  <script src="js/app.js?v=20260908_v27"></script>
+  <script src="js/supplier_data.js?v=20260908_v41"></script>
+  <script src="js/views/supplier_portal.js?v=20260908_v41"></script>
+  <script src="js/app.js?v=20260908_v41"></script>
 </body>
 </html>

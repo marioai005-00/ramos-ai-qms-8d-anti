@@ -62,7 +62,7 @@ def main():
             print("[PASS] Theme Toggle E2E Test PASSED!")
 
         # Step 3: Run Full Core Browser Smoke Test (D1-D8, AI intake, approvals, IndexedDB)
-        print("\n--- [3/3] Running Core Workflow & Architecture Browser Smoke Test ---")
+        print("\n--- [3/4] Running Core Workflow & Architecture Browser Smoke Test ---")
         res2 = subprocess.run(
             ["node", "tests/browser_smoke.cjs"],
             cwd=str(PROJECT_ROOT),
@@ -74,6 +74,20 @@ def main():
             all_passed = False
         else:
             print("[PASS] Core Browser Smoke Test PASSED!")
+
+        # Step 4: Run Supplier Quality & 4M PCN Portal E2E Test
+        print("\n--- [4/4] Running Supplier Quality & 4M PCN Portal E2E Test ---")
+        res_supp = subprocess.run(
+            ["node", "tests/test_supplier_portal_e2e.cjs"],
+            cwd=str(PROJECT_ROOT),
+            env=env,
+            capture_output=False
+        )
+        if res_supp.returncode != 0:
+            print("[FAIL] Supplier Portal E2E Test FAILED!")
+            all_passed = False
+        else:
+            print("[PASS] Supplier Portal E2E Test PASSED!")
             
     finally:
         print("\nShutting down test server...")

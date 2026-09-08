@@ -6,11 +6,29 @@
 
 ## 📌 현재 활성 프로젝트 상태 (Latest Active Status)
 
-* **최근 업데이트 일시**: `2026-09-08 17:03 (KST)`
+* **최근 업데이트 일시**: `2026-09-08 17:22 (KST)`
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System_Antigravity`
-* **진행 상태 (Status)**: 🟢 `[COMPLETED]` / 🌐 `[GITHUB_PAGES_LIVE_VERIFIED]`
+* **진행 상태 (Status)**: 🟢 `[COMPLETED]` / 🚀 `[SUPPLIER_PORTAL_DEPLOYED]`
 * **작업 내용 요약**:
-  1. **GitHub Pages 전 세계 라이브 배포 완료 및 자산 무결성 100% 검증 (`HTTP 200 OK`)**:
+  1. **외주사 품질 이슈 및 4M PCN 접수·관제 포털 (`supplier-portal`) 전면 구현 및 100% E2E 검증 완료**:
+     - **사용자 요청**: "이제 외주사 품질 Issue나 PCN같은거 접수하는 공간도 만들려고 하거든?? 그런건 어떻게 구축하면 좋을지에 대해서 프롬프트로 만들어 보자!! 일단 현재의 사이트 안에 별도의 공간으로 만들어서 접수가 되면 바로 볼 수 있도록 하는것이 목표야!!" -> "그러면 일단 현재 프롬프트를 적용해서 만들어보자!!"
+     - **아키텍처 및 구현 내역**:
+       - **① 데이터 레이어 (`js/supplier_data.js`)**:
+         - `RAMOS_SUPPLIER_RECORDS_V1` 기반 로컬스토리지 영속 저장소 구축.
+         - 벤치마크 레코드 3종 시딩 (`PCN-2026-001` 하나마이크론 MLCC X7R 대체, `SQ-2026-002` ASE Korea 언더필 압력저하 8D연계, `PCN-2026-003` 대덕전자 동박 2차벤더 승인).
+         - CRUD, 4M 위험도 자동 판정(`MAJOR`/`MINOR`), 8D Case 상호 연계 바인딩 함수 구현.
+       - **② 뷰 레이어 (`js/views/supplier_portal.js`)**:
+         - 듀얼 탭 모드 전환: `[📋 사내 SQE 실시간 관제 현황판]` vs `[📥 협력사 전용 접수 창구]`.
+         - 사내 관제 현황판: 4대 핵심 KPI 카드 (총 접수, 미검토, 심의중, 승인완료, 8D승격), 다차원 필터(협력사, 접수유형, 상태, 검색어), 종합 그리드 테이블.
+         - 심의 상세 모달: 협력사 정보, 4M 대조표, 첨부 성적서 다운로드, SQE 심의 판정 폼, A4 공문 출력 및 8D Case 즉시 연계(D2 5W2H 자동 주입).
+         - 협력사 접수 폼: 2-Track(PCN 통보 vs 공정 불량 긴급 통보), 4M 다중 선택, 동적 변경 전/후 상세 대조표(행 추가/삭제), 일정 지정, 파일 업로드 드롭존.
+       - **③ 스타일링 및 네비게이션 연동 (`css/styles.css`, `index.html`, `js/app.js`)**:
+         - 사이드바 네비게이션 (`#nav-supplier-portal`), 상단 헤더 퀵 링크 (`외주 PCN`) 연동.
+         - 다크/라이트 모드 고대비 반응형 스타일 완비.
+       - **④ 검증 결과**:
+         - 회귀 테스트 `node tests/regression.cjs`: 21/21 그룹 ALL PASS!
+         - 전체 브라우저 E2E 테스트 `python tests/run_full_e2e.py`: 4/4 전 스위트 100% 통과 (사이드바, 테마, 브라우저 스모크, 외주 포털 신규 티켓 발행/심의/8D 연계).
+         - 실사 캡처 3종 생성 및 무결성 검증 완료: `verify_supplier_watchtower.png`, `verify_supplier_intake_form.png`, `verify_supplier_review_modal.png`.
      - 사용자 초기 접속 시 404 원인: 저장소 공개 전환 후 GitHub Actions 자동 빌드/배포 워크플로우(`pages-build-deployment`)가 진행 중인 상태에서 접속 시도하여 일시적으로 표시됨.
      - 배포 완료(`Status=completed, Conclusion=success`) 후 실시간 HTTP 요청 검증:
        - 웹 접속 URL: `https://marioai005-00.github.io/ramos-ai-qms-8d-anti/` ➔ **HTTP 200 OK 정상 작동 확인!**

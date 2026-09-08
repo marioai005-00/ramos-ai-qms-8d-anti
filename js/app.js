@@ -450,6 +450,9 @@ function renderCurrentView() {
     case 'reports-hub':
       viewHtml = c ? renderReportsHubView(c) : renderNoActiveCaseView('8D Report');
       break;
+    case 'supplier-portal':
+      viewHtml = typeof renderSupplierPortalView === 'function' ? renderSupplierPortalView() : '<div>Supplier Portal Loading...</div>';
+      break;
     default:
       viewHtml = renderDashboardView();
       break;
