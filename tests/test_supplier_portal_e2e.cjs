@@ -279,7 +279,53 @@ async function send(method, params = {}, sessionId) {
   assert.equal(currentStage, 'D2', 'Should navigate to D2 stage upon escalation');
   console.log('✓ PASS: Successfully escalated to 8D Case and navigated to D2 workspace');
 
-    // 8. Test Subcontractor Account Login & Dedicated External View (mwpark / 하나마이크론)
+    // 7.5 Test Internal SQE AI Report Inspection & 1-Click Apply
+  console.log('--- Step 7.5: Testing Internal SQE AI Report Inspection & 1-Click Apply ---');
+  await call('Runtime.evaluate', { expression: `openSupplierTicketModal('PCN-2026-001');` });
+  await delay(400);
+
+  // Assert AI audit button exists for SQE
+  const hasAiAuditBtn = (await call('Runtime.evaluate', { expression: `Boolean(document.querySelector('#modalContainer button[onclick*="runSupplierAiInspection"]'))`, returnByValue: true })).result.value;
+  assert.ok(hasAiAuditBtn, 'Internal SQE should have [🤖 AI SQE 레포트 정밀 감사] button');
+
+  // Trigger AI audit
+  await call('Runtime.evaluate', { expression: `runSupplierAiInspection('PCN-2026-001');` });
+  await delay(900);
+
+  const hasAuditSheet = (await call('Runtime.evaluate', { expression: `Boolean(document.querySelector('.ai-audit-sheet'))`, returnByValue: true })).result.value;
+  assert.ok(hasAuditSheet, 'AI audit sheet should be rendered');
+
+  const auditScoreText = (await call('Runtime.evaluate', { expression: `document.querySelector('.ai-audit-grade-pill').innerText`, returnByValue: true })).result.value;
+  assert.ok(auditScoreText.includes('76점'), 'AI audit score should be 76점');
+
+  const hasDeficiency = (await call('Runtime.evaluate', { expression: `document.body.innerText.includes('DEF-01')`, returnByValue: true })).result.value;
+  assert.ok(hasDeficiency, 'Deficiency DEF-01 (HAST 96h) should be detected by AI');
+
+  // Capture AI Audit Sheet Screenshot
+  const aiAuditShot = await call('Page.captureScreenshot', { format: 'png' });
+  fs.writeFileSync(path.join(outDir, 'verify_sqe_ai_audit_sheet.png'), Buffer.from(aiAuditShot.data, 'base64'));
+  console.log('✓ PASS: AI Audit Sheet rendered with 76점 & DEF-01 -> verify_sqe_ai_audit_sheet.png');
+
+  // Test 1-Click Apply
+  await call('Runtime.evaluate', { expression: `applyAiRecommendationToReview('PCN-2026-001');` });
+  await delay(300);
+
+  const commentVal = (await call('Runtime.evaluate', { expression: `document.getElementById('modalComment').value`, returnByValue: true })).result.value;
+  assert.ok(commentVal.includes('무라타 X7R MLCC 대체 PCN'), 'Comment should be auto-filled by 1-click apply');
+
+  const decisionVal = (await call('Runtime.evaluate', { expression: `document.getElementById('modalDecision').value`, returnByValue: true })).result.value;
+  assert.equal(decisionVal, 'Revision_Requested', 'Decision should be auto-selected to Revision_Requested');
+  console.log('✓ PASS: 1-Click AI Recommendation successfully applied to review form');
+
+  // Save SQE review decision
+  await call('Runtime.evaluate', { expression: `submitSupplierReviewDecision('PCN-2026-001');` });
+  await delay(300);
+
+  const pcnStatus = (await call('Runtime.evaluate', { expression: `loadSupplierRecords().find(r=>r.ticketId==='PCN-2026-001').status`, returnByValue: true })).result.value;
+  assert.equal(pcnStatus, 'Revision_Requested', 'Ticket status should be Revision_Requested');
+  console.log('✓ PASS: SQE review decision submitted and status updated to Revision_Requested');
+
+  // 8. Test Subcontractor Account Login & Dedicated External View (mwpark / 하나마이크론)
   console.log('--- Step 8: Testing Subcontractor Account View (mwpark - 하나마이크론) ---');
   
   // Switch to subcontractor account mwpark
@@ -324,6 +370,33 @@ async function send(method, params = {}, sessionId) {
   const suppModalShot = await call('Page.captureScreenshot', { format: 'png' });
   fs.writeFileSync(path.join(outDir, 'verify_supplier_account_modal.png'), Buffer.from(suppModalShot.data, 'base64'));
   console.log('✓ PASS: Subcontractor review modal verified -> verify_supplier_account_modal.png');
+
+  // Test Subcontractor Revision Request Notice & Resubmission Modal
+  console.log('--- Step 8.2: Testing Subcontractor Free-Format Report Resubmission ---');
+  const hasResubmitBtn = (await call('Runtime.evaluate', { expression: `Boolean(document.querySelector('button[onclick*="openSupplierReportUploadModal"]'))`, returnByValue: true })).result.value;
+  assert.ok(hasResubmitBtn, 'Subcontractor modal should have [📤 보완된 자체 레포트 파일 제출] button');
+
+  // Open Resubmission Modal
+  await call('Runtime.evaluate', { expression: `openSupplierReportUploadModal('PCN-2026-001');` });
+  await delay(400);
+
+  const resubmitModalShot = await call('Page.captureScreenshot', { format: 'png' });
+  fs.writeFileSync(path.join(outDir, 'verify_supplier_resubmission_modal.png'), Buffer.from(resubmitModalShot.data, 'base64'));
+  console.log('✓ PASS: Subcontractor Resubmission modal opened -> verify_supplier_resubmission_modal.png');
+
+  // Submit revised reports
+  await call('Runtime.evaluate', { expression: `
+    const form = document.querySelector('#modalContainer form');
+    handleSupplierReportUploadSubmit({ preventDefault: () => {}, target: form }, 'PCN-2026-001');
+  ` });
+  await delay(400);
+
+  const newTicketStatus = (await call('Runtime.evaluate', { expression: `loadSupplierRecords().find(r=>r.ticketId==='PCN-2026-001').status`, returnByValue: true })).result.value;
+  assert.equal(newTicketStatus, 'Report_Submitted', 'Ticket status should be Report_Submitted after upload');
+
+  const fileCount = (await call('Runtime.evaluate', { expression: `loadSupplierRecords().find(r=>r.ticketId==='PCN-2026-001').evidenceFiles.length`, returnByValue: true })).result.value;
+  assert.ok(fileCount >= 3, 'Ticket evidenceFiles should contain revised files (at least 3 files)');
+  console.log(`✓ PASS: Subcontractor successfully submitted Rev.2 free-format reports (Total files: ${fileCount}, Status: Report_Submitted)`);
 
   await call('Runtime.evaluate', { expression: `closeModal();` });
   await delay(200);

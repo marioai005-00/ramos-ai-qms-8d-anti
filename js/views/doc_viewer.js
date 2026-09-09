@@ -222,6 +222,13 @@ function renderViewerUI(doc) {
       </div>
 
       <div class="doc-viewer-controls">
+        ${!(window.CURRENT_USER && window.CURRENT_USER.isSupplier) ? `
+          <button class="btn btn-secondary btn-sm btn-ai-viewer-audit" onclick="triggerAiAuditFromViewer()" title="AI 레포트 무결성 및 규격 정밀 감사" style="color:#38bdf8; border-color:rgba(56,189,248,0.4); font-weight:700;">
+            <i data-lucide="bot" style="width:14px; height:14px;"></i>
+            <span>🤖 AI 정밀 감사</span>
+          </button>
+        ` : ''}
+
         ${isImage ? `
           <button class="btn btn-secondary btn-sm" onclick="rotateViewerImage()" title="시계방향 90도 회전">
             <i data-lucide="rotate-cw" style="width:14px; height:14px;"></i>

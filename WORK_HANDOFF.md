@@ -6,37 +6,61 @@
 
 ## 📌 현재 활성 프로젝트 상태 (Latest Active Status)
 
-* **최근 업데이트 일시**: `2026-09-09 08:47 (KST)`
+* **최근 업데이트 일시**: `2026-09-09 09:15 (KST)`
 * **최근 작업 프로젝트**: `11_AI_Customer_Nonconformance_8D_System_Antigravity`
-* **진행 상태 (Status)**: 🟢 `[COMPLETED]` / 🛡️ `[STRICT_SUBCONTRACTOR_NAVIGATION_ISOLATION_AND_RELOCATION_DEPLOYED]`
+* **진행 상태 (Status)**: 🟢 `[COMPLETED]` / 🤖 `[AI_SQE_REPORT_AUDIT_AND_FREE_FORMAT_RESUBMISSION_DEPLOYED]`
 * **작업 내용 요약**:
-  1. **외주 품질 & PCN 관제 메뉴 위치를 종합 관제탑(Dashboard) 바로 아래로 전진 배치**:
-     - **사용자 요청**: "이 부분을 대시보드 있는곳으로 종합 관제탑 아래로 올리고!!"
-     - 기존 사이드바 맨 하단에 분리되어 있던 `외주 품질 & PCN 관제` 메뉴를 상단 `Dashboard & Overview` 카테고리 내부로 이동하여, `종합 관제탑 (Dashboard)` 바로 아래에 직관적으로 배치.
-  2. **외주사 계정 접속 시 사내 모든 8D 메뉴 및 내부 정보 100% 완전 은닉 격리**:
-     - **사용자 요청**: "외주사계정으로 접속 하였을 때, 다른 부분이 다 비활성화 되어서 보이지 않는 것이 당연한거고!! 저부분도 안보일 수 있게 해줘!! 딱 외주 협력사 품질 & 4M PCN 접수 포털 이것만 보이게 해줘!! 너무 우리회사의 다른 정보들까지 제공할 필요는 없는거니까!!"
-     - **은닉 처리된 사내 기밀 요소**:
-       - `종합 관제탑 (Dashboard)`: 사내 종합 품질 지표 및 클레임/불량 통계 은닉.
-       - `Nonconformance & Cases`: STEP 01 접수, STEP 02 Triage, 진행 Case 관리 은닉.
-       - `8D Problem Solving Flow`: Case Overview 및 D1~D8 전체 단계 워크스페이스 은닉.
-       - `Evidence & Actions`: 증거 매트릭스, 통합 액션 트래커 은닉.
-       - `Official 8D Reports`: 공식 8D 리포트 출력 센터 은닉.
-       - `RAmos 조직도`: 사내 62명 임직원 조직도 및 이메일 탭 전체 은닉.
-       - 상단 헤더: 사내 `CASE` 선택 셀렉터, `AI 검토`, `8D 리포트`, `초기화` 버튼 은닉.
-     - **외주사 계정(`mwpark`) 사이드바 단독 노출 규격**:
-       - 카테고리: `외주 협력사 포털 (하나마이크론(주))`
-       - 메뉴 항목: **`[🏭 외주 협력사 품질 & 4M PCN 접수 포털]` (단독 활성화)**
-  3. **라우팅 및 조작 원천 차단 (Navigation Guards)**:
-     - `switchNav()` 및 `switchStage()`에 외주사 보안 가드를 적용하여, URL/스크립트/단축키 등으로 사내 뷰 진입 시도시 즉각 차단.
-     - 본사 SQE 계정(`김성중`)으로 복귀 시 모든 사내 8D 메뉴 및 조직도가 100% 정상 원상 복구.
-  4. **전체 E2E 브라우저 테스트 100% 통과 (4/4 PASS)**:
-     - `tests/test_supplier_portal_e2e.cjs`에 사이드바 격리 및 헤더 차단 자동 검증 시나리오 반영.
+  1. **외주 협력사 자체 양식(Free-Format) 레포트 업로드 & 제로 프릭션 접수 체계 구현**:
+     - **사용자 철학 반영**: "최초 신고만 하고 상세 내용은 회사별로 양식과 내용이 다를 텐데 5-Why나 1차 봉쇄 박스를 강제하는 건 비효율적이다. 외주사는 AI를 쓰지 않고 자체 양식 보고서(PDF, Excel, Word, 이미지)를 그대로 업로드하도록 한다."
+     - 접수 및 보완 시 정형화된 텍스트 작성을 강제하지 않고, 외주사 사내 양식 100% 호환 드롭존을 통해 파일 업로드 중심의 무마찰(Zero-Friction) 접수 구현.
+  2. **사내 전용 AI SQE 레포트 정밀 감사 엔진 및 원클릭 적용 시스템 탑재 (`js/views/supplier_ai_audit.js`)**:
+     - **사용자 요구**: "SQE가 볼 때 뭐가 필요한지 뭐가 더 보완이 필요할지 모를 수 있으니, API를 통해 내용을 파악하고 어느 부분에 보완이 필요한지 자동으로 분석해줘! 외주사가 AI를 쓰는 게 아니라 우리가 접수받고 AI로 한 번 더 확인하는 거야!"
+     - 외주사에게는 일체 노출되지 않으며, **오직 사내 SQE(`김성중` 등)에게만 동작**하는 전문 AI 감사 어시스턴트 구축.
+     - **평가 항목**:
+       - 🔬 **신뢰성 시험 규격 적합성 판정**: AEC-Q200 TC 1,000h 실측치, HAST 96h 가속수명 누락 여부, 리플로우 피크온도 제어 등.
+       - 🔍 **5-Why 및 결함 메커니즘 완전성**: 센서 유격 외 에폭시 점도 경시변화, 노즐 미세 막힘, IMC 금속간화합물 두께 등 물리적 고장 인자 검증.
+       - ⚠️ **결측 데이터 체크리스트**: DEF-01, DEF-02 등 Critical/Major 누락 항목을 식별하여 외주사에 보완 요구할 목록 도출.
+       - 📊 **종합 품질 감사 평점**: 예) 76점 (B등급 - 조건부 보완 필요).
+     - **`[📋 SQE 심의 의견에 1초 자동 적용]` 버튼**:
+       - 클릭 시 정중하고 격식 있는 SQE 공식 보완 요청 공문 초안이 `#modalComment`에 자동 입력되며, 심의 판정 셀렉터가 `Revision_Requested`(외주사 보완 요청)로 자동 변경.
+  3. **외주사 보완 레포트 재제출(Resubmission Loop) 피드백 체계 구현**:
+     - SQE가 보완 요청(`Revision_Requested`)을 확정하면, 외주사 계정(`박민우`) 모달에 공식 보완 요청 안내 배너와 함께 **`[📤 보완된 자체 레포트 파일 제출]`** 버튼 노출.
+     - 전용 모달(`openSupplierReportUploadModal`)에서 보완된 자사 보고서(예: `Hana_eMMC_FA_8D_Report_Rev2.pdf`, `HAST_96h_Supplementary_Test_Data.xlsx`)를 드롭존으로 제출 시 파일 버전(`Rev.2`) 자동 부여 및 티켓 상태가 `Report_Submitted`로 갱신.
+  4. **통합 문서 뷰어 내 AI 감사 연동 (`js/views/doc_viewer.js`)**:
+     - 사내 SQE가 성적서 뷰어에서 문서 검토 중 상단 툴바의 **`[🤖 AI 정밀 감사]`** 버튼 클릭 시 해당 티켓의 AI 정밀 감사 패널이 즉각 실행.
+  5. **전체 E2E 브라우저 테스트 100% 통과 (4/4 PASS)**:
+     - `tests/test_supplier_portal_e2e.cjs`에 Step 7.5 (AI 감사 및 원클릭 적용) 및 Step 8.2 (외주사 보완 레포트 재제출) 자동화 검증 완료.
      - `python tests/run_full_e2e.py` 전 스위트 100% PASS 확인.
-     - 실사 검증 스크린샷 갱신: `verify_supplier_account_view.png` (완전 격리된 외주사 전용 단독 메뉴 뷰).
+     - 실사 스크린샷 산출: `verify_sqe_ai_audit_sheet.png`, `verify_supplier_resubmission_modal.png`.
 
 ---
 
 ## 📋 세션별 인수인계 이력 (Handoff History)
+
+### 🗓️ [2026-09-09 09:15] AI SQE 레포트 정밀 감사 및 외주사 자체 양식(Free-Format) 레포트 보완 제출 피드백 루프 구축 완료
+* **Git 브랜치**: `antigravity/step01-intake-agent`
+* **작업 대상 폴더**: `G:\내 드라이브\AI_Place\Work	_AI_Customer_Nonconformance_8D_System_Antigravity`
+* **원인**: 사용자 요청("외주사는 최초 신고만 하고 상세 내용은 자체 양식으로 올릴 수 있게 해주고, 우리가 접수받았을 때 AI를 통해 신뢰성이나 원인 분석에서 뭐가 부족한지 파악해서 보완을 요청하고, 외주사가 보완 레포트를 다시 제출하는 프로세스를 만들어보자!")에 따라 시스템 전격 구현.
+* **수정 내용**:
+  1. `js/views/supplier_ai_audit.js` [신규 생성]:
+     - 신뢰성 시험(TC 1000h, HAST 96h) 규격 적합성, 5-Why 고장 메커니즘, 결측 항목(DEF-01, DEF-02) 분석 엔진 탑재.
+     - 종합 평점(76점/B등급) 및 SQE 공식 심의 통보문 초안 생성.
+     - `[📋 SQE 심의 의견에 1초 자동 적용]` 원클릭 바인딩 (`applyAiRecommendationToReview`) 탑재.
+  2. `js/views/supplier_portal.js` [수정]:
+     - 심의 모달 내 SQE 전용 `[🤖 AI SQE 레포트 정밀 감사 & 보완점 추출]` 버튼 및 `#aiSupplierAuditContainer` 영역 추가.
+     - 외주사 화면 내 SQE 보완 지침 안내 배너 및 `[📤 보완된 자체 레포트 파일 제출]` 모달 (`openSupplierReportUploadModal`) 구축.
+     - `getSupplierStatusBadge`에 `Revision_Requested`(🟡 보완 요청), `Report_Submitted`(📤 레포트 제출) 상태 뱃지 편입.
+  3. `js/views/doc_viewer.js` [수정]:
+     - 성적서 뷰어 툴바에 사내 SQE 전용 `[🤖 AI 정밀 감사]` 버튼 탑재 (`triggerAiAuditFromViewer`).
+  4. `index.html` & `css/styles.css` [수정]:
+     - `<script src="js/views/supplier_ai_audit.js?v=20260909_v46"></script>` 추가 및 CSS 캐시 버스터 갱신.
+     - AI 감사 시트(`.ai-audit-sheet`), 결측 항목 카드, 원클릭 적용 버튼, 토스트 알림 CSS 추가.
+  5. `tests/test_supplier_portal_e2e.cjs` [수정]:
+     - Step 7.5 SQE AI 감사 실행 ➔ 결측치 검출 ➔ 1초 자동 적용 ➔ 보완 요청 판정 저장 검증.
+     - Step 8.2 외주사 계정 전환 ➔ 보완 요청 확인 ➔ Rev.2 자체 보고서 재제출 ➔ Report_Submitted 전환 검증.
+* **검증 결과**:
+  - `python tests/run_full_e2e.py` 4/4 ALL PASS.
+  - 실사 스크린샷 2종 검증 완료: `verify_sqe_ai_audit_sheet.png`, `verify_supplier_resubmission_modal.png`.
 
 ### 🗓️ [2026-09-09 08:47] 외주 포털 메뉴 위치 이동(종합 관제탑 하단) 및 사내 8D 정보 100% 완전 은닉 격리
 * **Git 브랜치**: `antigravity/step01-intake-agent`

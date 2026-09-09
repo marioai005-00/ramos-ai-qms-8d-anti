@@ -437,8 +437,12 @@ function getSupplierStatusBadge(status) {
   switch (status) {
     case 'Submitted':
       return `<span class="badge-status status-new">● 신규 접수</span>`;
+    case 'Report_Submitted':
+      return `<span class="badge-status status-report-submitted">📤 레포트 제출</span>`;
     case 'Under_Review':
       return `<span class="badge-status status-review">◐ 심의 중</span>`;
+    case 'Revision_Requested':
+      return `<span class="badge-status status-revision">🟡 보완 요청</span>`;
     case 'Approved':
       return `<span class="badge-status status-approved">✓ 승인 완료</span>`;
     case '8D_Escalated':
@@ -1048,7 +1052,14 @@ function openSupplierTicketModal(ticketId) {
         <div style="margin-bottom:14px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <label style="font-size:0.78rem; font-weight:700; color:var(--text-secondary);">제출된 증빙 및 시험 성적서 파일 (${(ticket.evidenceFiles || []).length}건)</label>
-            <span style="font-size:0.72rem; color:var(--text-muted);">* 파일 클릭 시 통합 문서/데이터 뷰어가 즉시 실행됩니다.</span>
+            ${!isSupplier ? `
+              <button class="btn btn-secondary btn-sm" onclick="runSupplierAiInspection('${ticket.ticketId}')" style="color:#38bdf8; border-color:rgba(56,189,248,0.4); font-weight:700; display:flex; align-items:center; gap:5px;" title="AI 레포트 정밀 감사 실행">
+                <i data-lucide="bot" style="width:14px; height:14px;"></i>
+                <span>🤖 AI SQE 레포트 정밀 감사 & 보완점 추출</span>
+              </button>
+            ` : `
+              <span style="font-size:0.72rem; color:var(--text-muted);">* 파일 클릭 시 통합 문서/데이터 뷰어가 즉시 실행됩니다.</span>
+            `}
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             ${(ticket.evidenceFiles || []).map(f => `
@@ -1056,11 +1067,14 @@ function openSupplierTicketModal(ticketId) {
                 <span class="file-icon">📄</span>
                 <span class="file-name">${f.name}</span>
                 <span class="file-size num-mono">(${f.size})</span>
+                ${f.version ? `<span class="badge-pill badge-info" style="font-size:0.65rem; padding:1px 5px;">${f.version}</span>` : ''}
                 <span class="file-view-badge">👁️ 바로보기</span>
               </div>
             `).join('')}
           </div>
         </div>
+
+        ${!isSupplier ? `<div id="aiSupplierAuditContainer" style="margin-bottom:14px;"></div>` : ''}
 
         ${isSupplier ? `
           <!-- Official SQE Decision Notification Sheet (For Subcontractor View) -->
@@ -1091,6 +1105,24 @@ function openSupplierTicketModal(ticketId) {
                 ${ticket.sqeReview?.comment || '현재 라모스 품질혁신팀에서 제출된 4M 대조표 및 신뢰성 시험 성적서를 정밀 검토 중입니다. 추가 보완 사항 발생 시 유선 또는 본 포털을 통해 통보됩니다.'}
               </div>
             </div>
+
+            ${(ticket.status === 'Revision_Requested' || ticket.status === 'Under_Review') ? `
+              <div style="margin-top:14px; background:rgba(245,158,11,0.08); border:1px dashed #f59e0b; border-radius:6px; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <div style="font-size:0.82rem; font-weight:800; color:#f59e0b; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="alert-circle" style="width:15px; height:15px;"></i>
+                    <span>보완된 자체 레포트 및 추가 시험 데이터 제출 안내</span>
+                  </div>
+                  <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">
+                    SQE 심의관의 보완 요구 사항을 반영한 자체 양식 보고서(PDF, Excel 등)를 재업로드하십시오.
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="openSupplierReportUploadModal('${ticket.ticketId}')" style="background:#f97316; border-color:#ea580c; font-weight:800; white-space:nowrap;">
+                  <i data-lucide="upload-cloud" style="width:14px; height:14px;"></i>
+                  <span>📤 보완된 자체 레포트 파일 제출</span>
+                </button>
+              </div>
+            ` : ''}
           </div>
         ` : `
           <!-- SQE Review Form (For Internal SQE Reviewer) -->
@@ -1108,6 +1140,8 @@ function openSupplierTicketModal(ticketId) {
               <div class="form-group">
                 <label class="form-label">심의 판정 선택</label>
                 <select class="form-control" id="modalDecision" style="font-weight:700;">
+                  <option value="Revision_Requested" ${ticket.status === 'Revision_Requested' ? 'selected' : ''}>🟡 외주사 보완 요청 (추가 시험 성적서/레포트 재제출 요구)</option>
+                  <option value="Report_Submitted" ${ticket.status === 'Report_Submitted' ? 'selected' : ''}>📤 외주사 레포트 제출 완료 (검토 대기)</option>
                   <option value="Under_Review" ${ticket.status === 'Under_Review' ? 'selected' : ''}>◐ 심의 중 (신뢰성 추가 성적서 보완 요구)</option>
                   <option value="Approved" ${ticket.status === 'Approved' ? 'selected' : ''}>✓ 최종 승인 (4M 변경 승인 및 양산 적용 허가)</option>
                   <option value="8D_Escalated" ${ticket.status === '8D_Escalated' ? 'selected' : ''}>⚡ 사내 8D Case 즉시 승격 (심각 품질 이슈)</option>
@@ -1133,6 +1167,12 @@ function openSupplierTicketModal(ticketId) {
 
         <div style="display:flex; gap:8px;">
           ${isSupplier ? `
+            ${(ticket.status === 'Revision_Requested' || ticket.status === 'Under_Review') ? `
+              <button class="btn btn-primary btn-sm" onclick="openSupplierReportUploadModal('${ticket.ticketId}')" style="background:#f97316; border-color:#ea580c; font-weight:800; padding:6px 14px;">
+                <i data-lucide="upload-cloud" style="width:14px; height:14px;"></i>
+                <span>📤 보완된 자체 레포트 파일 제출</span>
+              </button>
+            ` : ''}
             <button class="btn btn-primary btn-sm" onclick="closeModal()" style="font-weight:800; padding:6px 18px;">
               확인 완료 (닫기)
             </button>
@@ -1369,6 +1409,149 @@ function printSupplierApprovalDoc(ticketId) {
   printWin.document.close();
 }
 
+
+function openSupplierReportUploadModal(ticketId) {
+  const records = loadSupplierRecords();
+  const ticket = records.find(r => r.ticketId === ticketId);
+  if (!ticket) return;
+
+  const modalContainer = document.getElementById('modalContainer');
+  const globalModal = document.getElementById('globalModal');
+  if (!modalContainer) return;
+  if (globalModal) globalModal.style.display = 'flex';
+
+  modalContainer.innerHTML = `
+    <div class="modal-backdrop" onclick="closeModal()"></div>
+    <div class="modal-content" style="max-width:640px; width:95%; padding:24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px; margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="portal-brand-icon" style="background:#f97316; width:32px; height:32px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff;">
+            <i data-lucide="upload-cloud" style="width:18px; height:18px;"></i>
+          </span>
+          <div>
+            <h3 style="margin:0; font-size:1.05rem; font-weight:800; color:var(--text-primary);">
+              [${ticket.ticketId}] 외주사 자체 양식 보완 레포트 제출
+            </h3>
+            <div style="font-size:0.74rem; color:var(--text-muted); margin-top:2px;">
+              협력사 자체 8D 보고서, 추가 시험 성적서, 원인 분석 자료(자유 서식) 등록
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="openSupplierTicketModal('${ticket.ticketId}')">✕ 취소</button>
+      </div>
+
+      <!-- SQE Revision Request Summary -->
+      <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:6px; padding:10px 12px; margin-bottom:14px;">
+        <div style="font-size:0.75rem; font-weight:700; color:#f59e0b; margin-bottom:4px;">
+          ⚠️ 라모스 SQE 보완 요구 핵심 사항
+        </div>
+        <div style="font-size:0.78rem; color:var(--text-primary); line-height:1.4;">
+          ${ticket.sqeReview?.comment || '신뢰성 가속 수명 성적서 및 원인 규명 데이터 보완 요청'}
+        </div>
+      </div>
+
+      <form onsubmit="handleSupplierReportUploadSubmit(event, '${ticket.ticketId}')">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label" style="font-weight:700; font-size:0.78rem;">보완 레포트 개정 번호 / 표제</label>
+          <input type="text" class="form-control" name="reportRevisionTitle" value="[보완 2차] SQE 보완 요구사항 반영 신뢰성 가속 성적서 및 분석 리포트" required>
+        </div>
+
+        <!-- Free Format Upload Dropzone -->
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label" style="font-weight:700; font-size:0.78rem;">자체 양식 파일 첨부 (PDF, Excel, Word, PPT, 이미지)</label>
+          <div class="supplier-dropzone" onclick="document.getElementById('resubmitFileInput').click()" style="cursor:pointer; padding:20px; text-align:center; border:2px dashed #f97316; border-radius:8px; background:rgba(249,115,22,0.04);">
+            <input type="file" id="resubmitFileInput" style="display:none;" multiple onchange="handleResubmitFileSelect(event)">
+            <i data-lucide="file-up" style="width:32px; height:32px; color:#f97316; margin-bottom:6px;"></i>
+            <div style="font-weight:700; font-size:0.85rem; color:var(--text-primary);">
+              클릭하여 보완 보고서 파일 선택 또는 드래그 앤 드롭
+            </div>
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:3px;">
+              자사 사내 양식 100% 호환 (.pdf, .xlsx, .docx, .pptx, .png)
+            </div>
+            <div id="resubmitFileChips" style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:10px;">
+              <span class="badge-pill badge-warning" style="font-size:0.72rem;">
+                📎 Hana_eMMC_FA_8D_Report_Rev2.pdf (2.4MB)
+              </span>
+              <span class="badge-pill badge-warning" style="font-size:0.72rem;">
+                📎 HAST_96h_Supplementary_Test_Data.xlsx (1.7MB)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label" style="font-weight:700; font-size:0.78rem;">협력사 제출 코멘트 (선택)</label>
+          <textarea class="form-control" name="resubmitComment" rows="3" placeholder="SQE 보완 요구에 따른 변경 내용 및 추가 시험 결과를 요약 기술하십시오.">SQE 심의 지침에 따라 HAST 96h 가속 내습 성적서 및 리플로우 250℃ 실장 후 단면 SEM 사진을 추가 보완하여 자체 보고서 Rev.2로 공식 제출합니다.</textarea>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--border); padding-top:12px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openSupplierTicketModal('${ticket.ticketId}')">
+            취소
+          </button>
+          <button type="submit" class="btn btn-primary btn-sm" style="background:#f97316; border-color:#ea580c; font-weight:800; padding:6px 18px;">
+            <i data-lucide="send" style="width:14px; height:14px;"></i>
+            <span>🚀 보완 레포트 공식 제출</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
+}
+
+function handleResubmitFileSelect(e) {
+  const files = Array.from(e.target.files || []);
+  const container = document.getElementById('resubmitFileChips');
+  if (files.length > 0 && container) {
+    container.innerHTML = files.map(f => `
+      <span class="badge-pill badge-warning" style="font-size:0.72rem;">
+        📎 ${f.name} (${(f.size / 1024).toFixed(0)}KB)
+      </span>
+    `).join('');
+  }
+}
+
+function handleSupplierReportUploadSubmit(e, ticketId) {
+  e.preventDefault();
+  const records = loadSupplierRecords();
+  const ticket = records.find(r => r.ticketId === ticketId);
+  if (!ticket) return;
+
+  const form = e.target;
+  const formData = new FormData(form);
+  const resubmitComment = formData.get('resubmitComment') || '';
+
+  // Add revised files
+  ticket.evidenceFiles = ticket.evidenceFiles || [];
+  ticket.evidenceFiles.push({
+    name: 'Hana_eMMC_FA_8D_Report_Rev2.pdf',
+    size: '2.4 MB',
+    type: 'pdf',
+    version: 'Rev.2'
+  });
+  ticket.evidenceFiles.push({
+    name: 'HAST_96h_Supplementary_Test_Data.xlsx',
+    size: '1.7 MB',
+    type: 'xlsx',
+    version: 'Rev.2'
+  });
+
+  ticket.status = 'Report_Submitted';
+  if (!ticket.sqeReview) ticket.sqeReview = {};
+  const prevComment = ticket.sqeReview.comment || '';
+  ticket.sqeReview.comment = `[외주사 보완 제출 완료] ${resubmitComment}\n(직전 SQE 지침: ${prevComment})`;
+
+  saveSupplierRecords(records);
+
+  alert(`[보완 레포트 제출 완료]\n티켓 [${ticketId}]에 대한 보완 보고서 2건이 성공적으로 접수되었습니다.\n라모스 SQE 관제 화면의 상태가 'Report_Submitted'로 전환되었습니다.`);
+
+  closeModal();
+  renderCurrentView();
+}
+
 // Global exports
 if (typeof window !== 'undefined') {
   window.supplierPortalState = supplierPortalState;
@@ -1389,4 +1572,7 @@ if (typeof window !== 'undefined') {
   window.resetIntakeForm = resetIntakeForm;
   window.handleSupplierFormSubmit = handleSupplierFormSubmit;
   window.simulateAttachSupplierFile = simulateAttachSupplierFile;
+  window.openSupplierReportUploadModal = openSupplierReportUploadModal;
+  window.handleResubmitFileSelect = handleResubmitFileSelect;
+  window.handleSupplierReportUploadSubmit = handleSupplierReportUploadSubmit;
 }
