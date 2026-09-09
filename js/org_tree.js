@@ -825,6 +825,10 @@
     }
 
     function openAIAssistantModal() {
+      if (typeof window.openCustomerAiGatekeeperModal === 'function') {
+        window.openCustomerAiGatekeeperModal();
+        return;
+      }
       const c = getActiveCase();
       const modal = document.getElementById('globalModal');
       const container = document.getElementById('modalContainer');

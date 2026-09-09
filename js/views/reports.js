@@ -58,7 +58,11 @@ function renderReportsHubView(c) {
         </p>
       </div>
 
-      <div style="display:flex; gap:10px;">
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="openCustomerAiGatekeeperModal(null, currentGateKey)" style="border-color:#38bdf8; color:#38bdf8; font-weight:800; display:flex; align-items:center; gap:6px;" title="LGE 등 고객사 송부 전 AI 사전 무결성 감사">
+          <i data-lucide="sparkles" style="width:14px; height:14px; color:#38bdf8;"></i>
+          <span>🤖 LGE 고객사 송부 전 AI 사전 감사 & 반려위험 진단</span>
+        </button>
         <button class="btn btn-success btn-sm" onclick="window.print()">
           <i data-lucide="printer" style="width:14px; height:14px;"></i> 공식 리포트 A4 인쇄 / PDF 저장
         </button>

@@ -35466,3 +35466,31 @@ body.supplier-mode #menuCatOverview {
   border: 1px solid rgba(56, 189, 248, 0.35);
 }
 
+
+/* ========================================================================= */
+/* CUSTOMER 8D PRE-SUBMISSION AI GATEKEEPER STYLES                           */
+/* ========================================================================= */
+
+.gatekeeper-score-pill {
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid;
+  letter-spacing: -0.01em;
+}
+
+.btn-ai-enhance {
+  background: linear-gradient(135deg, #0284c7, #2563eb) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s ease;
+}
+
+.btn-ai-enhance:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.45);
+}
+
